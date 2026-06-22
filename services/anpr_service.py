@@ -173,7 +173,7 @@ def _ocr_image(reader, img: np.ndarray, min_conf: float) -> List[Tuple[str, floa
             img, detail=1, paragraph=False,
             decoder='greedy',
             allowlist=_PLATE_CHARS,
-            canvas_size=480,   # CRAFT detection network max resolution — smaller = faster
+            canvas_size=320,   # CRAFT detection network max resolution — smaller = faster
             mag_ratio=1.0,     # no internal magnification
             min_size=10,       # skip tiny text regions
             width_ths=0.7,     # merge nearby text boxes faster
@@ -252,30 +252,83 @@ def read_plate_crop(crop: np.ndarray) -> Optional[Dict]:
 # Full-frame plate extraction (used by ANPR video job)
 # ---------------------------------------------------------------------------
 
+def _find_plate_regions(frame: np.ndarray) -> List[tuple]:
+    """Return (x1,y1,x2,y2) bounding boxes of candidate plate regions via contours."""
+    h, w = frame.shape[:2]
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    blur = cv2.GaussianBlur(gray, (5, 5), 0)
+    edges = cv2.Canny(blur, 50, 160)
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (20, 4))
+    dilated = cv2.dilate(edges, kernel, iterations=1)
+    contours, _ = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    regions = []
+    for cnt in contours:
+        x, y, cw, ch = cv2.boundingRect(cnt)
+        if ch == 0:
+            continue
+        ratio = cw / ch
+        area = cw * ch
+        if 1.5 < ratio < 8.0 and area > 800 and cw > 40 and ch > 10:
+            px = max(int(cw * 0.08), 5)
+            py = max(int(ch * 0.20), 4)
+            regions.append((
+                max(0, x - px), max(0, y - py),
+                min(w, x + cw + px), min(h, y + ch + py),
+            ))
+    return regions
+
+
 def extract_plates_from_frame(frame: np.ndarray) -> List[Dict]:
     """
-    Run multi-pass OCR directly on a full video frame.
-    Used when no separate plate-detector model is available.
+    Run OCR on a full video frame.
+    Strategy: use OpenCV contours to find plate-shaped regions first,
+    run EasyOCR only on those tiny crops (fast). Falls back to the
+    full cropped frame if no regions are found.
     """
     reader = _get_reader()
     if reader is None:
         return []
 
-    # Crop lower 65% — plates are never in the sky/ceiling area, halves CRAFT scan area
+    # Work on the bottom 50% — plates are never in the sky/ceiling
     h, w = frame.shape[:2]
-    frame = frame[int(h * 0.35):, :]
+    roi = frame[int(h * 0.50):, :]
 
-    # Resize to 480 px wide max — still legible for plates
-    h, w = frame.shape[:2]
-    if w > 480:
-        scale = 480 / w
-        frame = cv2.resize(frame, (480, int(h * scale)))
-
-    images = [_with_border(frame)]
+    # Downscale for contour detection (pure OpenCV — no neural net cost)
+    rh, rw = roi.shape[:2]
+    if rw > 640:
+        scale = 640 / rw
+        roi_small = cv2.resize(roi, (640, int(rh * scale)))
+    else:
+        roi_small = roi
+        scale = 1.0
 
     candidates: List[Tuple[str, float]] = []
-    for img in images:
-        candidates.extend(_ocr_image(reader, img, MIN_OCR_CONF))
+
+    regions = _find_plate_regions(roi_small)
+    if regions:
+        # Run EasyOCR only on each small crop — much faster than full frame
+        for (x1, y1, x2, y2) in regions:
+            # Scale coords back to roi size
+            sx1 = int(x1 / scale); sy1 = int(y1 / scale)
+            sx2 = int(x2 / scale); sy2 = int(y2 / scale)
+            crop = roi[sy1:sy2, sx1:sx2]
+            if crop.size == 0:
+                continue
+            # Upscale tiny crops so EasyOCR can read them
+            ch, cw = crop.shape[:2]
+            if cw < 120:
+                up = max(2.0, 120 / cw)
+                crop = cv2.resize(crop, (int(cw * up), int(ch * up)), interpolation=cv2.INTER_CUBIC)
+            candidates.extend(_ocr_image(reader, _with_border(crop), MIN_VAR_CONF))
+
+    if not candidates:
+        # Fallback: run on the full bottom-half frame at reduced size
+        if rw > 320:
+            fscale = 320 / rw
+            roi_small2 = cv2.resize(roi, (320, int(rh * fscale)))
+        else:
+            roi_small2 = roi
+        candidates.extend(_ocr_image(reader, _with_border(roi_small2), MIN_OCR_CONF))
 
     # Deduplicate by plate text, keep highest confidence
     best: Dict[str, float] = {}
