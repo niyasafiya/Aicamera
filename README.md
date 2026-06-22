@@ -1,161 +1,177 @@
-# Sentinel API — Vehicle & Logistics module
+# Sentinel — AI Video Analytics Console
 
-A small **Python backend (API)** for one module of the Technomak video-analytics
-project. It is written with **FastAPI** and is designed to be read and run by a
-beginner.
-
-This module implements two of your requirements:
-
-| Requirement | What it does | Status |
-|-------------|--------------|--------|
-| **FR-V1** Vehicle Turnaround Time | Records when a vehicle enters and exits, then calculates how long it stayed | ✅ Fully working |
-| **FR-V2** Near-miss collisions | Receives and stores forklift↔pedestrian near-miss events | ✅ Event intake working |
+A full-stack warehouse security and operations platform built for **Technomak**.  
+Single-page control-room UI backed by a FastAPI server with real computer-vision pipelines.
 
 ---
 
-## What is an "API" and why is it separate from the cameras?
+## Features
 
-Think of the system in three layers:
-
-1. **Cameras + AI vision model** — watches the video and *detects* things
-   ("a vehicle entered", "a forklift came within 0.8 m of a person").
-2. **This API (the backend)** — *receives* those detections, stores them, and
-   does the maths (durations, averages, status labels).
-3. **The frontend (your UI mockup)** — *displays* the results to the operator.
-
-This project is **layer 2**. It does not look at video itself. That is why you
-can build and run it fully in Python without any AI model — the model is a
-separate job (that is the part people call "fine-tuning", explained below).
-
-### About "fine-tuning"
-
-Fine-tuning means taking an existing AI vision model and *training it further on
-warehouse photos* so it gets good at spotting forklifts, vests, plates, etc.
-That needs labelled image datasets and usually a GPU, and it is a separate piece
-of work from this API. This backend is built to *consume* whatever the model
-produces, so the two can be developed independently.
+| Module | Capability |
+|--------|-----------|
+| **ANPR** (Automatic Number Plate Recognition) | Upload gate-camera footage → detect Indian licence plates via EasyOCR → cross-check against an authorised-vehicle whitelist → log every entry/exit decision |
+| **Biometric Auth** | Face recognition via DeepFace — enrol employees, verify against stored embeddings |
+| **Object Detection** | YOLOv4-tiny & YOLOv8n inference on uploaded video frames — people, PPE, vehicles, forklifts |
+| **Live MJPEG Streams** | Per-camera MJPEG endpoints served by OpenCV |
+| **Gate & Access** | Whitelist management (add / remove plates), access log, facial recognition + tailgating detection |
+| **People & Safety** | PPE compliance monitoring, zone intrusion alerts |
+| **Vehicle & Logistics** | Turnaround time tracking, near-miss event intake |
+| **Operations Overview** | Real-time KPI dashboard, 4-camera live feed grid, event feed |
 
 ---
 
-## Folder structure
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Backend API | FastAPI + Uvicorn |
+| Computer Vision | OpenCV, EasyOCR, DeepFace, YOLOv4-tiny, YOLOv8n (Ultralytics) |
+| Database | SQLite (via `db.py`) |
+| Frontend | Single self-contained HTML file — no build step |
+| ML deps | NumPy, Pillow, SciPy, TensorFlow/Keras |
+
+---
+
+## Project Structure
 
 ```
-technomak-api/
-├── app/
-│   ├── __init__.py      <- marks "app" as a Python package (can be empty)
-│   └── main.py          <- the whole API lives here
-├── requirements.txt     <- the libraries to install
-└── README.md            <- this file
+Ai Camera/
+├── main.py                          # FastAPI app entry point
+├── db.py                            # SQLite connection helper
+├── technomak-video-analytics-console.html  # Full frontend UI
+├── requirements.txt
+├── start.bat / start_server.bat     # Windows one-click launchers
+│
+├── routers/
+│   ├── anpr.py                      # ANPR upload, job polling, whitelist, access log
+│   ├── biometric.py                 # Face enrol & verify endpoints
+│   ├── streams.py                   # MJPEG camera stream endpoints
+│   └── vehicles.py                  # Vehicle turnaround & near-miss endpoints
+│
+├── services/
+│   ├── anpr_service.py              # EasyOCR multi-pass plate extraction
+│   ├── bio_service.py               # DeepFace embedding enrol/verify
+│   ├── yolo_service.py              # YOLOv4-tiny / YOLOv8n inference
+│   └── demo_pipeline.py             # Demo detection pipeline
+│
+├── app/                             # Alternate standalone app module
+│   ├── anpr.py
+│   ├── biometric.py
+│   ├── database.py
+│   └── main.py
+│
+├── models/
+│   ├── yolov4-tiny.weights          # YOLOv4-tiny weights
+│   ├── yolov4-tiny.cfg
+│   ├── coco.names
+│   └── yolov8n.pt                   # YOLOv8n weights
+│
+├── faces/                           # Enrolled face images
+├── uploads/                         # Temporary video uploads (auto-cleaned)
+└── data/                            # Static reference data
 ```
 
 ---
 
-## How to run it (step by step, for beginners)
+## Setup & Run
 
-You need **Python 3.9 or newer** installed. Check by running `python --version`.
+**Requirements:** Python 3.10+
 
-Open a terminal **inside the `technomak-api` folder** (in VS Code: Terminal →
-New Terminal), then:
+### 1. Create and activate a virtual environment
 
-**1) Create a virtual environment** (a private box for this project's libraries)
-
-Windows:
-```
+```bash
+# Windows
 python -m venv venv
 venv\Scripts\activate
-```
 
-Mac / Linux:
-```
+# Mac / Linux
 python3 -m venv venv
 source venv/bin/activate
 ```
 
-You should now see `(venv)` at the start of your terminal line.
+### 2. Install dependencies
 
-**2) Install the libraries**
-```
+```bash
 pip install -r requirements.txt
 ```
 
-**3) Start the server**
+> First run downloads EasyOCR and DeepFace model weights automatically (~500 MB).
+
+### 3. Start the server
+
+**Windows (one-click):**
 ```
-uvicorn app.main:app --reload
+start_server.bat
 ```
 
-You should see a line like `Uvicorn running on http://127.0.0.1:8000`.
-Leave this terminal running. (Press `Ctrl + C` to stop it later.)
+**Or manually:**
+```bash
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
 
-**4) Open the interactive docs in your browser**
+### 4. Open the console
 
-Go to: **http://127.0.0.1:8000/docs**
+Open `technomak-video-analytics-console.html` directly in your browser.  
+The UI connects to `http://127.0.0.1:8000` automatically.
 
-This page is created automatically by FastAPI. You can click any endpoint →
-**"Try it out"** → **Execute**, and see the real response. No frontend needed
-to test it. This page alone is great to show in an internship demo.
+Interactive API docs: **http://127.0.0.1:8000/docs**
 
 ---
 
-## The endpoints (what you can call)
+## API Endpoints
 
-Base address: `http://127.0.0.1:8000`
+### ANPR
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/v1/anpr/upload` | Upload gate video → start background OCR job |
+| `GET` | `/api/v1/anpr/job/{job_id}` | Poll job status & results |
+| `GET` | `/api/v1/anpr/authorized` | List whitelisted vehicles |
+| `POST` | `/api/v1/anpr/authorized` | Add vehicle to whitelist |
+| `DELETE` | `/api/v1/anpr/authorized/{plate}` | Remove vehicle from whitelist |
+| `GET` | `/api/v1/anpr/log` | Recent access log |
 
-### Health
-- `GET /` — check the server is alive.
+### Biometric
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/v1/biometric/enrol` | Enrol an employee face |
+| `POST` | `/api/v1/biometric/verify` | Verify face against enrolled embeddings |
 
-### FR-V1 — Turnaround time
-- `POST /api/v1/vehicles/entry` — record a vehicle entering.
-  Send: `{ "plate": "KL07 CK 4521" }`
-- `POST /api/v1/vehicles/exit` — record a vehicle leaving (calculates duration).
-  Send: `{ "plate": "KL07 CK 4521" }`
-- `GET /api/v1/vehicles` — list every visit with duration + status.
-- `GET /api/v1/vehicles/onsite` — only vehicles currently inside.
-- `GET /api/v1/analytics/turnaround` — average turnaround + chart buckets.
+### Vehicles
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/v1/vehicles/entry` | Record vehicle entry |
+| `POST` | `/api/v1/vehicles/exit` | Record vehicle exit (calculates turnaround) |
+| `GET` | `/api/v1/vehicles` | All vehicle visits |
+| `GET` | `/api/v1/vehicles/onsite` | Vehicles currently on site |
+| `GET` | `/api/v1/analytics/turnaround` | Average turnaround stats |
 
-### FR-V2 — Near-miss
-- `POST /api/v1/near-miss` — store a near-miss event.
-  Send: `{ "forklift_id": "FL-3", "location": "Aisle 6", "gap_meters": 0.8 }`
-- `GET /api/v1/near-miss` — list near-miss events.
-
-The server starts with some **sample data already loaded**, so the lists are not
-empty the first time you look.
-
----
-
-## Try it without the docs page (optional)
-
-Using `curl` from another terminal:
-
-```
-# See current vehicles
-curl http://127.0.0.1:8000/api/v1/vehicles
-
-# Record a new entry
-curl -X POST http://127.0.0.1:8000/api/v1/vehicles/entry -H "Content-Type: application/json" -d "{\"plate\": \"KL99 ZZ 0001\"}"
-
-# Record its exit (gives you the turnaround time)
-curl -X POST http://127.0.0.1:8000/api/v1/vehicles/exit -H "Content-Type: application/json" -d "{\"plate\": \"KL99 ZZ 0001\"}"
-```
+### Streams
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/stream/{cam_id}` | MJPEG stream for a camera (cam01, cam12, etc.) |
 
 ---
 
-## How the status colours are decided
+## ANPR Pipeline
 
-- `Cleared` (green) — left within the target time.
-- `On site` (amber) — still inside.
-- `Over SLA` (red) — stayed longer than the allowed time (`SLA_MINUTES`, default 60).
-
-Near-miss severity from the gap distance:
-`critical` if under 1.0 m, `warning` if under 1.5 m, otherwise `info`.
+1. Video uploaded → saved to `uploads/`
+2. Background thread samples up to **5 evenly-spaced frames** (one every 4 s)
+3. Each frame is cropped to the bottom 65 % and resized to 480 px wide
+4. EasyOCR runs with `canvas_size=480` (fast CRAFT detection)
+5. Detected text is cleaned, validated against Indian plate regex, and OCR-confusion characters are corrected (O↔0, I↔1, S↔5, etc.)
+6. Plates are fuzzy-matched (Levenshtein ≤ 1) against the whitelist
+7. Results written to `anpr_plates` and `anpr_log` tables; job marked `completed`
 
 ---
 
-## Good next steps (if you want to go further)
+## Biometric Pipeline
 
-1. **Save data in a real database** so it survives a restart (start with SQLite —
-   it is built into Python).
-2. **Connect the frontend**: replace the hard-coded table on the Vehicle &
-   Logistics screen with a `fetch("http://127.0.0.1:8000/api/v1/vehicles")` call.
-   (Your UI does not need to change in layout — only where the numbers come from.)
-3. **Add the other modules** the same way (Gate, Safety, Material & DN), one
-   router file per module.
+1. Enrolment: face image uploaded → DeepFace extracts embedding → stored in `faces/`
+2. Verification: query image compared against all stored embeddings using cosine similarity
+3. Returns match name, confidence score, and GRANTED / DENIED decision
+
+---
+
+## Licence
+
+Internal project — Technomak. Not for public distribution.
