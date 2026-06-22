@@ -1,0 +1,3166 @@
+<!-- Technomak · Sentinel — AI Video Analytics Console
+     Professional control-room build: tabbed workspace + draggable pop-out windows.
+     Single self-contained file. Sign in, then open modules as tabs from the left rail.
+     Toggle "FR tags" (top bar) to overlay requirement codes onto each component. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sentinel Console — Technomak</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-base:#0A0E13; --bg-panel:#10151D; --bg-elevated:#161D27; --bg-tile:#0C1117;
+    --bg-chrome:#0D1219;
+    --hair:#212B38; --hair-soft:rgba(255,255,255,.055);
+    --text:#E8EDF2; --muted:#8794A2; --muted-2:#56636F;
+    --clear:#28C9A8; --watch:#F0A93B; --alert:#F2566E; --active:#4D7CFE;
+    --clear-dim:rgba(40,201,168,.13); --watch-dim:rgba(240,169,59,.13);
+    --alert-dim:rgba(242,86,110,.13); --active-dim:rgba(77,124,254,.14);
+    --mono:"JetBrains Mono",ui-monospace,"SF Mono",Consolas,monospace;
+    --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --radius:9px; --radius-sm:6px;
+    --rail-w:236px; --tabbar-h:40px; --status-h:30px; --top-h:56px;
+    --shadow:0 18px 50px rgba(0,0,0,.55),0 2px 8px rgba(0,0,0,.4);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:
+      radial-gradient(1100px 560px at 82% -12%,rgba(77,124,254,.06),transparent 60%),
+      radial-gradient(820px 460px at -8% 112%,rgba(40,201,168,.045),transparent 55%),
+      var(--bg-base);
+    color:var(--text); font-family:var(--sans); font-size:13.5px; line-height:1.45;
+    -webkit-font-smoothing:antialiased; overflow:hidden;
+  }
+
+  /* ================= SIGN-IN ================= */
+  #signin{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;
+    background:
+      radial-gradient(900px 500px at 50% 20%,rgba(77,124,254,.10),transparent 60%),
+      linear-gradient(180deg,#0A0E13,#070A0E);}
+  #signin.hide{display:none}
+  .card{width:360px;background:linear-gradient(180deg,var(--bg-panel),#0D131B);
+    border:1px solid var(--hair);border-radius:16px;padding:30px;box-shadow:var(--shadow)}
+  .card .lock-logo{display:flex;align-items:center;gap:11px;margin-bottom:22px}
+  .logo{width:36px;height:36px;border-radius:9px;position:relative;flex:0 0 auto;
+    background:radial-gradient(circle at 30% 25%,#1d2a3a,#0c121a);border:1px solid var(--hair)}
+  .logo:before,.logo:after{content:"";position:absolute;width:10px;height:10px;border:2px solid var(--clear)}
+  .logo:before{top:7px;left:7px;border-right:0;border-bottom:0}
+  .logo:after{bottom:7px;right:7px;border-left:0;border-top:0}
+  .card b{font-size:16px;letter-spacing:.02em} .card small{display:block;color:var(--muted-2);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase}
+  .card h2{margin:0 0 4px;font-size:18px;font-weight:600}
+  .card p{margin:0 0 20px;color:var(--muted);font-size:12.5px}
+  .field{margin-bottom:13px}
+  .field label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:6px}
+  .field input{width:100%;background:var(--bg-tile);border:1px solid var(--hair);color:var(--text);
+    border-radius:8px;padding:10px 12px;font-family:inherit;font-size:13px}
+  .field input:focus{outline:none;border-color:var(--active);box-shadow:0 0 0 3px var(--active-dim)}
+  #signinBtn{width:100%;margin-top:6px}
+  .card .meta{margin-top:18px;text-align:center;color:var(--muted-2);font-family:var(--mono);font-size:10.5px}
+
+  /* ================= CONSOLE SHELL ================= */
+  .console{display:grid;grid-template-columns:var(--rail-w) 1fr;
+    grid-template-rows:1fr var(--status-h);height:100vh}
+
+  /* ---------- Sidebar ---------- */
+  .rail{grid-row:1 / span 2;border-right:1px solid var(--hair);
+    background:linear-gradient(180deg,var(--bg-chrome),rgba(13,18,25,.7));
+    display:flex;flex-direction:column;overflow:hidden}
+  .brand{display:flex;align-items:center;gap:11px;padding:16px 16px;border-bottom:1px solid var(--hair)}
+  .brand b{font-size:14.5px;letter-spacing:.03em;font-weight:650}
+  .brand small{display:block;color:var(--muted-2);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase}
+  .nav{padding:10px 9px;overflow-y:auto;flex:1}
+  .nav-label{color:var(--muted-2);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;padding:13px 9px 6px}
+  .nav button{width:100%;display:flex;align-items:center;gap:11px;background:transparent;border:0;
+    color:var(--muted);padding:8px 10px;border-radius:7px;cursor:pointer;text-align:left;
+    font-family:inherit;font-size:13px;transition:background .14s,color .14s}
+  .nav button:hover{background:var(--hair-soft);color:var(--text)}
+  .nav button.active{background:var(--active-dim);color:var(--text)}
+  .nav button.active .ico{color:var(--active)}
+  .ico{width:17px;height:17px;flex:0 0 auto;color:var(--muted-2)}
+  .nav button .badge{margin-left:auto;font-family:var(--mono);font-size:10px;background:var(--alert);
+    color:#240008;padding:0 6px;border-radius:20px;font-weight:700;line-height:16px}
+  .health{margin:9px;padding:11px;border:1px solid var(--hair);border-radius:var(--radius);background:var(--bg-tile)}
+  .health .row{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;font-size:11.5px}
+  .health .row:last-child{margin-bottom:0}
+  .health small{color:var(--muted)} .health b{font-family:var(--mono);font-size:12px}
+  .dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+  .dot.live{background:var(--clear);animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 2px var(--clear-dim)}50%{box-shadow:0 0 0 5px transparent}}
+
+  /* ---------- Top bar ---------- */
+  .main{display:flex;flex-direction:column;min-width:0;overflow:hidden}
+  .topbar{display:flex;align-items:center;gap:14px;height:var(--top-h);flex:0 0 auto;
+    padding:0 18px;border-bottom:1px solid var(--hair);background:rgba(10,14,19,.8);backdrop-filter:blur(8px)}
+  .facility{display:flex;align-items:center;gap:8px}
+  .facility select{background:var(--bg-elevated);color:var(--text);border:1px solid var(--hair);
+    border-radius:7px;padding:7px 10px;font-family:inherit;font-size:12.5px;cursor:pointer}
+  .search{flex:1;max-width:380px;position:relative}
+  .search input{width:100%;background:var(--bg-tile);border:1px solid var(--hair);color:var(--text);
+    border-radius:7px;padding:8px 11px 8px 33px;font-family:inherit;font-size:12.5px}
+  .search input:focus{outline:none;border-color:var(--active);box-shadow:0 0 0 3px var(--active-dim)}
+  .search input::placeholder{color:var(--muted-2)}
+  .search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted-2)}
+  .spacer{margin-left:auto}
+  .clock{font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+  .toggle{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--muted);cursor:pointer;user-select:none}
+  .switch{width:34px;height:19px;border-radius:20px;background:var(--bg-elevated);border:1px solid var(--hair);position:relative;transition:.18s}
+  .switch:after{content:"";position:absolute;width:13px;height:13px;border-radius:50%;background:var(--muted);top:2px;left:2px;transition:.18s}
+  .toggle.on .switch{background:var(--active-dim);border-color:var(--active)}
+  .toggle.on .switch:after{left:17px;background:var(--active)}
+  .iconbtn{position:relative;width:36px;height:36px;border-radius:8px;border:1px solid var(--hair);
+    background:var(--bg-elevated);display:grid;place-items:center;cursor:pointer;color:var(--muted)}
+  .iconbtn:hover{color:var(--text);border-color:var(--active)}
+  .iconbtn .count{position:absolute;top:-6px;right:-6px;background:var(--alert);color:#240008;
+    font-family:var(--mono);font-size:9.5px;font-weight:700;border-radius:20px;padding:0 5px;border:2px solid var(--bg-base)}
+  .avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#2a3a4f,#16202c);
+    border:1px solid var(--hair);display:grid;place-items:center;font-weight:700;font-size:12.5px;color:var(--clear)}
+
+  /* ---------- Tab strip ---------- */
+  .tabbar{display:flex;align-items:flex-end;height:var(--tabbar-h);flex:0 0 auto;
+    background:var(--bg-chrome);border-bottom:1px solid var(--hair);padding:0 8px;gap:2px;overflow-x:auto;overflow-y:hidden}
+  .tabbar::-webkit-scrollbar{height:0}
+  .tab{display:flex;align-items:center;gap:8px;height:31px;padding:0 11px;cursor:pointer;
+    background:transparent;border:1px solid transparent;border-bottom:0;border-radius:8px 8px 0 0;
+    color:var(--muted);font-size:12.5px;white-space:nowrap;position:relative;top:1px;transition:background .12s,color .12s}
+  .tab:hover{background:var(--hair-soft);color:var(--text)}
+  .tab.active{background:var(--bg-base);border-color:var(--hair);color:var(--text)}
+  .tab.active:after{content:"";position:absolute;left:0;right:0;top:-1px;height:2px;background:var(--active);border-radius:2px}
+  .tab .ti{width:14px;height:14px;color:currentColor;opacity:.8}
+  .tab .x{width:16px;height:16px;border-radius:4px;display:grid;place-items:center;font-size:13px;color:var(--muted-2)}
+  .tab .x:hover{background:var(--hair);color:var(--text)}
+  .tab.pinned .x{display:none}
+
+  /* ---------- Content ---------- */
+  .stage{position:relative;flex:1;overflow:auto}
+  .view{padding:20px;display:none}
+  .view.on{display:block}
+  .crumb{font-family:var(--mono);font-size:11px;color:var(--muted-2);margin-bottom:10px;letter-spacing:.02em}
+  .crumb b{color:var(--muted)}
+  .view-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:18px;gap:16px;flex-wrap:wrap}
+  .view-head h1{margin:0;font-size:20px;font-weight:650;letter-spacing:-.01em}
+  .view-head p{margin:4px 0 0;color:var(--muted);font-size:12.5px;max-width:62ch}
+  .eyebrow{color:var(--clear);font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;margin-bottom:5px}
+
+  .grid{display:grid;gap:15px}
+  .panel{background:var(--bg-panel);border:1px solid var(--hair);border-radius:var(--radius);overflow:hidden}
+  .panel-head{display:flex;align-items:center;gap:9px;padding:12px 15px;border-bottom:1px solid var(--hair)}
+  .panel-head h3{margin:0;font-size:13px;font-weight:600}
+  .panel-head .sub{color:var(--muted-2);font-size:11px;margin-left:auto;font-family:var(--mono)}
+  .panel-body{padding:15px}
+
+  .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:13px}
+  .kpi{background:var(--bg-panel);border:1px solid var(--hair);border-radius:var(--radius);padding:13px;position:relative;overflow:hidden}
+  .kpi .lab{color:var(--muted);font-size:11px}
+  .kpi .val{font-family:var(--mono);font-size:24px;font-weight:600;margin-top:5px;letter-spacing:-.01em}
+  .kpi .delta{font-size:10.5px;font-family:var(--mono);margin-top:4px}
+  .kpi .accent{position:absolute;left:0;top:0;bottom:0;width:3px}
+  .up{color:var(--clear)} .down{color:var(--alert)} .flat{color:var(--muted-2)}
+
+  .feeds{display:grid;grid-template-columns:repeat(2,1fr);gap:13px}
+  .cam{background:var(--bg-tile);border:1px solid var(--hair);border-radius:var(--radius);overflow:hidden;position:relative}
+  .scene{height:166px;position:relative;overflow:hidden;background:#06090d}
+  .scanline{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--clear),transparent);opacity:.45;animation:scan 4.5s linear infinite}
+  @keyframes scan{0%{top:-2px}100%{top:168px}}
+  .cam-meta{display:flex;align-items:center;gap:8px;padding:9px 11px;border-top:1px solid var(--hair);font-size:11.5px}
+  .cam-meta .name{font-weight:600} .cam-meta .id{font-family:var(--mono);color:var(--muted-2);font-size:10.5px}
+  .cam-meta .right{margin-left:auto;display:flex;align-items:center;gap:9px}
+  .cam-meta .live{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;color:var(--clear);letter-spacing:.1em}
+  .popout{width:24px;height:24px;border-radius:5px;border:1px solid var(--hair);background:var(--bg-elevated);
+    display:grid;place-items:center;cursor:pointer;color:var(--muted)}
+  .popout:hover{color:var(--active);border-color:var(--active)}
+
+  .bb{position:absolute;border:1.5px solid var(--clear);border-radius:2px}
+  .bb .tag{position:absolute;top:-17px;left:-1.5px;background:var(--clear);color:#042019;
+    font-family:var(--mono);font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;white-space:nowrap}
+  .bb.warn{border-color:var(--watch)} .bb.warn .tag{background:var(--watch);color:#241700}
+  .bb.crit{border-color:var(--alert);animation:flash 1.1s infinite} .bb.crit .tag{background:var(--alert);color:#2a0009}
+  @keyframes flash{0%,100%{opacity:1}50%{opacity:.5}}
+
+  .feed{display:flex;flex-direction:column}
+  .ev{display:flex;gap:11px;padding:11px 15px;border-bottom:1px solid var(--hair-soft);align-items:flex-start}
+  .ev:last-child{border-bottom:0}
+  .sev{width:7px;height:7px;border-radius:50%;margin-top:6px;flex:0 0 auto}
+  .sev.crit{background:var(--alert);box-shadow:0 0 0 3px var(--alert-dim)}
+  .sev.watch{background:var(--watch);box-shadow:0 0 0 3px var(--watch-dim)}
+  .sev.clear{background:var(--clear);box-shadow:0 0 0 3px var(--clear-dim)}
+  .ev .body{flex:1;min-width:0}
+  .ev .t{font-size:12.5px;font-weight:550} .ev .d{color:var(--muted);font-size:11.5px;margin-top:2px}
+  .ev .when{font-family:var(--mono);font-size:10.5px;color:var(--muted-2);white-space:nowrap}
+  .ev .ev-dismiss{background:none;border:none;color:var(--muted-2);font-size:14px;line-height:1;cursor:pointer;padding:2px 5px;border-radius:3px;opacity:0;transition:opacity .12s,background .12s;flex:0 0 auto;align-self:center}
+  .ev:hover .ev-dismiss{opacity:1}
+  .ev .ev-dismiss:hover{background:rgba(242,86,110,.18);color:var(--alert)}
+  .ev .act{margin-top:7px;display:flex;gap:7px;flex-wrap:wrap}
+
+  .btn{font-family:inherit;font-size:12px;border-radius:6px;padding:6px 11px;cursor:pointer;
+    border:1px solid var(--hair);background:var(--bg-elevated);color:var(--text);transition:.14s}
+  .btn:hover{border-color:var(--active)}
+  .btn.pri{background:var(--active);border-color:var(--active);color:#05101f;font-weight:600}
+  .btn.danger{background:transparent;border-color:var(--alert);color:var(--alert)}
+  .btn.ghost{background:transparent;color:var(--muted)}
+  .btn.sm{padding:4px 9px;font-size:11px}
+
+  .chip{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10.5px;padding:3px 8px;border-radius:20px;border:1px solid var(--hair);color:var(--muted)}
+  .chip.ok{color:var(--clear);border-color:rgba(40,201,168,.4);background:var(--clear-dim)}
+  .chip.warn{color:var(--watch);border-color:rgba(240,169,59,.4);background:var(--watch-dim)}
+  .chip.crit{color:var(--alert);border-color:rgba(242,86,110,.4);background:var(--alert-dim)}
+
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{text-align:left;color:var(--muted-2);font-weight:500;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;padding:9px 14px;border-bottom:1px solid var(--hair)}
+  td{padding:10px 14px;border-bottom:1px solid var(--hair-soft)}
+  tr:last-child td{border-bottom:0}
+  td.mono,.m{font-family:var(--mono);font-size:11.5px}
+  tbody tr:hover{background:var(--hair-soft)}
+
+  .fr{display:none;font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.04em;
+    background:var(--active-dim);color:var(--active);border:1px solid rgba(77,124,254,.45);
+    padding:1px 6px;border-radius:5px;vertical-align:middle;margin-left:7px}
+  body.show-fr .fr{display:inline-block}
+
+  .gauge{position:relative;width:112px;height:112px;margin:0 auto}
+  .gauge svg{transform:rotate(-90deg)}
+  .gauge .num{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--mono);font-size:21px;font-weight:600}
+
+  .doc{background:#0C1119;border:1px solid var(--hair);border-radius:8px;padding:13px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .doc .h{color:var(--text);font-weight:700;letter-spacing:.1em;margin-bottom:8px}
+  .doc .line{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed var(--hair-soft)}
+  .doc .line b{color:var(--text)} .hl{background:var(--clear-dim);color:var(--clear);padding:0 4px;border-radius:3px}
+
+  .bars{display:flex;align-items:flex-end;gap:9px;height:118px;padding-top:12px}
+  .bars .b{flex:1;background:linear-gradient(180deg,var(--active),rgba(77,124,254,.22));border-radius:5px 5px 0 0;position:relative;min-width:8px}
+  .bars .b span{position:absolute;top:-17px;left:0;right:0;text-align:center;font-family:var(--mono);font-size:9.5px;color:var(--muted)}
+  .bars .b small{position:absolute;bottom:-19px;left:0;right:0;text-align:center;font-size:9.5px;color:var(--muted-2)}
+
+  .zone-map{height:226px;border:1px solid var(--hair);border-radius:8px;position:relative;overflow:hidden;background:
+    repeating-linear-gradient(0deg,transparent,transparent 27px,var(--hair-soft) 27px,var(--hair-soft) 28px),
+    repeating-linear-gradient(90deg,transparent,transparent 27px,var(--hair-soft) 27px,var(--hair-soft) 28px),#0A0F16}
+  .zone{position:absolute;border-radius:6px;display:grid;place-items:center;font-size:10.5px;text-align:center}
+  .zone.restricted{border:1.5px dashed var(--alert);background:var(--alert-dim);color:var(--alert)}
+  .zone.safe{border:1.5px solid var(--clear);background:var(--clear-dim);color:var(--clear)}
+  .person{position:absolute;width:11px;height:11px;border-radius:50%;background:var(--watch);box-shadow:0 0 0 4px var(--watch-dim)}
+  .person.intruder{background:var(--alert);box-shadow:0 0 0 4px var(--alert-dim);animation:pulse 1.4s infinite}
+
+  .note{color:var(--muted-2);font-size:11px;margin-top:12px;font-family:var(--mono)}
+  .col-2{grid-template-columns:repeat(2,1fr)} .col-3{grid-template-columns:repeat(3,1fr)}
+  .span-2{grid-column:span 2}
+  .two-col{display:grid;grid-template-columns:1fr 340px;gap:15px;align-items:start}
+
+  /* ---------- Status bar ---------- */
+  .statusbar{grid-column:2;display:flex;align-items:center;gap:18px;height:var(--status-h);
+    padding:0 16px;border-top:1px solid var(--hair);background:var(--bg-chrome);
+    font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+  .statusbar .s{display:flex;align-items:center;gap:6px}
+  .statusbar .sp{margin-left:auto}
+
+  /* ---------- Pop-out windows ---------- */
+  #windows{position:fixed;inset:0;pointer-events:none;z-index:800}
+  .win{position:absolute;width:330px;background:var(--bg-panel);border:1px solid var(--hair);
+    border-radius:10px;box-shadow:var(--shadow);pointer-events:auto;overflow:hidden}
+  .win-head{display:flex;align-items:center;gap:8px;padding:8px 11px;cursor:grab;
+    background:var(--bg-elevated);border-bottom:1px solid var(--hair);user-select:none}
+  .win-head.grabbing{cursor:grabbing}
+  .win-head .wt{font-size:11.5px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .win-head .wid{font-family:var(--mono);font-size:10px;color:var(--muted-2)}
+  .win-head .wbtn{width:18px;height:18px;border-radius:4px;display:grid;place-items:center;cursor:pointer;color:var(--muted-2);font-size:13px}
+  .win-head .wbtn:hover{background:var(--hair);color:var(--text)}
+  .win .scene{height:185px}
+
+  @media (max-width:1120px){.kpis{grid-template-columns:repeat(3,1fr)}.two-col{grid-template-columns:1fr}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+  :focus-visible{outline:2px solid var(--active);outline-offset:2px}
+  ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:var(--hair);border-radius:6px}
+
+  /* ---- ANPR + Biometric module styles ---- */
+  .upload-zone{border:2px dashed var(--hair);border-radius:10px;padding:28px 20px;text-align:center;cursor:pointer;transition:.15s;background:var(--bg-tile)}
+  .upload-zone:hover,.upload-zone.drag-over{border-color:var(--active);background:var(--active-dim)}
+  .upload-zone svg{color:var(--muted-2);margin-bottom:10px}
+  .upload-zone .uz-title{color:var(--muted);font-size:13px}
+  .upload-zone .uz-sub{color:var(--muted-2);font-size:11px;margin-top:4px}
+  .progress-track{background:var(--hair);border-radius:4px;height:7px;overflow:hidden}
+  .progress-fill{height:100%;width:0;background:linear-gradient(90deg,var(--active),var(--clear));border-radius:4px;transition:width .4s}
+  .field label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;letter-spacing:.02em}
+  .field input,.field select{width:100%;background:var(--bg-tile);border:1px solid var(--hair);color:var(--text);border-radius:7px;padding:9px 11px;font-family:inherit;font-size:12.5px}
+  .field input:focus,.field select:focus{outline:none;border-color:var(--active);box-shadow:0 0 0 3px var(--active-dim)}
+  .field select{cursor:pointer;background:var(--bg-elevated)}
+  .cam-box{border-radius:9px;overflow:hidden;background:#03060b;position:relative;aspect-ratio:4/3}
+  .cam-box video,.cam-box img,.cam-box canvas{width:100%;height:100%;object-fit:cover;display:none}
+  .cam-box .cam-placeholder{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted-2);font-size:10.5px;text-align:center;font-family:var(--mono)}
+  .bio-result-card{border-radius:9px;padding:15px;margin-top:12px;display:none}
+  .bio-result-card.granted{border:1px solid rgba(40,201,168,.5);background:var(--clear-dim)}
+  .bio-result-card.denied{border:1px solid rgba(242,86,110,.5);background:var(--alert-dim)}
+  .stats-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+
+  /* ---- Access Decision Cards (ANPR results) ---- */
+  .gate-decision{border-radius:12px;padding:22px 26px;display:flex;align-items:center;gap:22px;margin-bottom:18px;animation:decisionIn .35s ease}
+  @keyframes decisionIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .gate-decision.granted{background:linear-gradient(135deg,rgba(40,201,168,.14),rgba(40,201,168,.04));border:1px solid rgba(40,201,168,.45)}
+  .gate-decision.denied{background:linear-gradient(135deg,rgba(242,86,110,.14),rgba(242,86,110,.04));border:1px solid rgba(242,86,110,.45)}
+  .gd-icon{width:60px;height:60px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto}
+  .gate-decision.granted .gd-icon{background:rgba(40,201,168,.18)}
+  .gate-decision.denied .gd-icon{background:rgba(242,86,110,.18)}
+  .gd-label{font-size:12px;letter-spacing:.15em;text-transform:uppercase;font-family:var(--mono);margin-bottom:4px}
+  .gate-decision.granted .gd-label{color:var(--clear)}
+  .gate-decision.denied .gd-label{color:var(--alert)}
+  .gd-plate{font-family:var(--mono);font-size:34px;font-weight:700;letter-spacing:.12em;line-height:1}
+  .gate-decision.granted .gd-plate{color:var(--clear)}
+  .gate-decision.denied .gd-plate{color:var(--alert)}
+  .gd-sub{font-size:12.5px;color:var(--muted);margin-top:5px}
+  .gd-right{margin-left:auto;text-align:right;flex:0 0 auto}
+  .gd-conf-label{font-size:10.5px;color:var(--muted-2);font-family:var(--mono)}
+  .gd-conf{font-family:var(--mono);font-size:30px;font-weight:700}
+  .gate-decision.granted .gd-conf{color:var(--clear)}
+  .gate-decision.denied .gd-conf{color:var(--alert)}
+
+  .access-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:12px;margin-top:4px}
+  .acard{border-radius:10px;overflow:hidden;border:1px solid var(--hair);background:var(--bg-panel);animation:decisionIn .3s ease}
+  .acard.granted{border-color:rgba(40,201,168,.4)}
+  .acard.denied{border-color:rgba(242,86,110,.4)}
+  .acard-banner{padding:10px 14px;font-size:11.5px;font-weight:700;letter-spacing:.06em;display:flex;align-items:center;gap:8px}
+  .acard.granted .acard-banner{background:rgba(40,201,168,.1);color:var(--clear)}
+  .acard.denied .acard-banner{background:rgba(242,86,110,.1);color:var(--alert)}
+  .acard-plate{font-family:var(--mono);font-size:20px;font-weight:700;padding:10px 14px 2px;letter-spacing:.08em}
+  .acard.granted .acard-plate{color:var(--clear)}
+  .acard.denied .acard-plate{color:var(--alert)}
+  .acard-body{padding:6px 14px 14px;display:grid;gap:5px}
+  .acard-row{display:flex;justify-content:space-between;font-size:11.5px;padding:3px 0;border-bottom:1px solid var(--hair-soft)}
+  .acard-row:last-of-type{border-bottom:0}
+  .acard-row span{color:var(--muted)}
+  .acard-row b{color:var(--text);font-weight:500}
+
+  /* ---- CCTV live-feed styles ---- */
+  .cctv-wrap{position:relative;width:100%;height:100%;overflow:hidden;background:#04080e}
+  /* The MJPEG stream already has HUD + bounding boxes drawn by OpenCV.
+     Mild filter only — detection colours must stay readable. */
+  .cctv-feed{width:100%;height:100%;object-fit:cover;display:block;
+    filter:contrast(1.08) brightness(.88)}
+  .cctv-hud{position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;padding:6px 9px}
+  .cctv-top,.cctv-bot{display:flex;justify-content:space-between;align-items:center}
+  .cctv-ts{font-family:var(--mono);font-size:9.5px;color:rgba(255,255,255,.85);
+    text-shadow:0 1px 4px rgba(0,0,0,1);letter-spacing:.06em}
+  .cctv-rec{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:9px;
+    color:#ff5555;text-shadow:0 1px 3px rgba(0,0,0,1);letter-spacing:.08em}
+  .cctv-loc{font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.55);letter-spacing:.05em}
+  .cctv-conf{font-family:var(--mono);font-size:9px;color:var(--clear);letter-spacing:.04em}
+  .feed-err{position:absolute;inset:0;display:grid;place-items:center;background:#04080e;
+    color:var(--muted-2);font-family:var(--mono);font-size:10px;text-align:center;line-height:1.8}
+
+  /* ---- Camera result clip overlay (shown after detection) ---- */
+  .cam-result-overlay{position:absolute;inset:0;z-index:6;background:#000;display:none}
+  .cam-result-overlay video,.cam-result-overlay img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .cam-result-overlay img{display:none}
+  .cam-ov-close{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.72);border:1px solid rgba(255,255,255,.18);
+    color:rgba(255,255,255,.9);border-radius:4px;font-family:var(--mono);font-size:9px;
+    padding:2px 8px;cursor:pointer;letter-spacing:.06em;z-index:2}
+  .cam-ov-close:hover{background:rgba(0,0,0,.9);color:#fff}
+  .cam-ov-label{position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,.65);
+    border-radius:4px;padding:3px 8px;font-family:var(--mono);font-size:9px;
+    color:rgba(255,255,255,.75);letter-spacing:.05em;z-index:2}
+
+  /* ---- Edit modal ---- */
+  .edit-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1000;display:none;place-items:center}
+  .edit-modal-backdrop.open{display:grid}
+  .edit-modal{background:var(--bg-tile);border:1px solid var(--hair);border-radius:12px;
+    padding:26px 28px;width:min(480px,94vw);box-shadow:0 24px 64px rgba(0,0,0,.6)}
+  .edit-modal h3{margin:0 0 18px;font-size:15px}
+  .edit-modal .field{margin-bottom:13px}
+  .edit-modal .field label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;letter-spacing:.04em}
+  .edit-modal .field input,.edit-modal .field select{width:100%;background:var(--bg-mid);border:1px solid var(--hair);
+    color:var(--text);border-radius:7px;padding:8px 11px;font-family:var(--mono);font-size:12.5px;box-sizing:border-box}
+  .edit-modal-footer{display:flex;gap:8px;margin-top:18px;justify-content:flex-end}
+  .edit-modal-msg{font-family:var(--mono);font-size:10.5px;margin-top:9px;min-height:14px}
+
+  /* ---- Per-camera video upload / detection panel ---- */
+  .cam-upload-btn{background:none;border:1px solid var(--hair);border-radius:4px;
+    color:var(--muted);font-size:10px;font-family:var(--mono);padding:2px 7px;cursor:pointer;
+    letter-spacing:.05em;transition:border-color .15s,color .15s}
+  .cam-upload-btn:hover,.cam-upload-btn.active{border-color:var(--active);color:var(--active)}
+  .cam-upload-panel{border-top:1px solid var(--hair);background:#03060b;padding:10px 11px;display:none}
+  .cam-upload-panel.open{display:block}
+  .cam-dz{border:1px dashed var(--hair);border-radius:5px;padding:8px 10px;
+    font-size:10px;font-family:var(--mono);color:var(--muted-2);cursor:pointer;
+    text-align:center;transition:border-color .15s;margin-bottom:7px}
+  .cam-dz:hover,.cam-dz.drag-over{border-color:var(--active);color:var(--active)}
+  .cam-det-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px}
+  .cam-prog-wrap{flex:1;min-width:60px;height:3px;background:var(--bg-mid);border-radius:2px;overflow:hidden}
+  .cam-prog-fill{height:100%;width:0;background:var(--active);border-radius:2px;transition:width .4s}
+  .cam-det-status{font-size:10px;font-family:var(--mono);color:var(--muted);flex:1;min-width:60px}
+  .cam-det-counts{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px}
+  .cam-det-frame{width:100%;border-radius:4px;margin-top:5px;display:block}
+  .cam-det-stats{font-size:9.5px;font-family:var(--mono);color:var(--muted-2);margin-top:3px}
+</style>
+
+<!-- ================= SIGN-IN ================= -->
+<div id="signin">
+  <div class="card">
+    <div class="lock-logo"><div class="logo"></div><div><b>Sentinel</b><small>Technomak</small></div></div>
+    <h2>Sign in to console</h2>
+    <p>Video analytics operations — Warehouse North.</p>
+    <div class="field"><label>Operator ID</label><input id="userf" value="ns.operator" autocomplete="off"></div>
+    <div class="field"><label>Password</label><input type="password" value="••••••••" autocomplete="off"></div>
+    <button class="btn pri" id="signinBtn">Sign in</button>
+    <div class="meta">SOC-NORTH · TLS secured · build v2.4.1</div>
+  </div>
+</div>
+
+<!-- ================= CONSOLE ================= -->
+<div class="console">
+  <!-- Sidebar -->
+  <aside class="rail">
+    <div class="brand"><div class="logo"></div><div><b>Sentinel</b><small>Technomak</small></div></div>
+    <nav class="nav" id="nav">
+      <div class="nav-label">Monitor</div>
+      <button class="active" data-view="overview" data-label="Operations"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Operations</button>
+      <button data-view="alerts" data-label="Alerts"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0-6 6c0 5-2 6-2 6h16s-2-1-2-6a6 6 0 0 0-6-6z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>Alerts<span class="badge">3</span></button>
+      <div class="nav-label">Modules</div>
+      <button data-view="gate" data-label="Gate &amp; Access"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="8" rx="1"/><path d="M5 11V7a7 7 0 0 1 14 0v4"/></svg>Gate &amp; Access</button>
+      <button data-view="safety" data-label="People &amp; Safety"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 4 5v6c0 5 3.5 8 8 11 4.5-3 8-6 8-11V5l-8-3z"/></svg>People &amp; Safety</button>
+      <button data-view="vehicle" data-label="Vehicle &amp; Logistics"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13l2-5h11l3 5"/><path d="M3 13h18v4H3z"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/></svg>Vehicle &amp; Logistics</button>
+      <button data-view="material" data-label="Material &amp; DN"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h12l4 4v12H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>Material &amp; DN</button>
+      <div class="nav-label">System</div>
+      <button data-view="cameras" data-label="Cameras"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l4-2 11 5v7l-11 5-4-2z"/><circle cx="9" cy="12" r="2.4"/></svg>Cameras</button>
+      <div class="nav-label">AI Detection</div>
+      <button data-view="anpr" data-label="ANPR Detection"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="10" rx="2"/><path d="M6 11h.01M9 11h6M18 11h.01"/></svg>ANPR Detection</button>
+      <button data-view="biometric" data-label="Biometric Auth"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-1a6 6 0 0 1 12 0v1"/><path d="M17 12s1 1 1 3-1 3-1 3"/><path d="M7 12s-1 1-1 3 1 3 1 3"/></svg>Biometric Auth</button>
+    </nav>
+    <div class="health">
+      <div class="row"><small>Pipeline</small><span class="dot live"></span></div>
+      <div class="row"><small>Cameras online</small><b style="color:var(--clear)">24 / 24</b></div>
+      <div class="row"><small>Inference latency</small><b>142 ms</b></div>
+      <div class="row"><small>Storage (30d)</small><b>71%</b></div>
+    </div>
+  </aside>
+
+  <!-- Main column -->
+  <div class="main">
+    <header class="topbar">
+      <div class="facility">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M3 21h18M5 21V8l7-4 7 4v13"/><path d="M9 21v-6h6v6"/></svg>
+        <select aria-label="Facility"><option>Warehouse North — Coimbatore</option><option>Distribution Hub — Kochi</option><option>Plant 2 — Chennai</option></select>
+      </div>
+      <div class="search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg>
+        <input placeholder="Search plates, DN numbers, personnel, cameras…">
+      </div>
+      <div class="spacer"></div>
+      <div class="clock" id="clock">--:--:--</div>
+      <div class="toggle" id="frToggle" role="switch" aria-checked="false" tabindex="0" title="Overlay the functional-requirement code each component satisfies"><span class="switch"></span>FR tags</div>
+      <div class="iconbtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0-6 6c0 5-2 6-2 6h16s-2-1-2-6a6 6 0 0 0-6-6z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg><span class="count">3</span></div>
+      <div class="avatar">NS</div>
+    </header>
+
+    <!-- Tab strip -->
+    <div class="tabbar" id="tabbar"></div>
+
+    <!-- Stage -->
+    <div class="stage" id="stage">
+
+      <!-- OVERVIEW -->
+      <section class="view on" id="view-overview">
+        <div class="crumb">Warehouse North <b>/ Operations</b></div>
+        <div class="view-head">
+          <div><div class="eyebrow">Live</div><h1>Operations overview</h1><p>Real-time analytics across every camera. Critical events surface here first.</p></div>
+          <button class="btn">Export shift report</button>
+        </div>
+        <div class="kpis" style="margin-bottom:15px">
+          <div class="kpi"><span class="accent" style="background:var(--clear)"></span><div class="lab">Cameras online</div><div class="val">24/24</div><div class="delta up">▲ all healthy</div></div>
+          <div class="kpi"><span class="accent" style="background:var(--alert)"></span><div class="lab">Open alerts</div><div class="val">3</div><div class="delta down">▲ 2 vs last hr</div></div>
+          <div class="kpi"><span class="accent" style="background:var(--active)"></span><div class="lab">Vehicles on site</div><div class="val">12</div><div class="delta flat">— stable</div></div>
+          <div class="kpi"><span class="accent" style="background:var(--active)"></span><div class="lab">Avg turnaround</div><div class="val">34m</div><div class="delta up">▼ 6m faster</div></div>
+          <div class="kpi"><span class="accent" style="background:var(--clear)"></span><div class="lab">PPE compliance</div><div class="val">96%</div><div class="delta up">▲ 3% today</div></div>
+          <div class="kpi"><span class="accent" style="background:var(--watch)"></span><div class="lab">Gate events</div><div class="val">148</div><div class="delta flat">since 06:00</div></div>
+        </div>
+        <div class="two-col">
+          <div class="grid feeds">
+
+            <!-- CAM-01 · Main Gate — In  (ANPR + authorization) -->
+            <div class="cam" id="cam-card-cam01">
+              <div class="scene">
+                <div class="cctv-wrap">
+                  <img id="feed-cam01" class="cctv-feed"
+                       src="http://127.0.0.1:8000/stream/cam01"
+                       onerror="_camFeedError('cam01')">
+                  <div class="feed-err" id="err-cam01" style="display:none">⚠ No signal<br><span style="font-size:8.5px;color:var(--muted-2)">CAM-01 · MAIN GATE IN</span><br><span style="font-size:8px;color:var(--muted-2);margin-top:4px;display:block">↑ Upload a video to preview here</span></div>
+                  <div class="cam-result-overlay" id="cam-overlay-cam01">
+                    <video id="cam-overlay-vid-cam01" autoplay loop muted playsinline></video>
+                    <img id="cam-overlay-img-cam01" alt="">
+                    <button class="cam-ov-close" onclick="camClearOverlay('cam01')">× LIVE</button>
+                    <span class="cam-ov-label" id="cam-ov-label-cam01">Uploaded video</span>
+                  </div>
+                  <!-- Authorization status overlay — shown after ANPR scan -->
+                  <div id="cam01-auth-badge" style="display:none;position:absolute;bottom:6px;left:6px;right:6px;z-index:5;border-radius:5px;padding:5px 10px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.07em;backdrop-filter:blur(5px);align-items:center;gap:8px">
+                    <span id="cam01-auth-plate" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+                    <span id="cam01-auth-label"></span>
+                    <button onclick="_cam01DismissResults()" style="background:none;border:none;color:inherit;cursor:pointer;font-size:14px;line-height:1;padding:0 0 0 6px;opacity:.75;flex:0 0 auto" title="Dismiss">×</button>
+                  </div>
+                </div>
+              </div>
+              <div class="cam-meta"><span class="name">Main Gate — In</span><span class="id">CAM-01</span><span class="right"><span class="live"><span class="dot live"></span>LIVE</span><button class="cam-upload-btn" id="cam-upload-toggle-cam01" onclick="camUploadToggle('cam01')" title="Run ANPR scan — detect plates &amp; check authorization">↑ ANPR Scan</button><button class="popout" data-win="Main Gate — In" data-id="CAM-01" title="Pop out">⧉</button></span></div>
+              <div class="cam-upload-panel" id="cam-upload-panel-cam01">
+                <div class="cam-dz" id="cam-dz-cam01" onclick="document.getElementById('cam-file-cam01').click()" ondragover="camDragOver(event,'cam01')" ondragleave="camDragLeave(event,'cam01')" ondrop="camDrop(event,'cam01')">
+                  <input type="file" accept="video/*" id="cam-file-cam01" style="display:none" onchange="camFileChosen(this,'cam01')">
+                  <span id="cam-fname-cam01">Drop gate camera video or click to browse</span>
+                </div>
+                <div id="cam-vid-preview-cam01" style="display:none;position:relative;border-radius:4px;overflow:hidden;background:#000;aspect-ratio:16/9;margin-top:8px">
+                  <video id="cam-vid-el-cam01" style="width:100%;height:100%;object-fit:cover" autoplay loop muted playsinline></video>
+                  <span id="cam-vid-lbl-cam01" style="position:absolute;bottom:4px;left:5px;font-size:9px;font-family:var(--mono);background:rgba(0,0,0,.7);color:var(--muted-2);padding:2px 6px;border-radius:3px;letter-spacing:.04em">▶ Preview</span>
+                </div>
+                <div class="cam-det-row">
+                  <div class="cam-prog-wrap"><div class="cam-prog-fill" id="cam-bar-cam01"></div></div>
+                  <span class="cam-det-status" id="cam-status-cam01">—</span>
+                  <button class="btn sm pri" id="cam-det-btn-cam01" onclick="cam01AnprStart()" disabled>Scan Plates</button>
+                </div>
+                <div id="cam-results-cam01" style="display:none;margin-top:6px">
+                  <div id="cam01-gate-cards"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- CAM-12 · Loading Bay 2 -->
+            <div class="cam" id="cam-card-cam12">
+              <div class="scene">
+                <div class="cctv-wrap">
+                  <img id="feed-cam12" class="cctv-feed"
+                       src="http://127.0.0.1:8000/stream/cam12"
+                       onerror="_camFeedError('cam12')">
+                  <div class="feed-err" id="err-cam12" style="display:none">⚠ No signal<br><span style="font-size:8.5px;color:var(--muted-2)">CAM-12 · LOADING BAY 2</span><br><span style="font-size:8px;color:var(--muted-2);margin-top:4px;display:block">↑ Upload a video to preview here</span></div>
+                  <div class="cam-result-overlay" id="cam-overlay-cam12">
+                    <video id="cam-overlay-vid-cam12" autoplay loop muted playsinline></video>
+                    <img id="cam-overlay-img-cam12" alt="">
+                    <button class="cam-ov-close" onclick="camClearOverlay('cam12')">× LIVE</button>
+                    <span class="cam-ov-label" id="cam-ov-label-cam12">Uploaded video</span>
+                  </div>
+                </div>
+              </div>
+              <div class="cam-meta"><span class="name">Loading Bay 2</span><span class="id">CAM-12</span><span class="right"><span class="live"><span class="dot live"></span>LIVE</span><button class="cam-upload-btn" id="cam-upload-toggle-cam12" onclick="camUploadToggle('cam12')" title="Upload demo video">↑ Upload</button><button class="popout" data-win="Loading Bay 2" data-id="CAM-12" title="Pop out">⧉</button></span></div>
+              <div class="cam-upload-panel" id="cam-upload-panel-cam12">
+                <div class="cam-dz" id="cam-dz-cam12" onclick="document.getElementById('cam-file-cam12').click()" ondragover="camDragOver(event,'cam12')" ondragleave="camDragLeave(event,'cam12')" ondrop="camDrop(event,'cam12')">
+                  <input type="file" accept="video/*" id="cam-file-cam12" style="display:none" onchange="camFileChosen(this,'cam12')">
+                  <span id="cam-fname-cam12">Drop video or click to browse</span>
+                </div>
+                <div id="cam-vid-preview-cam12" style="display:none;position:relative;border-radius:4px;overflow:hidden;background:#000;aspect-ratio:16/9;margin-top:8px">
+                  <video id="cam-vid-el-cam12" style="width:100%;height:100%;object-fit:cover" autoplay loop muted playsinline></video>
+                  <span id="cam-vid-lbl-cam12" style="position:absolute;bottom:4px;left:5px;font-size:9px;font-family:var(--mono);background:rgba(0,0,0,.7);color:var(--muted-2);padding:2px 6px;border-radius:3px;letter-spacing:.04em">▶ Preview</span>
+                </div>
+                <div class="cam-det-row">
+                  <div class="cam-prog-wrap"><div class="cam-prog-fill" id="cam-bar-cam12"></div></div>
+                  <span class="cam-det-status" id="cam-status-cam12">—</span>
+                  <button class="btn sm pri" id="cam-det-btn-cam12" onclick="camDetectStart('cam12')" disabled>Detect</button>
+                </div>
+                <div id="cam-results-cam12" style="display:none">
+                  <div class="cam-det-counts" id="cam-counts-cam12"></div>
+                  <div class="cam-det-stats" id="cam-stats-cam12"></div>
+                  <img id="cam-frame-cam12" class="cam-det-frame" style="display:none">
+                </div>
+              </div>
+            </div>
+
+            <!-- CAM-08 · Warehouse Aisle 4 -->
+            <div class="cam" id="cam-card-cam08">
+              <div class="scene">
+                <div class="cctv-wrap">
+                  <img id="feed-cam08" class="cctv-feed"
+                       src="http://127.0.0.1:8000/stream/cam08"
+                       onerror="_camFeedError('cam08')">
+                  <div class="feed-err" id="err-cam08" style="display:none">⚠ No signal<br><span style="font-size:8.5px;color:var(--muted-2)">CAM-08 · AISLE 4</span><br><span style="font-size:8px;color:var(--muted-2);margin-top:4px;display:block">↑ Upload a video to preview here</span></div>
+                  <div class="cam-result-overlay" id="cam-overlay-cam08">
+                    <video id="cam-overlay-vid-cam08" autoplay loop muted playsinline></video>
+                    <img id="cam-overlay-img-cam08" alt="">
+                    <button class="cam-ov-close" onclick="camClearOverlay('cam08')">× LIVE</button>
+                    <span class="cam-ov-label" id="cam-ov-label-cam08">Uploaded video</span>
+                  </div>
+                </div>
+              </div>
+              <div class="cam-meta"><span class="name">Warehouse Aisle 4</span><span class="id">CAM-08</span><span class="right"><span class="live"><span class="dot live"></span>LIVE</span><button class="cam-upload-btn" id="cam-upload-toggle-cam08" onclick="camUploadToggle('cam08')" title="Upload demo video">↑ Upload</button><button class="popout" data-win="Warehouse Aisle 4" data-id="CAM-08" title="Pop out">⧉</button></span></div>
+              <div class="cam-upload-panel" id="cam-upload-panel-cam08">
+                <div class="cam-dz" id="cam-dz-cam08" onclick="document.getElementById('cam-file-cam08').click()" ondragover="camDragOver(event,'cam08')" ondragleave="camDragLeave(event,'cam08')" ondrop="camDrop(event,'cam08')">
+                  <input type="file" accept="video/*" id="cam-file-cam08" style="display:none" onchange="camFileChosen(this,'cam08')">
+                  <span id="cam-fname-cam08">Drop video or click to browse</span>
+                </div>
+                <div id="cam-vid-preview-cam08" style="display:none;position:relative;border-radius:4px;overflow:hidden;background:#000;aspect-ratio:16/9;margin-top:8px">
+                  <video id="cam-vid-el-cam08" style="width:100%;height:100%;object-fit:cover" autoplay loop muted playsinline></video>
+                  <span id="cam-vid-lbl-cam08" style="position:absolute;bottom:4px;left:5px;font-size:9px;font-family:var(--mono);background:rgba(0,0,0,.7);color:var(--muted-2);padding:2px 6px;border-radius:3px;letter-spacing:.04em">▶ Preview</span>
+                </div>
+                <div class="cam-det-row">
+                  <div class="cam-prog-wrap"><div class="cam-prog-fill" id="cam-bar-cam08"></div></div>
+                  <span class="cam-det-status" id="cam-status-cam08">—</span>
+                  <button class="btn sm pri" id="cam-det-btn-cam08" onclick="camDetectStart('cam08')" disabled>Detect</button>
+                </div>
+                <div id="cam-results-cam08" style="display:none">
+                  <div class="cam-det-counts" id="cam-counts-cam08"></div>
+                  <div class="cam-det-stats" id="cam-stats-cam08"></div>
+                  <img id="cam-frame-cam08" class="cam-det-frame" style="display:none">
+                </div>
+              </div>
+            </div>
+
+            <!-- CAM-05 · Turnstile B -->
+            <div class="cam" id="cam-card-cam05">
+              <div class="scene">
+                <div class="cctv-wrap">
+                  <img id="feed-cam05" class="cctv-feed"
+                       src="http://127.0.0.1:8000/stream/cam05"
+                       onerror="_camFeedError('cam05')">
+                  <div class="feed-err" id="err-cam05" style="display:none">⚠ No signal<br><span style="font-size:8.5px;color:var(--muted-2)">CAM-05 · TURNSTILE B</span><br><span style="font-size:8px;color:var(--muted-2);margin-top:4px;display:block">↑ Upload a video to preview here</span></div>
+                  <div class="cam-result-overlay" id="cam-overlay-cam05">
+                    <video id="cam-overlay-vid-cam05" autoplay loop muted playsinline></video>
+                    <img id="cam-overlay-img-cam05" alt="">
+                    <button class="cam-ov-close" onclick="camClearOverlay('cam05')">× LIVE</button>
+                    <span class="cam-ov-label" id="cam-ov-label-cam05">Uploaded video</span>
+                  </div>
+                </div>
+              </div>
+              <div class="cam-meta"><span class="name">Turnstile B</span><span class="id">CAM-05</span><span class="right"><span class="live"><span class="dot live"></span>LIVE</span><button class="cam-upload-btn" id="cam-upload-toggle-cam05" onclick="camUploadToggle('cam05')" title="Upload demo video">↑ Upload</button><button class="popout" data-win="Turnstile B" data-id="CAM-05" title="Pop out">⧉</button></span></div>
+              <div class="cam-upload-panel" id="cam-upload-panel-cam05">
+                <div class="cam-dz" id="cam-dz-cam05" onclick="document.getElementById('cam-file-cam05').click()" ondragover="camDragOver(event,'cam05')" ondragleave="camDragLeave(event,'cam05')" ondrop="camDrop(event,'cam05')">
+                  <input type="file" accept="video/*" id="cam-file-cam05" style="display:none" onchange="camFileChosen(this,'cam05')">
+                  <span id="cam-fname-cam05">Drop video or click to browse</span>
+                </div>
+                <div id="cam-vid-preview-cam05" style="display:none;position:relative;border-radius:4px;overflow:hidden;background:#000;aspect-ratio:16/9;margin-top:8px">
+                  <video id="cam-vid-el-cam05" style="width:100%;height:100%;object-fit:cover" autoplay loop muted playsinline></video>
+                  <span id="cam-vid-lbl-cam05" style="position:absolute;bottom:4px;left:5px;font-size:9px;font-family:var(--mono);background:rgba(0,0,0,.7);color:var(--muted-2);padding:2px 6px;border-radius:3px;letter-spacing:.04em">▶ Preview</span>
+                </div>
+                <div class="cam-det-row">
+                  <div class="cam-prog-wrap"><div class="cam-prog-fill" id="cam-bar-cam05"></div></div>
+                  <span class="cam-det-status" id="cam-status-cam05">—</span>
+                  <button class="btn sm pri" id="cam-det-btn-cam05" onclick="camDetectStart('cam05')" disabled>Detect</button>
+                </div>
+                <div id="cam-results-cam05" style="display:none">
+                  <div class="cam-det-counts" id="cam-counts-cam05"></div>
+                  <div class="cam-det-stats" id="cam-stats-cam05"></div>
+                  <img id="cam-frame-cam05" class="cam-det-frame" style="display:none">
+                </div>
+              </div>
+            </div>
+
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>Live event feed</h3><span class="sub" id="overview-feed-sub">auto-refresh 10s</span><button class="btn sm ghost" style="margin-left:auto;font-size:10px" onclick="clearAllFeedEvents()">Clear all</button></div>
+            <div class="feed" id="overview-feed">
+              <div class="ev"><span class="sev watch"></span><div class="body"><div class="t">Connecting to backend…</div><div class="d">Start the API server to see real events</div></div><span class="when">--:--:--</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ALERTS -->
+      <section class="view" id="view-alerts">
+        <div class="crumb">Warehouse North <b>/ Alerts</b></div>
+        <div class="view-head"><div><div class="eyebrow">Unified queue</div><h1>Alerts</h1><p>Every detection that needs a human decision, ranked by severity.</p></div>
+          <div style="display:flex;gap:8px"><button class="btn ghost">Filter</button><button class="btn">Mark all reviewed</button></div></div>
+        <div class="panel"><div class="panel-head"><h3>Active alerts</h3><span class="sub">3 open · 12 today</span></div>
+          <div class="feed">
+            <div class="ev"><span class="sev crit"></span><div class="body"><div class="t">Tailgating detected <span class="fr">FR-G3</span></div><div class="d">Turnstile B · CAM-05 · 2 entrants on 1 authorized scan</div><div class="act"><button class="btn sm pri">Review 30s clip</button><button class="btn sm">Dispatch guard</button><button class="btn sm ghost">Dismiss</button></div></div><span class="when">09:41:07</span></div>
+            <div class="ev"><span class="sev crit"></span><div class="body"><div class="t">PPE violation — no vest <span class="fr">FR-P1</span></div><div class="d">Aisle 4 · CAM-08 · hard hat present, vest absent</div><div class="act"><button class="btn sm pri">Review 30s clip</button><button class="btn sm ghost">Dismiss</button></div></div><span class="when">09:39:52</span></div>
+            <div class="ev"><span class="sev watch"></span><div class="body"><div class="t">Delivery count mismatch <span class="fr">FR-M2</span></div><div class="d">Bay 2 · DN-88231 · vision counted 6, DN lists 8</div><div class="act"><button class="btn sm pri">Open verification</button><button class="btn sm ghost">Flag for audit</button></div></div><span class="when">09:38:10</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- GATE -->
+      <section class="view" id="view-gate">
+        <div class="crumb">Warehouse North <b>/ Gate &amp; Access</b></div>
+        <div class="view-head">
+          <div><div class="eyebrow">Module</div><h1>Gate &amp; Access</h1>
+            <p>Upload a gate camera recording to detect number plates, cross-check against the authorised vehicle database, and record gate entry.</p></div>
+          <button class="btn ghost" onclick="loadGateLog()">Refresh log</button>
+        </div>
+
+        <!-- ANPR Scanner panel -->
+        <div class="panel" style="margin-bottom:15px">
+          <div class="panel-head">
+            <h3>License Plate Detection <span class="fr">FR-G1</span></h3>
+            <span class="sub" id="gate-anpr-status">Idle — upload a gate video to scan</span>
+          </div>
+          <div class="panel-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+              <div>
+                <div class="upload-zone" id="gate-anpr-zone"
+                     ondragover="event.preventDefault();this.classList.add('drag-over')"
+                     ondragleave="this.classList.remove('drag-over')"
+                     ondrop="gateAnprDrop(event)"
+                     onclick="document.getElementById('gate-anpr-file').click()">
+                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  <div class="uz-title">Drop gate camera video or click to browse</div>
+                  <div class="uz-sub">MP4 · AVI · MOV · MKV · WebM</div>
+                </div>
+                <input type="file" id="gate-anpr-file" accept="video/*" style="display:none" onchange="gateAnprFileChosen(this)">
+                <div id="gate-anpr-fname" style="margin-top:8px;font-family:var(--mono);font-size:10.5px;color:var(--muted-2)"></div>
+                <button class="btn pri" id="gate-anpr-btn" style="width:100%;margin-top:11px" onclick="gateAnprStart()" disabled>Scan for Plates</button>
+              </div>
+              <div>
+                <div style="margin-bottom:14px">
+                  <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+                    <span style="font-size:11.5px;color:var(--muted)">Processing progress</span>
+                    <span style="font-family:var(--mono);font-size:11px" id="gate-anpr-pct">—</span>
+                  </div>
+                  <div class="progress-track"><div class="progress-fill" id="gate-anpr-bar"></div></div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px">
+                  <div class="kpi" style="padding:9px"><div class="lab">Plates Found</div><div class="val" id="gate-anpr-total" style="font-size:20px">—</div></div>
+                  <div class="kpi" style="padding:9px"><div class="lab">Authorised</div><div class="val" id="gate-anpr-auth" style="font-size:20px;color:var(--clear)">—</div></div>
+                  <div class="kpi" style="padding:9px"><div class="lab">Denied</div><div class="val" id="gate-anpr-denied" style="font-size:20px;color:var(--alert)">—</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gate decision cards (shown after detection) -->
+        <div id="gate-anpr-decisions" style="display:none;margin-bottom:15px"></div>
+
+        <!-- Facial recognition + Tailgating (live demo) -->
+        <div class="grid col-2" style="margin-bottom:15px">
+          <div class="panel">
+            <div class="panel-head"><h3>Facial recognition <span class="fr">FR-G2</span></h3><span class="sub">CAM-03</span></div>
+            <div class="cam" style="border:0;border-radius:0"><div class="scene" style="height:146px;background:linear-gradient(180deg,#0a0f17,#0d131c)"><div class="scanline" style="animation-delay:1s"></div><div class="bb" style="left:38%;top:22%;width:62px;height:76px"><span class="tag">MATCH 0.94</span></div></div></div>
+            <div class="panel-body"><div style="font-weight:600">Arun Menon</div><div class="m" style="color:var(--muted)">ID 2041 · Logistics · L2</div>
+              <div style="display:flex;gap:7px;margin-top:9px"><span class="chip ok">● Authorized</span></div>
+              <div style="display:flex;gap:7px;margin-top:11px"><button class="btn pri sm">Grant entry</button><button class="btn danger sm">Deny</button></div></div>
+          </div>
+          <div class="panel" style="border-color:rgba(242,86,110,.4)">
+            <div class="panel-head"><h3>Tailgating <span class="fr">FR-G3</span></h3><span class="sub">CAM-05</span></div>
+            <div class="cam" style="border:0;border-radius:0"><div class="scene" style="height:146px;background:linear-gradient(180deg,#120b0f,#0d141e)"><div class="scanline" style="animation-delay:2s;background:linear-gradient(90deg,transparent,var(--alert),transparent)"></div><div class="bb" style="left:24%;top:30%;width:38px;height:92px"><span class="tag">BADGE ✓</span></div><div class="bb crit" style="left:48%;top:34%;width:38px;height:88px"><span class="tag">NO SCAN ✕</span></div></div></div>
+            <div class="panel-body"><span class="chip crit">● Tailgating event</span><p style="color:var(--muted);font-size:12px;margin:9px 0 11px">2 people passed on a single authorized scan.</p>
+              <div style="display:flex;gap:7px"><button class="btn pri sm">Review clip</button><button class="btn sm">Dispatch guard</button></div></div>
+          </div>
+        </div>
+
+        <!-- Whitelist management -->
+        <div class="grid col-2" style="margin-bottom:15px">
+          <div class="panel">
+            <div class="panel-head"><h3>Authorised Vehicles</h3><span class="sub" id="gate-auth-count"></span><button class="btn sm ghost" onclick="loadGateWhitelist()" style="margin-left:auto">Refresh</button></div>
+            <div style="max-height:240px;overflow-y:auto">
+              <table><thead><tr><th>Plate</th><th>Owner</th><th>Type</th><th></th></tr></thead>
+              <tbody id="gate-auth-tbody">
+                <tr><td colspan="4" style="text-align:center;color:var(--muted-2);padding:14px;font-family:var(--mono);font-size:11px">Loading…</td></tr>
+              </tbody></table>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>Add Vehicle to Whitelist</h3></div>
+            <div class="panel-body" style="display:grid;gap:11px">
+              <div class="field"><label>Number Plate</label><input id="gate-nv-plate" placeholder="KL07 CK 4521"></div>
+              <div class="field"><label>Owner / Company</label><input id="gate-nv-owner" placeholder="Company or person name"></div>
+              <div class="field"><label>Vehicle Type</label>
+                <select id="gate-nv-type"><option>Car</option><option>Truck</option><option>Van</option><option>Motorcycle</option><option>Bus</option></select>
+              </div>
+              <button class="btn pri" onclick="gateAddVehicle()">Add to Whitelist</button>
+              <div id="gate-nv-msg" style="font-family:var(--mono);font-size:10.5px"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent gate events -->
+        <div class="panel">
+          <div class="panel-head"><h3>Recent gate events <span class="fr">FR-G1 / FR-G2</span></h3><span class="sub">last 60 min</span><button class="btn sm ghost" onclick="loadGateLog()" style="margin-left:auto">Refresh</button></div>
+          <table><thead><tr><th>Time</th><th>Plate / Person</th><th>Type</th><th>Direction</th><th>Match</th><th>Decision</th></tr></thead>
+          <tbody id="gate-log-tbody">
+            <tr><td colspan="6" style="text-align:center;color:var(--muted-2);padding:16px;font-family:var(--mono);font-size:11px">Loading…</td></tr>
+          </tbody></table>
+        </div>
+      </section>
+
+      <!-- SAFETY -->
+      <section class="view" id="view-safety">
+        <div class="crumb">Warehouse North <b>/ People &amp; Safety</b></div>
+        <div class="view-head"><div><div class="eyebrow">Module</div><h1>People &amp; Safety</h1><p>PPE compliance, restricted-zone intrusion, and person-down detection.</p></div></div>
+        <div class="grid col-3" style="margin-bottom:15px">
+          <div class="panel"><div class="panel-head"><h3>PPE compliance <span class="fr">FR-P1</span></h3><span class="sub">live</span></div>
+            <div class="panel-body" style="text-align:center"><div class="gauge"><svg width="112" height="112" viewBox="0 0 112 112"><circle cx="56" cy="56" r="47" fill="none" stroke="var(--hair)" stroke-width="9"/><circle cx="56" cy="56" r="47" fill="none" stroke="var(--clear)" stroke-width="9" stroke-linecap="round" stroke-dasharray="295" stroke-dashoffset="12"/></svg><div class="num">96%</div></div>
+              <div style="display:flex;gap:7px;justify-content:center;margin-top:13px"><span class="chip ok">Hard hat ✓</span><span class="chip crit">Vest ✕ ×1</span></div>
+              <p class="note" style="text-align:center">14 of 15 workers compliant</p></div></div>
+          <div class="panel span-2"><div class="panel-head"><h3>Restricted zones <span class="fr">FR-P2</span></h3><span class="sub">CAM-08</span></div>
+            <div class="panel-body"><div class="zone-map"><div class="zone restricted" style="left:8%;top:16%;width:30%;height:46%">Restricted<br>Zone A</div><div class="zone safe" style="right:8%;bottom:14%;width:34%;height:42%">Walkway</div><div class="person" style="right:24%;bottom:24%"></div><div class="person intruder" style="left:18%;top:30%"></div></div>
+              <div style="display:flex;gap:7px;margin-top:11px;align-items:center"><span class="chip crit">● Unauthorized entry — Zone A</span><span class="chip">Tracked 8s</span><button class="btn pri sm" style="margin-left:auto">Review clip</button></div></div></div>
+        </div>
+        <div class="panel" style="border-color:rgba(242,86,110,.4)"><div class="panel-head"><h3>Fall &amp; motionless detection <span class="fr">FR-P3</span></h3><span class="sub">threshold &gt; 60s</span></div>
+          <div class="panel-body" style="display:flex;align-items:center;gap:22px;flex-wrap:wrap">
+            <div class="cam" style="border:0;width:212px;flex:0 0 auto"><div class="scene" style="height:120px;background:linear-gradient(180deg,#120b0f,#0d141e)"><div class="bb crit" style="left:20%;top:54%;width:116px;height:32px"><span class="tag">PERSON DOWN</span></div></div></div>
+            <div style="flex:1;min-width:210px"><span class="chip crit">● Person motionless</span><div style="font-family:var(--mono);font-size:28px;margin:7px 0 2px;color:var(--alert)">00:01:14</div><div class="note" style="margin-top:0">Stationary since 09:39:53 · alarm at 60s</div>
+              <div style="display:flex;gap:7px;margin-top:13px"><button class="btn pri sm">Trigger response</button><button class="btn sm">Call medic</button><button class="btn ghost sm">False alarm</button></div></div></div></div>
+      </section>
+
+      <!-- VEHICLE -->
+      <section class="view" id="view-vehicle">
+        <div class="crumb">Warehouse North <b>/ Vehicle &amp; Logistics</b></div>
+        <div class="view-head">
+          <div><div class="eyebrow">Module</div><h1>Vehicle &amp; Logistics</h1><p>Real-time turnaround tracking per vehicle and forklift–pedestrian near-misses.</p></div>
+          <button class="btn" onclick="loadVehicleData()">Refresh</button>
+        </div>
+
+        <!-- KPI bar -->
+        <div class="kpis" style="grid-template-columns:repeat(4,1fr);margin-bottom:15px">
+          <div class="kpi"><span class="accent" style="background:var(--active)"></span><div class="lab">On Site Now</div><div class="val" id="v-kpi-onsite">—</div></div>
+          <div class="kpi"><span class="accent" style="background:var(--clear)"></span><div class="lab">Cleared Today</div><div class="val" id="v-kpi-cleared">—</div></div>
+          <div class="kpi"><span class="accent" style="background:var(--alert)"></span><div class="lab">Over SLA (&gt;60m)</div><div class="val" id="v-kpi-sla" style="color:var(--alert)">—</div></div>
+          <div class="kpi"><span class="accent" style="background:var(--watch)"></span><div class="lab">Avg Turnaround</div><div class="val" id="v-kpi-avg">—</div></div>
+        </div>
+
+        <div class="two-col">
+          <!-- Turnaround table -->
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Vehicle Turnaround Time <span class="fr">FR-V1</span></h3>
+              <span class="sub">entry → exit per vehicle</span>
+            </div>
+            <div style="max-height:320px;overflow-y:auto">
+              <table>
+                <thead><tr><th>Plate</th><th>Owner</th><th>Entry</th><th>Exit</th><th>Duration</th><th>Status</th><th></th></tr></thead>
+                <tbody id="vehicle-tbody">
+                  <tr><td colspan="7" style="text-align:center;color:var(--muted-2);padding:18px;font-family:var(--mono);font-size:11px">Loading…</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <!-- Manual gate override -->
+            <div class="panel-body" style="border-top:1px solid var(--hair)">
+              <div style="font-size:10px;color:var(--muted-2);font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;margin-bottom:9px">Manual Gate Override</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                <input id="v-plate-in" placeholder="e.g. KL07 CK 4521"
+                  style="flex:1;min-width:140px;background:var(--bg-tile);border:1px solid var(--hair);color:var(--text);border-radius:7px;padding:8px 11px;font-family:var(--mono);font-size:12.5px">
+                <button class="btn pri sm" onclick="manualVehicleEntry()">Record Entry</button>
+                <button class="btn sm" onclick="manualVehicleExit()">Record Exit</button>
+              </div>
+              <div id="v-msg" style="font-family:var(--mono);font-size:10.5px;margin-top:7px"></div>
+            </div>
+          </div>
+
+          <!-- Right column -->
+          <div style="display:grid;gap:15px">
+            <!-- Near-miss (demo — FR-V2 requires forklift detection model) -->
+            <div class="panel">
+              <div class="panel-head"><h3>Near-miss Collisions <span class="fr">FR-V2</span></h3><span class="sub">forklift ↔ pedestrian</span></div>
+              <div class="cam" style="border:0;border-radius:0">
+                <div class="scene" style="height:130px;background:linear-gradient(180deg,#120e0a,#0d141e)">
+                  <div class="scanline" style="background:linear-gradient(90deg,transparent,var(--watch),transparent)"></div>
+                  <div class="bb warn" style="left:22%;top:40%;width:68px;height:58px"><span class="tag">FORKLIFT</span></div>
+                  <div class="bb crit" style="left:56%;top:42%;width:36px;height:76px"><span class="tag">0.8m ⚠</span></div>
+                </div>
+              </div>
+              <div class="feed">
+                <div class="ev"><span class="sev crit"></span><div class="body"><div class="t">Near-miss · 0.8m gap</div><div class="d">Forklift FL-3 · Aisle 6</div></div><span class="when">09:33</span></div>
+                <div class="ev"><span class="sev watch"></span><div class="body"><div class="t">Near-miss · 1.4m gap</div><div class="d">Forklift FL-1 · Dock</div></div><span class="when">08:58</span></div>
+              </div>
+            </div>
+            <!-- Distribution chart -->
+            <div class="panel">
+              <div class="panel-head"><h3>Turnaround Distribution</h3><span class="sub">today</span></div>
+              <div class="panel-body">
+                <div class="bars" id="v-dist-bars">
+                  <div class="b" style="height:40%"><span>—</span><small>&lt;30m</small></div>
+                  <div class="b" style="height:70%"><span>—</span><small>30–45m</small></div>
+                  <div class="b" style="height:45%"><span>—</span><small>45–60m</small></div>
+                  <div class="b" style="height:20%;background:linear-gradient(180deg,var(--alert),var(--alert-dim))"><span>—</span><small>&gt;60m</small></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- ── Demo Vehicle Detection ── -->
+        <div class="panel" style="margin-top:15px" id="vehicle-demo-panel">
+          <div class="panel-head">
+            <h3>Demo Vehicle Detection <span class="fr">FR-V3</span></h3>
+            <span class="sub">Upload a test video · YOLO vehicle detector</span>
+          </div>
+          <div class="panel-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+
+              <!-- Left: upload + progress -->
+              <div>
+                <div class="upload-zone" id="vdemo-zone"
+                  ondragover="event.preventDefault();this.classList.add('drag-over')"
+                  ondragleave="this.classList.remove('drag-over')"
+                  ondrop="vdemoDrop(event)"
+                  onclick="document.getElementById('vdemo-file-in').click()">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="m10 8 5 3-5 3V8z"/><path d="M8 21h8M12 17v4"/></svg>
+                  <div class="uz-title" style="margin-top:8px">Drop demo video here or click to browse</div>
+                  <div class="uz-sub">MP4 · AVI · MOV · MKV — detects cars, trucks, buses, motorcycles</div>
+                </div>
+                <input type="file" id="vdemo-file-in" accept="video/*" style="display:none" onchange="vdemoFileChosen(this)">
+                <div id="vdemo-fname" style="margin-top:9px;font-family:var(--mono);font-size:10.5px;color:var(--muted-2)"></div>
+                <div style="margin-top:10px">
+                  <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:11px;color:var(--muted)">
+                    <span id="vdemo-status">Idle — select a video to begin</span>
+                    <span id="vdemo-pct" style="font-family:var(--mono)">—</span>
+                  </div>
+                  <div class="progress-track"><div class="progress-fill" id="vdemo-bar"></div></div>
+                </div>
+                <button class="btn pri" id="vdemo-btn" style="width:100%;margin-top:13px" onclick="vdemoStart()" disabled>Detect Vehicles</button>
+              </div>
+
+              <!-- Right: results -->
+              <div id="vdemo-results" style="display:none">
+                <div style="font-size:10px;color:var(--muted-2);font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">Detection Results</div>
+                <div id="vdemo-counts" style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px"></div>
+                <div id="vdemo-stats" style="font-size:11.5px;color:var(--muted);margin-bottom:11px;font-family:var(--mono)"></div>
+                <div id="vdemo-frame-wrap" style="display:none;border-radius:8px;overflow:hidden;border:1px solid var(--hair)">
+                  <img id="vdemo-frame" style="width:100%;display:block">
+                  <div style="padding:7px 10px;background:var(--bg-tile);font-family:var(--mono);font-size:9.5px;color:var(--muted-2)">Best detection frame — bounding boxes drawn by YOLOv4-tiny</div>
+                </div>
+                <div id="vdemo-no-yolo" style="display:none;margin-top:8px">
+                  <span class="chip warn">⚠ YOLO model not found — place yolov4-tiny.cfg + .weights in models/</span>
+                </div>
+              </div>
+              <div id="vdemo-placeholder" style="display:flex;align-items:center;justify-content:center;height:160px;border:1px dashed var(--hair);border-radius:8px;color:var(--muted-2);font-family:var(--mono);font-size:11px;text-align:center">
+                Results appear here<br>after processing
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- MATERIAL -->
+      <section class="view" id="view-material">
+        <div class="crumb">Warehouse North <b>/ Material &amp; DN</b></div>
+        <div class="view-head"><div><div class="eyebrow">Module</div><h1>Material &amp; Delivery Notes</h1><p>Capture each DN, verify the count against computer vision, and keep an audit clip.</p></div></div>
+        <div class="grid col-3" style="margin-bottom:15px">
+          <div class="panel"><div class="panel-head"><h3>DN capture &amp; OCR <span class="fr">FR-M1</span></h3><span class="sub">Bay 2</span></div>
+            <div class="panel-body"><div class="doc"><div class="h">DELIVERY NOTE</div><div class="line"><span>DN No.</span><b class="hl">DN-88231</b></div><div class="line"><span>Supplier</span><b>Meridian Logistics</b></div><div class="line"><span>Date</span><b>09 Jun 2026</b></div><div class="line"><span>Item</span><b>Pallet — SKU 4471</b></div><div class="line"><span>Qty listed</span><b class="hl">8</b></div></div><p class="note">OCR confidence 0.95 · fields auto-extracted</p></div></div>
+          <div class="panel span-2" style="border-color:rgba(240,169,59,.4)"><div class="panel-head"><h3>Count verification <span class="fr">FR-M2</span></h3><span class="sub">vision vs DN</span></div>
+            <div class="panel-body" style="display:flex;gap:22px;flex-wrap:wrap;align-items:center">
+              <div class="cam" style="border:0;width:252px;flex:0 0 auto"><div class="scene" style="height:136px;background:linear-gradient(180deg,#0a111a,#0e1620)"><div class="scanline"></div><div class="bb" style="left:12%;top:30%;width:28px;height:58px"><span class="tag">1</span></div><div class="bb" style="left:30%;top:30%;width:28px;height:58px"><span class="tag">2</span></div><div class="bb" style="left:48%;top:30%;width:28px;height:58px"><span class="tag">3</span></div><div class="bb" style="left:66%;top:30%;width:28px;height:58px"><span class="tag">…6</span></div></div></div>
+              <div style="flex:1;min-width:200px"><div style="display:flex;gap:26px;align-items:center"><div><div class="lab" style="color:var(--muted);font-size:11px">Vision count</div><div style="font-family:var(--mono);font-size:32px;color:var(--watch)">6</div></div><div style="font-size:22px;color:var(--muted-2)">≠</div><div><div class="lab" style="color:var(--muted);font-size:11px">DN listed</div><div style="font-family:var(--mono);font-size:32px">8</div></div></div>
+                <span class="chip crit" style="margin-top:11px">● Mismatch — short by 2</span>
+                <div style="display:flex;gap:7px;margin-top:13px"><button class="btn pri sm">Open audit clip</button><button class="btn sm">Recount</button><button class="btn ghost sm">Accept variance</button></div></div></div></div>
+        </div>
+        <div class="panel"><div class="panel-head"><h3>Delivery audit trail <span class="fr">FR-M3</span></h3><span class="sub">30s clip linked to each DN</span></div>
+          <table><thead><tr><th>DN number</th><th>Supplier</th><th>Time</th><th>Vision / DN</th><th>Result</th><th>Audit clip</th></tr></thead><tbody>
+            <tr><td class="m hl">DN-88231</td><td>Meridian Logistics</td><td class="mono">09:38</td><td class="m">6 / 8</td><td><span class="chip crit">Mismatch</span></td><td><button class="btn sm">▶ 0:30 clip</button></td></tr>
+            <tr><td class="m">DN-88224</td><td>Coastal Freight</td><td class="mono">09:02</td><td class="m">12 / 12</td><td><span class="chip ok">Match</span></td><td><button class="btn sm">▶ 0:30 clip</button></td></tr>
+            <tr><td class="m">DN-88219</td><td>Meridian Logistics</td><td class="mono">08:31</td><td class="m">20 / 20</td><td><span class="chip ok">Match</span></td><td><button class="btn sm">▶ 0:30 clip</button></td></tr>
+            <tr><td class="m">DN-88207</td><td>Vector Supply</td><td class="mono">08:04</td><td class="m">5 / 5</td><td><span class="chip ok">Match</span></td><td><button class="btn sm">▶ 0:30 clip</button></td></tr>
+          </tbody></table></div>
+      </section>
+
+      <!-- CAMERAS -->
+      <section class="view" id="view-cameras">
+        <div class="crumb">Warehouse North <b>/ Cameras</b></div>
+        <div class="view-head"><div><div class="eyebrow">System</div><h1>Cameras</h1><p>All connected CCTV streams and the analytics running on each.</p></div><button class="btn">Add camera</button></div>
+        <div class="panel"><table><thead><tr><th>Camera</th><th>Location</th><th>Stream</th><th>Analytics</th><th>Status</th></tr></thead><tbody>
+          <tr><td class="m">CAM-01</td><td>Main Gate — In</td><td class="m">rtsp · 1080p</td><td>LPR, Face</td><td><span class="chip ok">● Online</span></td></tr>
+          <tr><td class="m">CAM-05</td><td>Turnstile B</td><td class="m">rtsp · 1080p</td><td>Tailgating</td><td><span class="chip ok">● Online</span></td></tr>
+          <tr><td class="m">CAM-08</td><td>Warehouse Aisle 4</td><td class="m">rtsp · 4K</td><td>PPE, Restricted, Fall</td><td><span class="chip ok">● Online</span></td></tr>
+          <tr><td class="m">CAM-12</td><td>Loading Bay 2</td><td class="m">rtsp · 4K</td><td>DN OCR, Count, Near-miss</td><td><span class="chip ok">● Online</span></td></tr>
+        </tbody></table></div>
+      </section>
+
+      <!-- ===================== ANPR DETECTION ===================== -->
+      <section class="view" id="view-anpr">
+        <div class="crumb">Warehouse North <b>/ ANPR Detection</b></div>
+        <div class="view-head">
+          <div><div class="eyebrow">AI Module</div><h1>Automatic Number Plate Recognition</h1>
+            <p>Upload a video to detect every license plate, cross-check against the authorised vehicle database, and get instant access decisions.</p>
+          </div>
+        </div>
+
+        <!-- Row 1: Upload + Status -->
+        <div class="grid col-2" style="margin-bottom:15px">
+          <div class="panel">
+            <div class="panel-head"><h3>Upload Video</h3></div>
+            <div class="panel-body">
+              <div class="upload-zone" id="anpr-zone"
+                ondragover="event.preventDefault();this.classList.add('drag-over')"
+                ondragleave="this.classList.remove('drag-over')"
+                ondrop="anprDrop(event)"
+                onclick="document.getElementById('anpr-file-in').click()">
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <div class="uz-title">Drop video here or click to browse</div>
+                <div class="uz-sub">MP4 · AVI · MOV · MKV · WebM</div>
+              </div>
+              <input type="file" id="anpr-file-in" accept="video/*" style="display:none" onchange="anprFileChosen(this)">
+              <div id="anpr-fname" style="margin-top:9px;font-family:var(--mono);font-size:10.5px;color:var(--muted-2)"></div>
+              <div id="anpr-vid-preview" style="display:none;position:relative;border-radius:4px;overflow:hidden;background:#000;aspect-ratio:16/9;margin-top:10px">
+                <video id="anpr-vid-el" style="width:100%;height:100%;object-fit:cover" autoplay loop muted playsinline></video>
+                <span id="anpr-vid-lbl" style="position:absolute;bottom:4px;left:5px;font-size:9px;font-family:var(--mono);background:rgba(0,0,0,.7);color:var(--muted-2);padding:2px 6px;border-radius:3px;letter-spacing:.04em">▶ Preview</span>
+              </div>
+              <button class="btn pri" id="anpr-upload-btn" style="width:100%;margin-top:12px" onclick="anprStartJob()" disabled>Analyse Video</button>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>Processing Status</h3><span class="sub" id="anpr-status-lbl">Idle</span></div>
+            <div class="panel-body">
+              <div style="margin-bottom:14px">
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                  <span style="font-size:11.5px;color:var(--muted)">Progress</span>
+                  <span style="font-family:var(--mono);font-size:11px" id="anpr-pct">—</span>
+                </div>
+                <div class="progress-track"><div class="progress-fill" id="anpr-bar"></div></div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+                <div class="kpi" style="padding:10px"><div class="lab">Total Plates</div><div class="val" id="anpr-total" style="font-size:22px">—</div></div>
+                <div class="kpi" style="padding:10px"><div class="lab">Authorised</div><div class="val" id="anpr-auth" style="font-size:22px;color:var(--clear)">—</div></div>
+                <div class="kpi" style="padding:10px"><div class="lab">Denied</div><div class="val" id="anpr-denied" style="font-size:22px;color:var(--alert)">—</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 2: Results table -->
+        <div class="panel" id="anpr-results-panel" style="margin-bottom:15px;display:none">
+          <div class="panel-head"><h3>Detection Results</h3><span class="sub" id="anpr-results-sub"></span></div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>#</th><th>Number Plate</th><th>Confidence</th><th>Status</th><th>Registered Owner</th><th>Vehicle Type</th><th>Decision</th></tr></thead>
+              <tbody id="anpr-results-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Row 3: Manage authorised vehicles -->
+        <div class="grid col-2">
+          <div class="panel">
+            <div class="panel-head"><h3>Authorised Vehicles</h3><span class="sub" id="auth-count-lbl"></span></div>
+            <div style="max-height:300px;overflow-y:auto">
+              <table><thead><tr><th>Plate</th><th>Owner</th><th>Type</th><th></th></tr></thead>
+              <tbody id="auth-tbody"></tbody></table>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>Add Vehicle to Whitelist</h3></div>
+            <div class="panel-body" style="display:grid;gap:11px">
+              <div class="field"><label>Number Plate</label><input id="nv-plate" placeholder="KL07 CK 4521"></div>
+              <div class="field"><label>Owner / Company</label><input id="nv-owner" placeholder="Company or person name"></div>
+              <div class="field"><label>Vehicle Type</label>
+                <select id="nv-type"><option>Car</option><option>Truck</option><option>Van</option><option>Motorcycle</option><option>Bus</option></select>
+              </div>
+              <button class="btn pri" onclick="addVehicle()">Add to Whitelist</button>
+              <div id="nv-msg" style="font-family:var(--mono);font-size:10.5px"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 4: Access log -->
+        <div class="panel" style="margin-top:15px">
+          <div class="panel-head"><h3>ANPR Access Log</h3><button class="btn sm ghost" onclick="loadAccessLog()">Refresh</button></div>
+          <table><thead><tr><th>Time</th><th>Plate</th><th>Confidence</th><th>Authorised</th><th>Decision</th></tr></thead>
+          <tbody id="access-log-body"></tbody></table>
+        </div>
+      </section>
+
+      <!-- ===================== BIOMETRIC AUTH ===================== -->
+      <section class="view" id="view-biometric">
+        <div class="crumb">Warehouse North <b>/ Biometric Auth</b></div>
+        <div class="view-head">
+          <div><div class="eyebrow">AI Module</div><h1>Biometric Face Authentication</h1>
+            <p>Scan a face via webcam or upload a photo to verify identity against the registered personnel database — same as office access control.</p>
+          </div>
+          <button class="btn ghost" onclick="loadPersons();loadBioLog()">Refresh</button>
+        </div>
+
+        <!-- KPI bar -->
+        <div class="kpis" style="grid-template-columns:repeat(3,1fr);margin-bottom:15px">
+          <div class="kpi"><span class="accent" style="background:var(--active)"></span><div class="lab">Total Scans</div><div class="val" id="bio-kpi-total">—</div></div>
+          <div class="kpi"><span class="accent" style="background:var(--clear)"></span><div class="lab">Granted</div><div class="val" id="bio-kpi-granted" style="color:var(--clear)">—</div></div>
+          <div class="kpi"><span class="accent" style="background:var(--alert)"></span><div class="lab">Denied</div><div class="val" id="bio-kpi-denied" style="color:var(--alert)">—</div></div>
+        </div>
+
+        <div class="grid col-2" style="margin-bottom:15px">
+          <!-- Verify panel -->
+          <div class="panel">
+            <div class="panel-head"><h3>Face Verification</h3><span class="sub">Identify a person</span></div>
+            <div class="panel-body">
+              <div class="cam-box" id="bio-cambox" style="margin-bottom:12px">
+                <video id="bio-vid" autoplay muted playsinline></video>
+                <canvas id="bio-canvas"></canvas>
+                <img id="bio-prev">
+                <div class="cam-placeholder" id="bio-placeholder">
+                  <div>
+                    <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" style="opacity:.35"><circle cx="12" cy="8" r="4"/><path d="M4 20v-1a8 8 0 0 1 16 0v1"/></svg>
+                    <div style="margin-top:7px">Camera or upload photo</div>
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+                <button class="btn" id="bio-cam-btn" onclick="toggleBioCam()">Start Webcam</button>
+                <button class="btn" id="bio-cap-btn" onclick="captureBio()" disabled>Capture</button>
+                <button class="btn ghost" onclick="document.getElementById('bio-upl-in').click()">Upload Photo</button>
+                <input type="file" id="bio-upl-in" accept="image/*" style="display:none" onchange="bioUploadChosen(this)">
+              </div>
+              <button class="btn pri" id="bio-verify-btn" style="width:100%" onclick="verifyFace()" disabled>Verify Identity</button>
+              <div class="bio-result-card" id="bio-result-card">
+                <div id="bio-result-inner"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Register panel -->
+          <div class="panel">
+            <div class="panel-head"><h3>Register New Person</h3></div>
+            <div class="panel-body">
+              <div class="cam-box" id="reg-cambox" style="margin-bottom:10px;aspect-ratio:16/7">
+                <video id="reg-vid" autoplay muted playsinline></video>
+                <img id="reg-prev">
+                <div class="cam-placeholder" id="reg-placeholder">
+                  <div>Face photo required — webcam or upload</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;margin-bottom:12px">
+                <button class="btn sm" id="reg-cam-btn" onclick="toggleRegCam()">Webcam</button>
+                <button class="btn sm" id="reg-cap-btn" onclick="captureReg()" disabled>Capture</button>
+                <button class="btn sm ghost" onclick="document.getElementById('reg-upl-in').click()">Upload</button>
+                <input type="file" id="reg-upl-in" accept="image/*" style="display:none" onchange="regUploadChosen(this)">
+              </div>
+              <div style="display:grid;gap:10px">
+                <div class="field"><label>Full Name *</label><input id="reg-name" placeholder="John Doe"></div>
+                <div class="field"><label>Employee ID *</label><input id="reg-empid" placeholder="EMP-2200"></div>
+                <div class="field"><label>Department</label><input id="reg-dept" placeholder="Operations"></div>
+                <div class="field"><label>Clearance Level</label>
+                  <select id="reg-cl"><option>L1</option><option>L2</option><option>L3</option><option>L4</option></select>
+                </div>
+                <button class="btn pri" onclick="registerPerson()">Register Person</button>
+                <div id="reg-msg" style="font-family:var(--mono);font-size:10.5px"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Personnel list + Bio log -->
+        <div class="grid col-2">
+          <div class="panel">
+            <div class="panel-head"><h3>Registered Personnel</h3><span class="sub" id="persons-count-lbl"></span><button class="btn sm ghost" style="margin-left:auto" onclick="loadPersons()">Refresh</button></div>
+            <div style="max-height:320px;overflow-y:auto">
+              <table><thead><tr><th>Name</th><th>ID</th><th>Dept</th><th>Level</th><th>Photo</th><th style="min-width:110px">Actions</th></tr></thead>
+              <tbody id="persons-tbody"></tbody></table>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>Biometric Access Log</h3><button class="btn sm ghost" onclick="loadBioLog()">Refresh</button></div>
+            <div style="max-height:320px;overflow-y:auto">
+              <table><thead><tr><th>Time</th><th>Person</th><th>Confidence</th><th>Decision</th></tr></thead>
+              <tbody id="bio-log-body"></tbody></table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /stage -->
+  </div>
+
+  <!-- Status bar -->
+  <footer class="statusbar">
+    <span class="s"><span class="dot live" id="api-dot"></span><span id="api-status">Connecting…</span></span>
+    <span class="s">24 cameras</span>
+    <span class="s">142 ms inference</span>
+    <span class="s">30 FPS avg</span>
+    <span class="sp s">SOC-NORTH</span>
+    <span class="s">ns.operator · Operator</span>
+    <span class="s">v2.4.1</span>
+  </footer>
+</div>
+
+<div id="windows"></div>
+
+<!-- ===== Vehicle edit modal ===== -->
+<div class="edit-modal-backdrop" id="vehicle-edit-modal">
+  <div class="edit-modal">
+    <h3>Edit Vehicle Record</h3>
+    <input type="hidden" id="vedit-id">
+    <div class="field"><label>NUMBER PLATE</label><input id="vedit-plate" placeholder="KL07 CK 4521"></div>
+    <div class="field"><label>OWNER / COMPANY</label><input id="vedit-owner" placeholder="Owner name"></div>
+    <div class="field"><label>ENTRY TIME (ISO)</label><input id="vedit-entry" placeholder="2024-01-01T09:00:00" style="opacity:.6" disabled></div>
+    <div class="field"><label>EXIT TIME (ISO, blank = still on site)</label><input id="vedit-exit" placeholder="2024-01-01T10:30:00"></div>
+    <div class="field"><label>ACCESS DECISION</label>
+      <select id="vedit-decision">
+        <option value="">— no change —</option>
+        <option value="add_whitelist">Add plate to authorized whitelist → GRANTED</option>
+        <option value="remove_whitelist">Remove plate from whitelist → DENIED</option>
+      </select>
+    </div>
+    <div class="edit-modal-msg" id="vedit-msg"></div>
+    <div class="edit-modal-footer">
+      <button class="btn sm danger" onclick="deleteVehicleVisit()">Delete record</button>
+      <button class="btn sm ghost" onclick="closeVehicleEdit()">Cancel</button>
+      <button class="btn sm pri" onclick="saveVehicleEdit()">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ANPR plate-correction modal ===== -->
+<div class="edit-modal-backdrop" id="anpr-edit-modal">
+  <div class="edit-modal">
+    <h3>Edit Detected Plate</h3>
+    <input type="hidden" id="aedit-original">
+    <div class="field"><label>CORRECT NUMBER PLATE</label><input id="aedit-plate" placeholder="KL07 CK 4521"></div>
+    <div class="field"><label>OWNER / COMPANY (optional)</label><input id="aedit-owner" placeholder="Will be looked up if already in whitelist"></div>
+    <div class="field"><label>VEHICLE TYPE</label>
+      <select id="aedit-type"><option>Car</option><option>Truck</option><option>Van</option><option>Motorcycle</option><option>Bus</option></select>
+    </div>
+    <div class="field"><label>ACCESS DECISION</label>
+      <select id="aedit-decision">
+        <option value="add">Add to authorized whitelist → GRANTED</option>
+        <option value="deny">Keep denied / remove from whitelist → DENIED</option>
+      </select>
+    </div>
+    <div class="edit-modal-msg" id="aedit-msg"></div>
+    <div class="edit-modal-footer">
+      <button class="btn sm ghost" onclick="closeAnprEdit()">Cancel</button>
+      <button class="btn sm pri" onclick="saveAnprEdit()">Save &amp; apply</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Person edit modal ===== -->
+<div class="edit-modal-backdrop" id="person-edit-modal">
+  <div class="edit-modal">
+    <h3>Edit Person Record</h3>
+    <input type="hidden" id="pedit-id">
+    <div class="field"><label>FULL NAME</label><input id="pedit-name" placeholder="John Doe"></div>
+    <div class="field"><label>DEPARTMENT</label><input id="pedit-dept" placeholder="Operations"></div>
+    <div class="field"><label>CLEARANCE LEVEL</label>
+      <select id="pedit-cl"><option>L1</option><option>L2</option><option>L3</option><option>L4</option></select>
+    </div>
+    <div class="edit-modal-msg" id="pedit-msg"></div>
+    <div class="edit-modal-footer">
+      <button class="btn sm ghost" onclick="document.getElementById('person-edit-modal').classList.remove('open')">Cancel</button>
+      <button class="btn sm pri" onclick="savePersonEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // -------- sign in --------
+  document.getElementById('signinBtn').addEventListener('click',()=>document.getElementById('signin').classList.add('hide'));
+
+  // -------- tab + view system --------
+  const nav=document.getElementById('nav'), tabbar=document.getElementById('tabbar');
+  const meta={}; // viewId -> {label, icon}
+  nav.querySelectorAll('button[data-view]').forEach(b=>{
+    meta[b.dataset.view]={label:b.dataset.label, icon:b.querySelector('svg').outerHTML};
+  });
+  const openTabs=[]; let activeView=null;
+
+  function render(){
+    tabbar.innerHTML='';
+    openTabs.forEach(v=>{
+      const t=document.createElement('div');
+      t.className='tab'+(v===activeView?' active':'')+(v==='overview'?' pinned':'');
+      t.innerHTML=`<span class="ti">${meta[v].icon}</span><span>${meta[v].label}</span><span class="x" title="Close">✕</span>`;
+      t.querySelector('.ti svg').setAttribute('class','ti');
+      t.addEventListener('click',e=>{ if(e.target.closest('.x')){closeTab(v);} else focus(v); });
+      tabbar.appendChild(t);
+    });
+    document.querySelectorAll('.view').forEach(s=>s.classList.toggle('on',s.id==='view-'+activeView));
+    nav.querySelectorAll('button[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===activeView));
+  }
+  function focus(v){ activeView=v; document.getElementById('stage').scrollTop=0; render(); }
+  function open(v){ if(!openTabs.includes(v)) openTabs.push(v); focus(v); }
+  function closeTab(v){
+    if(v==='overview') return; // pinned
+    const i=openTabs.indexOf(v); if(i<0) return;
+    openTabs.splice(i,1);
+    if(activeView===v) activeView=openTabs[Math.max(0,i-1)];
+    render();
+  }
+  nav.addEventListener('click',e=>{const b=e.target.closest('button[data-view]'); if(b) open(b.dataset.view);});
+  openTabs.push('overview'); activeView='overview'; render();
+
+  // -------- FR toggle --------
+  const tg=document.getElementById('frToggle');
+  function flip(){const on=document.body.classList.toggle('show-fr');tg.classList.toggle('on',on);tg.setAttribute('aria-checked',on);}
+  tg.addEventListener('click',flip);
+  tg.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();flip();}});
+
+  // -------- clock --------
+  const clk=document.getElementById('clock');
+  (function tick(){clk.textContent=new Date().toLocaleTimeString('en-GB');setTimeout(tick,1000);})();
+
+  // -------- pop-out windows --------
+  const layer=document.getElementById('windows'); let z=801, off=0;
+  document.addEventListener('click',e=>{
+    const p=e.target.closest('.popout'); if(!p) return;
+    const scene=p.closest('.cam').querySelector('.scene').cloneNode(true);
+    const w=document.createElement('div'); w.className='win';
+    w.style.left=(120+off)+'px'; w.style.top=(150+off)+'px'; w.style.zIndex=++z; off=(off+28)%140;
+    const head=document.createElement('div'); head.className='win-head';
+    head.innerHTML=`<span class="dot live"></span><span class="wt">${p.dataset.win}</span><span class="wid">${p.dataset.id}</span><span class="wbtn" data-min title="Minimize">–</span><span class="wbtn" data-close title="Close">✕</span>`;
+    w.appendChild(head); w.appendChild(scene); layer.appendChild(w);
+
+    w.addEventListener('pointerdown',()=>{w.style.zIndex=++z;});
+    head.querySelector('[data-close]').addEventListener('click',()=>w.remove());
+    head.querySelector('[data-min]').addEventListener('click',()=>{
+      scene.style.display = scene.style.display==='none'?'':'none';
+    });
+    // drag
+    let sx,sy,sl,st,drag=false;
+    head.addEventListener('pointerdown',ev=>{
+      if(ev.target.closest('.wbtn')) return;
+      drag=true; head.classList.add('grabbing'); head.setPointerCapture(ev.pointerId);
+      sx=ev.clientX; sy=ev.clientY; sl=w.offsetLeft; st=w.offsetTop;
+    });
+    head.addEventListener('pointermove',ev=>{
+      if(!drag) return;
+      let nl=sl+ev.clientX-sx, nt=st+ev.clientY-sy;
+      nl=Math.max(0,Math.min(window.innerWidth-w.offsetWidth,nl));
+      nt=Math.max(0,Math.min(window.innerHeight-46,nt));
+      w.style.left=nl+'px'; w.style.top=nt+'px';
+    });
+    head.addEventListener('pointerup',ev=>{drag=false;head.classList.remove('grabbing');head.releasePointerCapture(ev.pointerId);});
+  });
+
+  // MJPEG streams are served directly by the backend with detection overlays
+  // already burned in — no frontend JS needed to drive the video feeds.
+
+  // =====================================================================
+  // ANPR MODULE
+  // =====================================================================
+  const API = 'http://127.0.0.1:8000';
+  let anprFile = null, anprJobId = null, anprPollTimer = null, anprObjUrl = null;
+
+  // Drag-and-drop
+  function anprDrop(ev) {
+    ev.preventDefault();
+    document.getElementById('anpr-zone').classList.remove('drag-over');
+    const f = ev.dataTransfer.files[0];
+    if (f && f.type.startsWith('video/')) _setAnprFile(f);
+  }
+  function anprFileChosen(inp) { if (inp.files[0]) _setAnprFile(inp.files[0]); }
+  function _setAnprFile(f) {
+    anprFile = f;
+    if (anprObjUrl) URL.revokeObjectURL(anprObjUrl);
+    anprObjUrl = URL.createObjectURL(f);
+    document.getElementById('anpr-fname').textContent = `▶  ${f.name}  (${(f.size/1048576).toFixed(1)} MB)`;
+    document.getElementById('anpr-upload-btn').disabled = false;
+    document.getElementById('anpr-zone').style.borderColor = 'var(--active)';
+    // Show inline video preview
+    const vid = document.getElementById('anpr-vid-el');
+    const lbl = document.getElementById('anpr-vid-lbl');
+    const wrap = document.getElementById('anpr-vid-preview');
+    if (vid && wrap) {
+      vid.src = anprObjUrl;
+      vid.play().catch(() => {});
+      if (lbl) lbl.textContent = `▶ ${f.name}`;
+      wrap.style.display = '';
+    }
+  }
+
+  async function anprStartJob() {
+    if (!anprFile) return;
+    const btn = document.getElementById('anpr-upload-btn');
+    btn.disabled = true; btn.textContent = 'Uploading…';
+
+    // Keep video playing; update label
+    const _lbl = document.getElementById('anpr-vid-lbl');
+    const _vid = document.getElementById('anpr-vid-el');
+    if (_lbl) _lbl.textContent = '▶ Uploading…';
+    if (_vid && _vid.paused) _vid.play().catch(() => {});
+
+    const fd = new FormData();
+    fd.append('video', anprFile);
+
+    try {
+      const res = await fetch(`${API}/api/v1/anpr/upload`, { method: 'POST', body: fd });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      anprJobId = data.job_id;
+      btn.textContent = 'Scanning…';
+      document.getElementById('anpr-status-lbl').textContent = 'Processing';
+      if (_lbl) _lbl.textContent = '▶ Scanning plates…';
+      _anprPoll();
+    } catch (e) {
+      btn.disabled = false; btn.textContent = 'Analyse Video';
+      if (_lbl) _lbl.textContent = '✕ Upload failed';
+      alert('Upload failed: ' + e.message);
+    }
+  }
+
+  function _anprPoll() {
+    if (anprPollTimer) clearTimeout(anprPollTimer);
+    anprPollTimer = setTimeout(async () => {
+      try {
+        const res = await fetch(`${API}/api/v1/anpr/job/${anprJobId}`);
+        const data = await res.json();
+        _anprUpdateUI(data);
+        if (data.status !== 'completed' && data.status !== 'error') _anprPoll();
+      } catch (e) { _anprPoll(); } // retry on network hiccup
+    }, 2000);
+  }
+
+  function _anprUpdateUI(data) {
+    // Progress bar
+    const pct = Math.min(data.progress || 0, 100);
+    document.getElementById('anpr-bar').style.width = pct + '%';
+    document.getElementById('anpr-pct').textContent = pct.toFixed(1) + '%';
+
+    const statusMap = { pending:'Pending…', processing:'Processing…', completed:'Completed', error:'Error' };
+    document.getElementById('anpr-status-lbl').textContent = statusMap[data.status] || data.status;
+
+    // Sync video preview label
+    const _lbl = document.getElementById('anpr-vid-lbl');
+    if (_lbl) {
+      if (data.status === 'processing' || data.status === 'pending') {
+        _lbl.textContent = `▶ Scanning… ${pct.toFixed(0)}%`;
+      } else if (data.status === 'completed') {
+        _lbl.textContent = '✓ Scan complete';
+      } else if (data.status === 'error') {
+        _lbl.textContent = '✕ Error';
+      }
+    }
+
+    if (data.plates && data.plates.length > 0) {
+      const auth = data.plates.filter(p => p.authorized).length;
+      document.getElementById('anpr-total').textContent = data.plates.length;
+      document.getElementById('anpr-auth').textContent = auth;
+      document.getElementById('anpr-denied').textContent = data.plates.length - auth;
+    }
+
+    if (data.status === 'completed') {
+      document.getElementById('anpr-upload-btn').textContent = 'Analyse Another Video';
+      document.getElementById('anpr-upload-btn').disabled = false;
+      document.getElementById('anpr-bar').style.width = '100%';
+      document.getElementById('anpr-pct').textContent = '100%';
+      _renderAnprResults(data.plates || []);
+    }
+    if (data.status === 'error') {
+      document.getElementById('anpr-status-lbl').textContent = 'Error: ' + (data.error || 'Unknown');
+      document.getElementById('anpr-upload-btn').disabled = false;
+      document.getElementById('anpr-upload-btn').textContent = 'Retry';
+    }
+  }
+
+  function _fmtPlate(raw) {
+    // KL07CK4521 → KL07 CK 4521
+    const m = raw.match(/^([A-Z]{2})(\d{2})([A-Z]{1,3})(\d{4})$/i);
+    return m ? `${m[1]}${m[2]} ${m[3]} ${m[4]}` : raw;
+  }
+
+  function _renderAnprResults(plates) {
+    const panel = document.getElementById('anpr-results-panel');
+    if (!plates.length) { panel.style.display = 'none'; return; }
+    panel.style.display = '';
+
+    // Sort: authorized first, then by confidence desc
+    const sorted = [...plates].sort((a, b) => {
+      if (a.authorized !== b.authorized) return a.authorized ? -1 : 1;
+      return b.confidence - a.confidence;
+    });
+    const primary = sorted[0];
+
+    const iconOk = `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
+    const iconX  = `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+
+    const primaryBtnHtml = primary.authorized
+      ? `<button class="btn pri sm" style="margin-top:11px" onclick="recordVehicleEntry('${primary.plate}')">▶ Record Gate Entry</button>`
+      : `<button class="btn danger sm" style="margin-top:11px" onclick="_toast('Security alerted','warn')">⚠ Alert Security</button>`;
+
+    let html = `
+      <div class="panel-head">
+        <h3>Gate Decision</h3>
+        <span class="sub">${sorted.length} plate${sorted.length>1?'s':''} detected</span>
+      </div>
+      <div class="panel-body">
+        <!-- Primary decision banner -->
+        <div class="gate-decision ${primary.authorized ? 'granted' : 'denied'}">
+          <div class="gd-icon">${primary.authorized ? iconOk : iconX}</div>
+          <div style="flex:1;min-width:0">
+            <div class="gd-label">${primary.authorized ? '✓ Access Granted' : '✕ Access Denied'}</div>
+            <div class="gd-plate">${_fmtPlate(primary.plate)}</div>
+            <div class="gd-sub">${primary.authorized
+              ? `${primary.owner} &nbsp;·&nbsp; ${primary.vehicle_type}`
+              : 'Vehicle not in authorized database'}</div>
+            ${primaryBtnHtml}
+          </div>
+          <div class="gd-right">
+            <div class="gd-conf-label">OCR confidence</div>
+            <div class="gd-conf">${(primary.confidence * 100).toFixed(1)}%</div>
+          </div>
+        </div>`;
+
+    if (sorted.length > 1) {
+      html += `<div style="font-size:10px;color:var(--muted-2);font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">All detected (${sorted.length})</div>
+               <div class="access-grid">`;
+      sorted.forEach(p => {
+        const cls = p.authorized ? 'granted' : 'denied';
+        const btn = p.authorized
+          ? `<button class="btn pri sm" style="width:100%;margin-top:8px" onclick="recordVehicleEntry('${p.plate}')">Record Entry</button>`
+          : `<button class="btn danger sm" style="width:100%;margin-top:8px">Flag Unauthorized</button>`;
+        html += `
+          <div class="acard ${cls}">
+            <div class="acard-banner">${p.authorized ? iconOk : iconX} &nbsp;${p.authorized ? 'ACCESS GRANTED' : 'ACCESS DENIED'}</div>
+            <div class="acard-plate">${_fmtPlate(p.plate)}</div>
+            <div class="acard-body">
+              <div class="acard-row"><span>Owner</span><b>${p.owner}</b></div>
+              <div class="acard-row"><span>Type</span><b>${p.vehicle_type}</b></div>
+              <div class="acard-row"><span>Confidence</span><b>${(p.confidence*100).toFixed(1)}%</b></div>
+              ${btn}
+            </div>
+          </div>`;
+      });
+      html += `</div>`;
+    }
+
+    html += `</div>`;
+    panel.innerHTML = html;
+  }
+
+  // Authorised vehicles
+  async function loadAuthorisedVehicles() {
+    try {
+      const res = await fetch(`${API}/api/v1/anpr/authorized`);
+      const list = await res.json();
+      document.getElementById('auth-count-lbl').textContent = list.length + ' vehicles';
+      document.getElementById('auth-tbody').innerHTML = list.map(v => `<tr>
+        <td class="mono" style="font-size:12.5px">${v.plate}</td>
+        <td>${v.owner}</td>
+        <td>${v.vehicle_type}</td>
+        <td><button class="btn sm danger" onclick="removeVehicle('${v.plate}')">Remove</button></td>
+      </tr>`).join('');
+    } catch(e) {}
+  }
+
+  async function addVehicle() {
+    const plate = document.getElementById('nv-plate').value.trim();
+    const owner = document.getElementById('nv-owner').value.trim();
+    const vtype = document.getElementById('nv-type').value;
+    const msg = document.getElementById('nv-msg');
+    if (!plate) { msg.style.color='var(--alert)'; msg.textContent='Plate is required.'; return; }
+    try {
+      const res = await fetch(`${API}/api/v1/anpr/authorized`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({plate, owner: owner||'Unknown', vehicle_type: vtype})
+      });
+      if (!res.ok) throw new Error((await res.json()).detail);
+      msg.style.color='var(--clear)'; msg.textContent='Vehicle added.';
+      document.getElementById('nv-plate').value='';
+      document.getElementById('nv-owner').value='';
+      loadAuthorisedVehicles();
+    } catch(e) { msg.style.color='var(--alert)'; msg.textContent='Error: '+e.message; }
+  }
+
+  async function removeVehicle(plate) {
+    if (!confirm('Remove ' + plate + ' from whitelist?')) return;
+    try {
+      await fetch(`${API}/api/v1/anpr/authorized/${encodeURIComponent(plate)}`, {method:'DELETE'});
+      loadAuthorisedVehicles();
+    } catch(e) {}
+  }
+
+  async function loadAccessLog() {
+    try {
+      const res = await fetch(`${API}/api/v1/anpr/log`);
+      const list = await res.json();
+      document.getElementById('access-log-body').innerHTML = list.map(l => {
+        const dec = l.decision==='GRANTED'
+          ? '<span class="chip ok">GRANTED</span>'
+          : '<span class="chip crit">DENIED</span>';
+        const auth = l.authorized ? '<span class="chip ok">Yes</span>' : '<span class="chip warn">No</span>';
+        const ts = l.timestamp ? l.timestamp.replace('T',' ').substring(0,19) : '—';
+        const conf = ((l.confidence||0)*100).toFixed(1)+'%';
+        return `<tr><td class="mono">${ts}</td><td class="mono">${l.plate}</td><td class="mono">${conf}</td><td>${auth}</td><td>${dec}</td></tr>`;
+      }).join('');
+    } catch(e) {}
+  }
+
+  // Load data when tabs are opened
+  document.getElementById('nav').addEventListener('click', e => {
+    const b = e.target.closest('button[data-view]');
+    if (b && b.dataset.view === 'anpr') {
+      loadAuthorisedVehicles();
+      loadAccessLog();
+    }
+    if (b && b.dataset.view === 'biometric') {
+      loadPersons();
+      loadBioLog();
+    }
+    if (b && b.dataset.view === 'gate') {
+      loadGateLog();
+      loadGateWhitelist();
+    }
+    if (b && b.dataset.view === 'vehicle') {
+      loadVehicleData();
+    }
+  });
+
+  // =====================================================================
+  // BIOMETRIC MODULE
+  // =====================================================================
+  let bioCamStream = null, regCamStream = null;
+  let bioImageBlob = null, regImageBlob = null;
+
+  // --- Verify webcam ---
+  async function toggleBioCam() {
+    if (bioCamStream) {
+      bioCamStream.getTracks().forEach(t => t.stop());
+      bioCamStream = null;
+      document.getElementById('bio-vid').style.display = 'none';
+      document.getElementById('bio-placeholder').style.display = '';
+      document.getElementById('bio-cam-btn').textContent = 'Start Webcam';
+      document.getElementById('bio-cap-btn').disabled = true;
+      return;
+    }
+    try {
+      bioCamStream = await navigator.mediaDevices.getUserMedia({video:{width:640,height:480}});
+      const vid = document.getElementById('bio-vid');
+      vid.srcObject = bioCamStream;
+      vid.style.display = 'block';
+      document.getElementById('bio-placeholder').style.display = 'none';
+      document.getElementById('bio-prev').style.display = 'none';
+      document.getElementById('bio-cam-btn').textContent = 'Stop Webcam';
+      document.getElementById('bio-cap-btn').disabled = false;
+    } catch(e) { alert('Cannot access webcam: ' + e.message); }
+  }
+
+  function captureBio() {
+    const vid = document.getElementById('bio-vid');
+    const canvas = document.getElementById('bio-canvas');
+    canvas.width = vid.videoWidth || 640;
+    canvas.height = vid.videoHeight || 480;
+    canvas.getContext('2d').drawImage(vid, 0, 0);
+    canvas.toBlob(blob => {
+      bioImageBlob = blob;
+      // Show captured frame
+      const img = document.getElementById('bio-prev');
+      img.src = URL.createObjectURL(blob);
+      img.style.display = 'block';
+      canvas.style.display = 'none';
+      document.getElementById('bio-verify-btn').disabled = false;
+    }, 'image/jpeg', 0.92);
+    // Stop webcam after capture
+    if (bioCamStream) { bioCamStream.getTracks().forEach(t => t.stop()); bioCamStream = null; }
+    vid.style.display = 'none';
+    document.getElementById('bio-placeholder').style.display = 'none';
+    document.getElementById('bio-cam-btn').textContent = 'Start Webcam';
+    document.getElementById('bio-cap-btn').disabled = true;
+  }
+
+  function bioUploadChosen(inp) {
+    if (!inp.files[0]) return;
+    bioImageBlob = inp.files[0];
+    const img = document.getElementById('bio-prev');
+    img.src = URL.createObjectURL(bioImageBlob);
+    img.style.display = 'block';
+    document.getElementById('bio-vid').style.display = 'none';
+    document.getElementById('bio-placeholder').style.display = 'none';
+    document.getElementById('bio-verify-btn').disabled = false;
+  }
+
+  async function verifyFace() {
+    if (!bioImageBlob) return;
+    const btn = document.getElementById('bio-verify-btn');
+    btn.disabled = true; btn.textContent = 'Verifying…';
+
+    const fd = new FormData();
+    fd.append('photo', bioImageBlob, 'face.jpg');
+
+    try {
+      const res = await fetch(`${API}/api/v1/biometric/verify`, {method:'POST', body:fd});
+      const data = await res.json();
+      _renderBioResult(data);
+      loadBioLog();
+    } catch(e) {
+      alert('Verification failed: ' + e.message);
+    } finally {
+      btn.disabled = false; btn.textContent = 'Verify Identity';
+    }
+  }
+
+  function _renderBioResult(data) {
+    const card = document.getElementById('bio-result-card');
+    const inner = document.getElementById('bio-result-inner');
+    card.style.display = '';
+    card.className = 'bio-result-card ' + (data.matched ? 'granted' : 'denied');
+
+    if (data.matched && data.person) {
+      const p = data.person;
+      const pname = p.name.replace(/'/g, "\\'");
+      inner.innerHTML = `
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#1d3a2a,#0c1c14);display:grid;place-items:center;font-weight:700;font-size:16px;color:var(--clear);flex:0 0 auto">${p.name.charAt(0)}</div>
+          <div>
+            <div style="font-weight:600;font-size:14px">${p.name}</div>
+            <div style="font-family:var(--mono);font-size:11px;color:var(--muted)">${p.employee_id} · ${p.department} · ${p.clearance_level}</div>
+          </div>
+          <span class="chip ok" style="margin-left:auto">● Match</span>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+          <span class="chip ok">GRANTED</span>
+          <span class="chip">Confidence: ${(data.confidence*100).toFixed(1)}%</span>
+          <span class="chip">Engine: ${data.engine||'AI'}</span>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn pri sm" onclick="_bioAction('grant','${pname}')">Grant entry</button>
+          <button class="btn danger sm" onclick="_bioAction('deny','${pname}')">Deny entry</button>
+        </div>`;
+    } else {
+      inner.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--alert)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          <div>
+            <div style="font-weight:600;color:var(--alert)">Identity Not Recognised</div>
+            <div style="font-size:11.5px;color:var(--muted);margin-top:2px">No match in registered personnel database</div>
+          </div>
+        </div>
+        <div style="margin-top:11px;display:flex;gap:8px;flex-wrap:wrap">
+          <span class="chip crit">DENIED</span>
+          <span class="chip">Confidence: ${(data.confidence*100).toFixed(1)}%</span>
+          <span class="chip">Engine: ${data.engine||'AI'}</span>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn danger sm" onclick="_bioAlertSecurity()">Alert Security</button>
+          <button class="btn sm ghost" onclick="document.getElementById('bio-result-card').style.display='none'">Dismiss</button>
+        </div>`;
+    }
+  }
+
+  // --- Register webcam ---
+  async function toggleRegCam() {
+    if (regCamStream) {
+      regCamStream.getTracks().forEach(t => t.stop());
+      regCamStream = null;
+      document.getElementById('reg-vid').style.display = 'none';
+      document.getElementById('reg-placeholder').style.display = '';
+      document.getElementById('reg-cam-btn').textContent = 'Webcam';
+      document.getElementById('reg-cap-btn').disabled = true;
+      return;
+    }
+    try {
+      regCamStream = await navigator.mediaDevices.getUserMedia({video:{width:640,height:480}});
+      const vid = document.getElementById('reg-vid');
+      vid.srcObject = regCamStream;
+      vid.style.display = 'block';
+      document.getElementById('reg-placeholder').style.display = 'none';
+      document.getElementById('reg-prev').style.display = 'none';
+      document.getElementById('reg-cam-btn').textContent = 'Stop';
+      document.getElementById('reg-cap-btn').disabled = false;
+    } catch(e) { alert('Cannot access webcam: ' + e.message); }
+  }
+
+  function captureReg() {
+    const vid = document.getElementById('reg-vid');
+    const canvas = document.createElement('canvas');
+    canvas.width = vid.videoWidth || 640;
+    canvas.height = vid.videoHeight || 480;
+    canvas.getContext('2d').drawImage(vid, 0, 0);
+    canvas.toBlob(blob => {
+      regImageBlob = blob;
+      const img = document.getElementById('reg-prev');
+      img.src = URL.createObjectURL(blob);
+      img.style.display = 'block';
+    }, 'image/jpeg', 0.92);
+    if (regCamStream) { regCamStream.getTracks().forEach(t => t.stop()); regCamStream = null; }
+    document.getElementById('reg-vid').style.display = 'none';
+    document.getElementById('reg-cam-btn').textContent = 'Webcam';
+    document.getElementById('reg-cap-btn').disabled = true;
+    document.getElementById('reg-placeholder').style.display = 'none';
+  }
+
+  function regUploadChosen(inp) {
+    if (!inp.files[0]) return;
+    regImageBlob = inp.files[0];
+    const img = document.getElementById('reg-prev');
+    img.src = URL.createObjectURL(regImageBlob);
+    img.style.display = 'block';
+    document.getElementById('reg-vid').style.display = 'none';
+    document.getElementById('reg-placeholder').style.display = 'none';
+  }
+
+  async function registerPerson() {
+    const name = document.getElementById('reg-name').value.trim();
+    const empid = document.getElementById('reg-empid').value.trim();
+    const dept = document.getElementById('reg-dept').value.trim();
+    const cl = document.getElementById('reg-cl').value;
+    const msg = document.getElementById('reg-msg');
+
+    if (!name || !empid) { msg.style.color='var(--alert)'; msg.textContent='Name and Employee ID are required.'; return; }
+    if (!regImageBlob) { msg.style.color='var(--alert)'; msg.textContent='Please provide a face photo.'; return; }
+
+    msg.style.color='var(--muted)'; msg.textContent='Registering…';
+
+    const fd = new FormData();
+    fd.append('photo', regImageBlob, 'face.jpg');
+    fd.append('name', name);
+    fd.append('employee_id', empid);
+    fd.append('department', dept || 'General');
+    fd.append('clearance_level', cl);
+
+    try {
+      const res = await fetch(`${API}/api/v1/biometric/register`, {method:'POST', body:fd});
+      if (!res.ok) throw new Error((await res.json()).detail || 'Error');
+      const data = await res.json();
+      msg.style.color = 'var(--clear)';
+      msg.textContent = data.face_detected
+        ? `✓ ${name} registered with face detected.`
+        : `✓ ${name} registered (no face auto-detected — ensure a clear photo is used).`;
+      // Reset form
+      document.getElementById('reg-name').value='';
+      document.getElementById('reg-empid').value='';
+      document.getElementById('reg-dept').value='';
+      document.getElementById('reg-prev').style.display='none';
+      document.getElementById('reg-placeholder').style.display='';
+      regImageBlob = null;
+      loadPersons();
+    } catch(e) {
+      msg.style.color='var(--alert)'; msg.textContent='Error: '+e.message;
+    }
+  }
+
+  async function loadPersons() {
+    try {
+      const res = await fetch(`${API}/api/v1/biometric/persons`);
+      const list = await res.json();
+      document.getElementById('persons-count-lbl').textContent = list.length + ' registered';
+      document.getElementById('persons-tbody').innerHTML = list.map(p => {
+        const photo = p.has_photo
+          ? '<span class="chip ok">✓</span>'
+          : '<span class="chip warn">—</span>';
+        const eid  = p.employee_id.replace(/'/g, "\\'");
+        const name = p.name.replace(/'/g, "\\'");
+        const dept = (p.department||'').replace(/'/g, "\\'");
+        const cl   = p.clearance_level || 'L1';
+        return `<tr>
+          <td style="font-weight:600">${p.name}</td>
+          <td class="mono">${p.employee_id}</td>
+          <td>${p.department}</td>
+          <td><span class="chip">${p.clearance_level}</span></td>
+          <td>${photo}</td>
+          <td style="display:flex;gap:5px;flex-wrap:wrap">
+            <button class="btn sm ghost" onclick="openPersonEdit('${eid}','${name}','${dept}','${cl}')">Edit</button>
+            <button class="btn sm danger" onclick="deletePerson('${eid}','${name}')">Remove</button>
+          </td>
+        </tr>`;
+      }).join('');
+    } catch(e) {}
+  }
+
+  async function deletePerson(empid, name) {
+    if (!confirm('Remove ' + name + ' from the biometric database?')) return;
+    try {
+      await fetch(`${API}/api/v1/biometric/persons/${encodeURIComponent(empid)}`, {method:'DELETE'});
+      loadPersons();
+    } catch(e) {}
+  }
+
+  async function loadBioLog() {
+    try {
+      const res = await fetch(`${API}/api/v1/biometric/log?limit=200`);
+      const list = await res.json();
+
+      // KPI update
+      const granted = list.filter(l => l.decision === 'GRANTED').length;
+      const denied  = list.filter(l => l.decision === 'DENIED').length;
+      const _el = id => document.getElementById(id);
+      if (_el('bio-kpi-total'))   _el('bio-kpi-total').textContent   = list.length;
+      if (_el('bio-kpi-granted')) _el('bio-kpi-granted').textContent = granted;
+      if (_el('bio-kpi-denied'))  _el('bio-kpi-denied').textContent  = denied;
+
+      document.getElementById('bio-log-body').innerHTML = list.slice(0, 60).map(l => {
+        const dec = l.decision==='GRANTED'
+          ? '<span class="chip ok">GRANTED</span>'
+          : '<span class="chip crit">DENIED</span>';
+        const ts = l.timestamp ? l.timestamp.replace('T',' ').substring(0,19) : '—';
+        const conf = ((l.confidence||0)*100).toFixed(1) + '%';
+        return `<tr><td class="mono">${ts}</td><td>${l.person_name||'Unknown'}</td><td class="mono">${conf}</td><td>${dec}</td></tr>`;
+      }).join('');
+    } catch(e) {}
+  }
+
+  // Biometric action buttons — grant/deny after a match result
+  async function _bioAction(type, personName) {
+    const decision = type === 'grant' ? 'GRANTED' : 'DENIED';
+    try {
+      const fd = new FormData();
+      fd.append('person_name', personName);
+      fd.append('confidence', '1.0');
+      fd.append('decision', decision);
+      await fetch(`${API}/api/v1/biometric/log`, {method:'POST', body:fd});
+    } catch(e) {}
+    document.getElementById('bio-result-card').style.display = 'none';
+    if (type === 'grant') {
+      _toast(`Gate opened — entry granted for ${personName}`, 'ok');
+    } else {
+      _toast(`Entry denied for ${personName} — operator override`, 'warn');
+    }
+    loadBioLog();
+  }
+
+  function _bioAlertSecurity() {
+    _toast('⚠ Security alert — unknown individual at biometric scanner', 'err');
+    document.getElementById('bio-result-card').style.display = 'none';
+    loadBioLog();
+  }
+
+  // Person edit modal
+  function openPersonEdit(empid, name, dept, cl) {
+    document.getElementById('pedit-id').value = empid;
+    document.getElementById('pedit-name').value = name;
+    document.getElementById('pedit-dept').value = dept;
+    const clEl = document.getElementById('pedit-cl');
+    clEl.value = cl;
+    if (clEl.value !== cl) clEl.selectedIndex = 0;
+    document.getElementById('pedit-msg').textContent = '';
+    document.getElementById('person-edit-modal').classList.add('open');
+  }
+
+  async function savePersonEdit() {
+    const empid = document.getElementById('pedit-id').value;
+    const name  = document.getElementById('pedit-name').value.trim();
+    const dept  = document.getElementById('pedit-dept').value.trim();
+    const cl    = document.getElementById('pedit-cl').value;
+    const msg   = document.getElementById('pedit-msg');
+
+    if (!name) { msg.style.color='var(--alert)'; msg.textContent='Name is required.'; return; }
+    msg.style.color='var(--muted)'; msg.textContent='Saving…';
+
+    try {
+      const res = await fetch(`${API}/api/v1/biometric/persons/${encodeURIComponent(empid)}`, {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name, department: dept, clearance_level: cl}),
+      });
+      if (!res.ok) throw new Error((await res.json()).detail || 'Error');
+      document.getElementById('person-edit-modal').classList.remove('open');
+      _toast('Person record updated', 'ok');
+      loadPersons();
+    } catch(e) {
+      msg.style.color='var(--alert)'; msg.textContent='Error: ' + e.message;
+    }
+  }
+
+  document.getElementById('person-edit-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('person-edit-modal'))
+      document.getElementById('person-edit-modal').classList.remove('open');
+  });
+
+  // =====================================================================
+  // TOAST NOTIFICATION
+  // =====================================================================
+  function _toast(msg, type) {
+    const el = document.createElement('div');
+    const colors = {
+      ok:   {bg:'rgba(40,201,168,.15)',  border:'rgba(40,201,168,.45)',  color:'var(--clear)'},
+      warn: {bg:'rgba(240,169,59,.15)',  border:'rgba(240,169,59,.45)',  color:'var(--watch)'},
+      err:  {bg:'rgba(242,86,110,.15)',  border:'rgba(242,86,110,.45)',  color:'var(--alert)'},
+    };
+    const c = colors[type] || colors.ok;
+    el.style.cssText = `position:fixed;bottom:50px;right:20px;z-index:9999;padding:11px 18px;border-radius:8px;font-family:var(--mono);font-size:12px;box-shadow:0 4px 20px rgba(0,0,0,.5);background:${c.bg};border:1px solid ${c.border};color:${c.color};transition:opacity .4s`;
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 400); }, 3000);
+  }
+
+  // =====================================================================
+  // VEHICLE & LOGISTICS (FR-V1)
+  // =====================================================================
+  async function recordVehicleEntry(plate) {
+    try {
+      const res = await fetch(`${API}/api/v1/vehicles/entry`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({plate})
+      });
+      if (res.ok) {
+        _toast(`Entry recorded — ${_fmtPlate(plate)}`, 'ok');
+        if (document.getElementById('view-vehicle').classList.contains('on')) loadVehicleData();
+      } else {
+        const e = await res.json();
+        _toast(e.detail || 'Could not record entry', 'warn');
+      }
+    } catch(e) { _toast('Backend unreachable', 'err'); }
+  }
+
+  async function manualVehicleEntry() {
+    const plate = document.getElementById('v-plate-in').value.trim();
+    const msg   = document.getElementById('v-msg');
+    if (!plate) { msg.style.color='var(--alert)'; msg.textContent='Enter a plate number.'; return; }
+    try {
+      const res = await fetch(`${API}/api/v1/vehicles/entry`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({plate})
+      });
+      if (res.ok) {
+        msg.style.color = 'var(--clear)';
+        msg.textContent = `✓ Entry recorded for ${_fmtPlate(plate.toUpperCase().replace(/\s/g,''))}.`;
+        document.getElementById('v-plate-in').value = '';
+        loadVehicleData();
+      } else {
+        const e = await res.json();
+        msg.style.color = 'var(--alert)'; msg.textContent = e.detail || 'Error';
+      }
+    } catch(e) { msg.style.color='var(--alert)'; msg.textContent='Backend unreachable'; }
+  }
+
+  async function manualVehicleExit() {
+    const plate = document.getElementById('v-plate-in').value.trim();
+    const msg   = document.getElementById('v-msg');
+    if (!plate) { msg.style.color='var(--alert)'; msg.textContent='Enter a plate number.'; return; }
+    try {
+      const res = await fetch(`${API}/api/v1/vehicles/exit`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({plate})
+      });
+      if (res.ok) {
+        const data = await res.json();
+        msg.style.color = 'var(--clear)';
+        msg.textContent = `✓ Exit recorded — turnaround: ${data.duration_minutes}m`;
+        document.getElementById('v-plate-in').value = '';
+        loadVehicleData();
+      } else {
+        const e = await res.json();
+        msg.style.color = 'var(--alert)'; msg.textContent = e.detail || 'Error';
+      }
+    } catch(e) { msg.style.color='var(--alert)'; msg.textContent='Backend unreachable'; }
+  }
+
+  async function loadVehicleData() {
+    try {
+      const [listRes, statsRes] = await Promise.all([
+        fetch(`${API}/api/v1/vehicles?limit=60`),
+        fetch(`${API}/api/v1/vehicles/stats`)
+      ]);
+      const visits = listRes.ok ? await listRes.json() : [];
+      const stats  = statsRes.ok ? await statsRes.json() : {};
+
+      // KPIs
+      document.getElementById('v-kpi-onsite').textContent  = stats.on_site  ?? '—';
+      document.getElementById('v-kpi-cleared').textContent = stats.cleared   ?? '—';
+      document.getElementById('v-kpi-sla').textContent     = stats.over_sla  ?? '—';
+      document.getElementById('v-kpi-avg').textContent     = stats.avg_minutes ? `${stats.avg_minutes}m` : '—';
+
+      // Table
+      const tbody = document.getElementById('vehicle-tbody');
+      if (!visits.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted-2);padding:18px;font-family:var(--mono);font-size:11px">No vehicle records yet</td></tr>';
+      } else {
+        tbody.innerHTML = visits.map(v => {
+          const entryTime = v.entry_time ? v.entry_time.substring(11,16) : '—';
+          const exitTime  = v.exit_time  ? v.exit_time.substring(11,16)  : '—';
+          const durStr = v.duration_minutes != null
+            ? `${v.duration_minutes}m`
+            : '⏱ on site';
+          const durColor = v.status === 'over_sla' ? 'var(--alert)' : v.status === 'on_site' ? 'var(--watch)' : 'var(--clear)';
+          const statusChip = v.status === 'on_site'
+            ? '<span class="chip warn">On Site</span>'
+            : v.status === 'over_sla'
+              ? '<span class="chip crit">Over SLA</span>'
+              : '<span class="chip ok">Cleared</span>';
+          const exitBtn = v.status === 'on_site'
+            ? `<button class="btn sm ghost" onclick="quickExit('${v.plate}')">Exit</button>`
+            : '';
+          const entryFull = v.entry_time || '';
+          const exitFull  = v.exit_time  || '';
+          return `<tr>
+            <td class="m">${_fmtPlate(v.plate)}</td>
+            <td style="font-size:11.5px">${v.owner}</td>
+            <td class="mono">${entryTime}</td>
+            <td class="mono">${exitTime}</td>
+            <td class="m" style="color:${durColor}">${durStr}</td>
+            <td>${statusChip}</td>
+            <td style="display:flex;gap:5px;flex-wrap:wrap">${exitBtn}<button class="btn sm ghost" onclick="openVehicleEdit(${v.id},'${v.plate}','${v.owner.replace(/'/g,"\\'")}','${entryFull}','${exitFull}')">Edit</button></td>
+          </tr>`;
+        }).join('');
+      }
+
+      // Distribution bars
+      const lt30  = visits.filter(v => v.duration_minutes != null && v.duration_minutes < 30).length;
+      const lt45  = visits.filter(v => v.duration_minutes != null && v.duration_minutes >= 30 && v.duration_minutes < 45).length;
+      const lt60  = visits.filter(v => v.duration_minutes != null && v.duration_minutes >= 45 && v.duration_minutes < 60).length;
+      const gt60  = visits.filter(v => v.duration_minutes != null && v.duration_minutes >= 60).length;
+      const maxB  = Math.max(lt30, lt45, lt60, gt60, 1);
+      const barsEl = document.getElementById('v-dist-bars');
+      barsEl.innerHTML = `
+        <div class="b" style="height:${Math.round(lt30/maxB*90)+5}%"><span>${lt30}</span><small>&lt;30m</small></div>
+        <div class="b" style="height:${Math.round(lt45/maxB*90)+5}%"><span>${lt45}</span><small>30–45m</small></div>
+        <div class="b" style="height:${Math.round(lt60/maxB*90)+5}%"><span>${lt60}</span><small>45–60m</small></div>
+        <div class="b" style="height:${Math.round(gt60/maxB*90)+5}%;background:linear-gradient(180deg,var(--alert),var(--alert-dim))"><span>${gt60}</span><small>&gt;60m</small></div>`;
+    } catch(e) {
+      document.getElementById('vehicle-tbody').innerHTML =
+        '<tr><td colspan="7" style="text-align:center;color:var(--muted-2);padding:18px;font-family:var(--mono);font-size:11px">Cannot reach backend</td></tr>';
+    }
+  }
+
+  async function quickExit(plate) {
+    try {
+      const res = await fetch(`${API}/api/v1/vehicles/exit`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({plate})
+      });
+      if (res.ok) { _toast(`Exit recorded — ${_fmtPlate(plate)}`, 'ok'); loadVehicleData(); }
+      else { const e = await res.json(); _toast(e.detail||'Error', 'warn'); }
+    } catch(e) { _toast('Backend unreachable','err'); }
+  }
+
+  // =====================================================================
+  // GATE LOG — merged ANPR + biometric events
+  // =====================================================================
+  async function loadGateLog() {
+    const tbody = document.getElementById('gate-log-tbody');
+    try {
+      const [anprRes, bioRes] = await Promise.all([
+        fetch(`${API}/api/v1/anpr/log?limit=30`),
+        fetch(`${API}/api/v1/biometric/log?limit=30`)
+      ]);
+      const anprList = anprRes.ok ? await anprRes.json() : [];
+      const bioList  = bioRes.ok  ? await bioRes.json()  : [];
+
+      const rows = [
+        ...anprList.map(l => ({
+          ts: l.timestamp || '',
+          person: l.plate,
+          type: 'LPR',
+          confidence: l.confidence || 0,
+          authorized: !!l.authorized,
+          decision: l.decision
+        })),
+        ...bioList.map(l => ({
+          ts: l.timestamp || '',
+          person: l.person_name || 'Unknown',
+          type: 'Face',
+          confidence: l.confidence || 0,
+          authorized: l.decision === 'GRANTED',
+          decision: l.decision
+        }))
+      ].sort((a, b) => b.ts.localeCompare(a.ts)).slice(0, 20);
+
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted-2);padding:18px;font-family:var(--mono);font-size:11px">No events yet — run an ANPR job or biometric scan to see real data</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = rows.map(e => {
+        const timeStr = e.ts ? e.ts.replace('T',' ').substring(11,19) : '—';
+        const matchChip = e.authorized
+          ? `<span class="chip ok">${(e.confidence*100).toFixed(1)}%</span>`
+          : `<span class="chip warn">${(e.confidence*100).toFixed(1)}%</span>`;
+        const decChip = e.decision === 'GRANTED'
+          ? '<span class="chip ok">Granted</span>'
+          : '<span class="chip crit">Denied</span>';
+        return `<tr>
+          <td class="mono">${timeStr}</td>
+          <td class="${e.type==='LPR'?'m':''}">${e.person}</td>
+          <td>${e.type}</td>
+          <td>In</td>
+          <td>${matchChip}</td>
+          <td>${decChip}</td>
+        </tr>`;
+      }).join('');
+    } catch(e) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted-2);padding:18px;font-family:var(--mono);font-size:11px">Cannot reach backend — is the server running?</td></tr>';
+    }
+  }
+
+  // =====================================================================
+  // OVERVIEW FEED — live events from backend
+  // =====================================================================
+  // Dismissed feed event keys persist across page refreshes
+  const _feedDismissed = new Set(JSON.parse(localStorage.getItem('_feed_dismissed') || '[]'));
+
+  function dismissFeedEvent(btn, key) {
+    _feedDismissed.add(key);
+    localStorage.setItem('_feed_dismissed', JSON.stringify([..._feedDismissed]));
+    const row = btn.closest('.ev');
+    if (row) row.remove();
+    if (!document.querySelectorAll('#overview-feed .ev').length) {
+      document.getElementById('overview-feed').innerHTML =
+        '<div class="ev"><div class="body" style="color:var(--muted-2);font-size:11px">No events — cleared by user</div></div>';
+    }
+  }
+
+  function clearAllFeedEvents() {
+    document.querySelectorAll('#overview-feed .ev').forEach(row => {
+      const key = row.dataset.evKey;
+      if (key) _feedDismissed.add(key);
+    });
+    localStorage.setItem('_feed_dismissed', JSON.stringify([..._feedDismissed]));
+    document.getElementById('overview-feed').innerHTML =
+      '<div class="ev"><div class="body" style="color:var(--muted-2);font-size:11px">No events — cleared by user</div></div>';
+  }
+
+  async function loadOverviewFeed() {
+    try {
+      const [anprRes, bioRes] = await Promise.all([
+        fetch(`${API}/api/v1/anpr/log?limit=20`),
+        fetch(`${API}/api/v1/biometric/log?limit=20`)
+      ]);
+      const anprList = anprRes.ok ? await anprRes.json() : [];
+      const bioList  = bioRes.ok  ? await bioRes.json()  : [];
+
+      const events = [
+        ...anprList.map(l => ({
+          ts:     l.timestamp || '',
+          title:  l.decision === 'GRANTED' ? 'Vehicle entered' : 'Vehicle denied',
+          detail: `${l.plate} · ${l.authorized ? 'authorized' : 'unauthorized'}`,
+          sev:    l.decision === 'GRANTED' ? 'clear' : 'crit',
+          key:    `anpr_${l.timestamp}_${l.plate}`
+        })),
+        ...bioList.map(l => ({
+          ts:     l.timestamp || '',
+          title:  l.decision === 'GRANTED' ? 'Person verified' : 'Biometric denied',
+          detail: `${l.person_name||'Unknown'} · confidence ${((l.confidence||0)*100).toFixed(1)}%`,
+          sev:    l.decision === 'GRANTED' ? 'clear' : 'watch',
+          key:    `bio_${l.timestamp}_${l.person_name||''}`
+        }))
+      ]
+        .sort((a, b) => b.ts.localeCompare(a.ts))
+        .filter(e => !_feedDismissed.has(e.key))
+        .slice(0, 8);
+
+      if (!events.length) return; // keep current state if no data yet
+
+      document.getElementById('overview-feed').innerHTML = events.map(e => {
+        const timeStr = e.ts ? e.ts.replace('T',' ').substring(11,19) : '—';
+        const safeKey = e.key.replace(/"/g, '&quot;');
+        return `<div class="ev" data-ev-key="${safeKey}">
+          <span class="sev ${e.sev}"></span>
+          <div class="body"><div class="t">${e.title}</div><div class="d">${e.detail}</div></div>
+          <span class="when">${timeStr}</span>
+          <button class="ev-dismiss" onclick="dismissFeedEvent(this,'${safeKey}')" title="Remove">×</button>
+        </div>`;
+      }).join('');
+      document.getElementById('overview-feed-sub').textContent = 'updated ' + new Date().toLocaleTimeString('en-GB');
+    } catch(e) {}
+  }
+
+  // =====================================================================
+  // BACKEND HEALTH CHECK
+  // =====================================================================
+  async function checkApiHealth() {
+    const dot    = document.getElementById('api-dot');
+    const label  = document.getElementById('api-status');
+    try {
+      const res = await fetch(`${API}/`, { signal: AbortSignal.timeout(3000) });
+      if (res.ok) {
+        dot.style.background   = 'var(--clear)';
+        dot.style.boxShadow    = '0 0 0 3px var(--clear-dim)';
+        label.textContent      = 'Connected';
+        label.style.color      = '';
+      } else throw new Error();
+    } catch(e) {
+      dot.style.background     = 'var(--alert)';
+      dot.style.boxShadow      = '0 0 0 3px var(--alert-dim)';
+      dot.style.animation      = 'none';
+      label.textContent        = 'Backend offline';
+      label.style.color        = 'var(--alert)';
+    }
+  }
+
+  // =====================================================================
+  // STARTUP
+  // =====================================================================
+  checkApiHealth();
+  setInterval(checkApiHealth, 15000);
+  loadOverviewFeed();
+  setInterval(loadOverviewFeed, 10000);
+
+  // =====================================================================
+  // VEHICLE DEMO DETECTION
+  // =====================================================================
+  let vdemoFile = null, vdemoJobId = null, vdemoPollTimer = null;
+
+  function vdemoDrop(ev) {
+    ev.preventDefault();
+    document.getElementById('vdemo-zone').classList.remove('drag-over');
+    const f = ev.dataTransfer.files[0];
+    if (f && f.type.startsWith('video/')) _setVdemoFile(f);
+    else _toast('Please drop a video file (MP4, AVI, MOV…)', 'warn');
+  }
+
+  function vdemoFileChosen(inp) {
+    if (inp.files[0]) _setVdemoFile(inp.files[0]);
+  }
+
+  function _setVdemoFile(f) {
+    vdemoFile = f;
+    document.getElementById('vdemo-fname').textContent =
+      `📹  ${f.name}  (${(f.size / 1048576).toFixed(1)} MB)`;
+    document.getElementById('vdemo-btn').disabled = false;
+    document.getElementById('vdemo-zone').style.borderColor = 'var(--active)';
+    document.getElementById('vdemo-status').textContent = 'Ready — click Detect Vehicles';
+  }
+
+  async function vdemoStart() {
+    if (!vdemoFile) return;
+    const btn = document.getElementById('vdemo-btn');
+    btn.disabled = true; btn.textContent = 'Uploading…';
+    document.getElementById('vdemo-status').textContent = 'Uploading…';
+    document.getElementById('vdemo-results').style.display = 'none';
+    document.getElementById('vdemo-placeholder').style.display = 'flex';
+    document.getElementById('vdemo-bar').style.width = '0';
+    document.getElementById('vdemo-pct').textContent = '—';
+
+    const fd = new FormData();
+    fd.append('video', vdemoFile);
+    try {
+      const res = await fetch(`${API}/api/v1/vehicles/demo-upload`, { method: 'POST', body: fd });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      vdemoJobId = data.job_id;
+      btn.textContent = 'Processing…';
+      document.getElementById('vdemo-status').textContent = 'Processing…';
+      _vdemoPoll();
+    } catch (e) {
+      btn.disabled = false; btn.textContent = 'Detect Vehicles';
+      document.getElementById('vdemo-status').textContent = 'Error: ' + e.message;
+      _toast('Upload failed: ' + e.message, 'err');
+    }
+  }
+
+  function _vdemoPoll() {
+    if (vdemoPollTimer) clearTimeout(vdemoPollTimer);
+    vdemoPollTimer = setTimeout(async () => {
+      try {
+        const res  = await fetch(`${API}/api/v1/vehicles/demo-job/${vdemoJobId}`);
+        const data = await res.json();
+        _vdemoUpdateUI(data);
+        if (data.status !== 'completed' && data.status !== 'error') _vdemoPoll();
+      } catch (e) { _vdemoPoll(); }
+    }, 2000);
+  }
+
+  function _vdemoUpdateUI(data) {
+    const pct = Math.min(data.progress || 0, 100);
+    document.getElementById('vdemo-bar').style.width = pct + '%';
+    document.getElementById('vdemo-pct').textContent = pct.toFixed(0) + '%';
+    const map = { pending:'Pending…', processing:'Processing video…', completed:'Complete ✓', error:'Error' };
+    document.getElementById('vdemo-status').textContent = map[data.status] || data.status;
+
+    if (data.status === 'completed' && data.result) {
+      document.getElementById('vdemo-btn').textContent  = 'Detect Another Video';
+      document.getElementById('vdemo-btn').disabled     = false;
+      document.getElementById('vdemo-bar').style.width  = '100%';
+      document.getElementById('vdemo-pct').textContent  = '100%';
+      _renderVdemoResults(data.result);
+    }
+    if (data.status === 'error') {
+      document.getElementById('vdemo-btn').disabled    = false;
+      document.getElementById('vdemo-btn').textContent = 'Retry';
+      _toast('Detection error: ' + (data.error || 'Unknown'), 'err');
+    }
+  }
+
+  const _VTYPE_COLOR = {
+    Car:        'var(--active)',
+    Truck:      'var(--alert)',
+    Bus:        'var(--watch)',
+    Motorcycle: 'var(--clear)',
+    Bicycle:    'var(--muted)',
+  };
+
+  function _renderVdemoResults(result) {
+    document.getElementById('vdemo-placeholder').style.display = 'none';
+    const res = document.getElementById('vdemo-results');
+    res.style.display = '';
+
+    // Chip counts
+    const counts = result.counts || {};
+    const countHtml = Object.entries(counts).length
+      ? Object.entries(counts).sort((a,b) => b[1]-a[1]).map(([type, n]) =>
+          `<span class="chip" style="color:${_VTYPE_COLOR[type]||'var(--text)'};border-color:${_VTYPE_COLOR[type]||'var(--hair)'}44">
+            ● ${type}: ${n}
+          </span>`).join('')
+      : '<span class="chip warn">No vehicles detected — try a different video</span>';
+    document.getElementById('vdemo-counts').innerHTML = countHtml;
+
+    // Stats line (includes new YardMonitor-style fields)
+    const total   = result.total_detections || 0;
+    const sampled = result.frames_processed || 0;
+    const dur     = result.duration_s ? `${result.duration_s.toFixed(1)}s` : '';
+    const backend = result.backend ? `· engine: ${result.backend}` : '';
+    const crossings = (result.entries_detected || result.exits_detected)
+      ? ` · ↓${result.entries_detected||0} entries  ↑${result.exits_detected||0} exits`
+      : '';
+    document.getElementById('vdemo-stats').textContent =
+      `${total} unique vehicles · ${sampled} frames · ${dur}${crossings} ${backend}`;
+
+    // Sample frame with bounding boxes + direction line drawn by backend
+    const frameWrap = document.getElementById('vdemo-frame-wrap');
+    const noYolo    = document.getElementById('vdemo-no-yolo');
+    if (result.sample_frame) {
+      document.getElementById('vdemo-frame').src = 'data:image/jpeg;base64,' + result.sample_frame;
+      frameWrap.style.display = '';
+      noYolo.style.display    = 'none';
+    } else if (!result.yolo_available) {
+      frameWrap.style.display = 'none';
+      noYolo.style.display    = '';
+    } else {
+      frameWrap.style.display = 'none';
+      noYolo.style.display    = 'none';
+    }
+  }
+
+  // ─── CAM-01 Main Gate — ANPR plate detection + authorization ─────────────────
+  let _cam01JobId = null, _cam01PollTimer = null;
+
+  async function cam01AnprStart() {
+    const st = _camS('cam01');
+    if (!st.file) return;
+    const btn = document.getElementById('cam-det-btn-cam01');
+    btn.disabled = true; btn.textContent = 'Uploading…';
+    document.getElementById('cam-status-cam01').textContent = 'Uploading…';
+    document.getElementById('cam-results-cam01').style.display = 'none';
+    document.getElementById('cam-bar-cam01').style.width = '0';
+    _cam01ClearBadge();
+
+    // Update inline preview label
+    const _pLbl01 = document.getElementById('cam-vid-lbl-cam01');
+    if (_pLbl01) _pLbl01.textContent = '▶ Uploading…';
+    const _pVid01 = document.getElementById('cam-vid-el-cam01');
+    if (_pVid01 && _pVid01.paused && st._objUrl) _pVid01.play().catch(() => {});
+
+    // Keep the video playing in the camera tile during upload + ANPR processing
+    const _ov  = document.getElementById('cam-overlay-cam01');
+    const _vid = document.getElementById('cam-overlay-vid-cam01');
+    const _img = document.getElementById('cam-overlay-img-cam01');
+    const _lbl = document.getElementById('cam-ov-label-cam01');
+    if (_ov && st._objUrl) {
+      if (_vid) { if (!_vid.src) _vid.src = st._objUrl; _vid.style.display = 'block'; _vid.play().catch(() => {}); }
+      if (_img) _img.style.display = 'none';
+      if (_lbl) _lbl.textContent = '▶ Scanning plates…';
+      _ov.style.display = 'block';
+    }
+
+    const fd = new FormData();
+    fd.append('video', st.file);
+    try {
+      const res = await fetch(`${API}/api/v1/anpr/upload`, { method: 'POST', body: fd });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      _cam01JobId = data.job_id;
+      btn.textContent = 'Scanning…';
+      document.getElementById('cam-status-cam01').textContent = 'Scanning plates…';
+      const _pLbl01b = document.getElementById('cam-vid-lbl-cam01');
+      if (_pLbl01b) _pLbl01b.textContent = '▶ Scanning plates…';
+      _cam01Poll();
+    } catch (e) {
+      btn.disabled = false; btn.textContent = 'Scan Plates';
+      document.getElementById('cam-status-cam01').textContent = 'Error: ' + e.message;
+      _toast('ANPR upload failed: ' + e.message, 'err');
+    }
+  }
+
+  function _cam01Poll() {
+    if (_cam01PollTimer) clearTimeout(_cam01PollTimer);
+    _cam01PollTimer = setTimeout(async () => {
+      try {
+        const res  = await fetch(`${API}/api/v1/anpr/job/${_cam01JobId}`);
+        const data = await res.json();
+        _cam01UpdateUI(data);
+        if (data.status !== 'completed' && data.status !== 'error') _cam01Poll();
+      } catch (e) { _cam01Poll(); }
+    }, 1000);
+  }
+
+  function _cam01UpdateUI(data) {
+    const pct = Math.min(data.progress || 0, 100);
+    document.getElementById('cam-bar-cam01').style.width = pct + '%';
+    const map = { pending:'Pending…', processing:'Scanning…', completed:'Done ✓', error:'Error' };
+    document.getElementById('cam-status-cam01').textContent = map[data.status] || data.status;
+    // Sync inline preview label
+    const _pLbl01c = document.getElementById('cam-vid-lbl-cam01');
+    if (_pLbl01c) {
+      if (data.status === 'processing' || data.status === 'pending') {
+        _pLbl01c.textContent = `▶ Scanning… ${Math.round(pct)}%`;
+      } else if (data.status === 'completed') {
+        _pLbl01c.textContent = '✓ Scan complete';
+      } else if (data.status === 'error') {
+        _pLbl01c.textContent = '✕ Error';
+      }
+    }
+    const btn = document.getElementById('cam-det-btn-cam01');
+
+    if (data.status === 'completed') {
+      btn.textContent = 'Scan Again'; btn.disabled = false;
+      _cam01RenderResults(data.plates || []);
+      if (document.getElementById('view-gate').classList.contains('on')) loadGateLog();
+    }
+    if (data.status === 'error') {
+      btn.disabled = false; btn.textContent = 'Retry';
+      _toast('Scan error: ' + (data.error || 'Unknown'), 'err');
+    }
+  }
+
+  function _cam01RenderResults(plates) {
+    const wrap = document.getElementById('cam-results-cam01');
+    const cards = document.getElementById('cam01-gate-cards');
+
+    if (!plates.length) {
+      cards.innerHTML = `<div style="font-family:var(--mono);font-size:10px;color:var(--muted-2);padding:6px 0">No plates detected — try a clearer video</div>`;
+      wrap.style.display = '';
+      _cam01ShowBadge(null);
+      return;
+    }
+
+    // Sort: authorized first
+    const sorted = [...plates].sort((a, b) => {
+      if (a.authorized !== b.authorized) return a.authorized ? -1 : 1;
+      return b.confidence - a.confidence;
+    });
+
+    // Update overlay badge with the top-priority plate
+    _cam01ShowBadge(sorted[0]);
+
+    // Render compact decision rows in the panel
+    cards.innerHTML = sorted.map(p => {
+      const isAuth = p.authorized;
+      const color  = isAuth ? 'var(--clear)' : 'var(--alert)';
+      const bg     = isAuth ? 'rgba(40,201,168,.10)' : 'rgba(242,86,110,.10)';
+      const border = isAuth ? 'rgba(40,201,168,.35)' : 'rgba(242,86,110,.35)';
+      const icon   = isAuth ? '✓' : '✕';
+      const label  = isAuth ? 'AUTHORIZED' : 'NOT AUTHORIZED';
+      const primaryBtn = isAuth
+        ? `<button class="btn sm pri" style="font-size:9.5px;padding:3px 8px" onclick="recordVehicleEntry('${p.plate}');loadGateLog()">Record Entry</button>`
+        : `<button class="btn sm danger" style="font-size:9.5px;padding:3px 8px" onclick="_toast('Security alerted — ${_fmtPlate(p.plate)}','warn')">Alert</button>`;
+      const wlBtn = isAuth
+        ? `<button class="btn sm danger" style="font-size:9px;padding:2px 7px" onclick="cam01QuickRemove('${p.plate}')">✕ Remove</button>`
+        : `<button class="btn sm" style="font-size:9px;padding:2px 7px;border-color:var(--clear);color:var(--clear)" onclick="openAnprEdit('${p.plate}','cam-results-cam01','add')">+ Whitelist</button>`;
+      return `
+        <div style="border-radius:5px;background:${bg};border:1px solid ${border};margin-bottom:5px;padding:6px 8px">
+          <div style="display:flex;align-items:center;gap:7px">
+            <span style="font-family:var(--mono);font-weight:700;color:${color};font-size:10px">${icon}</span>
+            <span style="font-family:var(--mono);font-size:11px;font-weight:600;color:${color};flex:1">${_fmtPlate(p.plate)}</span>
+            <span style="font-family:var(--mono);font-size:9px;color:${color};letter-spacing:.07em">${label}</span>
+            <span style="font-size:9px;color:var(--muted-2)">${(p.confidence*100).toFixed(0)}%</span>
+          </div>
+          <div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap">
+            ${primaryBtn}
+            ${wlBtn}
+            <button class="btn sm ghost" style="font-size:9px;padding:2px 7px" onclick="openAnprEdit('${p.plate}','cam-results-cam01')">✎ Edit</button>
+          </div>
+        </div>`;
+    }).join('');
+
+    wrap.style.display = '';
+  }
+
+  function _cam01ShowBadge(plate) {
+    const badge = document.getElementById('cam01-auth-badge');
+    if (!plate) { badge.style.display = 'none'; return; }
+    const isAuth = plate.authorized;
+    badge.style.display        = 'flex';
+    badge.style.background     = isAuth ? 'rgba(40,201,168,.25)' : 'rgba(242,86,110,.25)';
+    badge.style.border         = isAuth ? '1px solid rgba(40,201,168,.7)' : '1px solid rgba(242,86,110,.7)';
+    badge.style.color          = isAuth ? 'var(--clear)' : 'var(--alert)';
+    document.getElementById('cam01-auth-plate').textContent = _fmtPlate(plate.plate);
+    document.getElementById('cam01-auth-label').textContent = isAuth ? '✓ AUTHORIZED' : '✕ NOT AUTHORIZED';
+  }
+
+  function _cam01ClearBadge() {
+    document.getElementById('cam01-auth-badge').style.display = 'none';
+  }
+
+  function _cam01DismissResults() {
+    _cam01ClearBadge();
+    const wrap = document.getElementById('cam-results-cam01');
+    if (wrap) wrap.style.display = 'none';
+    const cards = document.getElementById('cam01-gate-cards');
+    if (cards) cards.innerHTML = '';
+  }
+
+  // ─── Gate & Access — ANPR scanner ────────────────────────────────────────────
+  let gateAnprFile = null, gateAnprJobId = null, gateAnprTimer = null;
+
+  function gateAnprDrop(ev) {
+    ev.preventDefault();
+    document.getElementById('gate-anpr-zone').classList.remove('drag-over');
+    const f = ev.dataTransfer.files[0];
+    if (f && f.type.startsWith('video/')) _setGateAnprFile(f);
+    else _toast('Please drop a video file (MP4, AVI, MOV…)', 'warn');
+  }
+  function gateAnprFileChosen(inp) { if (inp.files[0]) _setGateAnprFile(inp.files[0]); }
+  function _setGateAnprFile(f) {
+    gateAnprFile = f;
+    document.getElementById('gate-anpr-fname').textContent =
+      `📹  ${f.name}  (${(f.size / 1048576).toFixed(1)} MB)`;
+    document.getElementById('gate-anpr-btn').disabled = false;
+    document.getElementById('gate-anpr-zone').style.borderColor = 'var(--active)';
+    document.getElementById('gate-anpr-status').textContent = 'Ready — click Scan for Plates';
+  }
+
+  async function gateAnprStart() {
+    if (!gateAnprFile) return;
+    const btn = document.getElementById('gate-anpr-btn');
+    btn.disabled = true; btn.textContent = 'Uploading…';
+    document.getElementById('gate-anpr-status').textContent = 'Uploading…';
+    document.getElementById('gate-anpr-decisions').style.display = 'none';
+    document.getElementById('gate-anpr-bar').style.width = '0';
+    document.getElementById('gate-anpr-pct').textContent = '—';
+
+    const fd = new FormData();
+    fd.append('video', gateAnprFile);
+    try {
+      const res = await fetch(`${API}/api/v1/anpr/upload`, { method: 'POST', body: fd });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      gateAnprJobId = data.job_id;
+      btn.textContent = 'Processing…';
+      document.getElementById('gate-anpr-status').textContent = 'Processing video…';
+      _gateAnprPoll();
+    } catch (e) {
+      btn.disabled = false; btn.textContent = 'Scan for Plates';
+      document.getElementById('gate-anpr-status').textContent = 'Error: ' + e.message;
+      _toast('Upload failed: ' + e.message, 'err');
+    }
+  }
+
+  function _gateAnprPoll() {
+    if (gateAnprTimer) clearTimeout(gateAnprTimer);
+    gateAnprTimer = setTimeout(async () => {
+      try {
+        const res  = await fetch(`${API}/api/v1/anpr/job/${gateAnprJobId}`);
+        const data = await res.json();
+        _gateAnprUpdateUI(data);
+        if (data.status !== 'completed' && data.status !== 'error') _gateAnprPoll();
+      } catch (e) { _gateAnprPoll(); }
+    }, 1000);
+  }
+
+  function _gateAnprUpdateUI(data) {
+    const pct = Math.min(data.progress || 0, 100);
+    document.getElementById('gate-anpr-bar').style.width = pct + '%';
+    document.getElementById('gate-anpr-pct').textContent = pct.toFixed(1) + '%';
+    const map = {
+      pending: 'Pending…', processing: 'Processing video…',
+      completed: 'Scan complete ✓', error: 'Error'
+    };
+    document.getElementById('gate-anpr-status').textContent = map[data.status] || data.status;
+
+    if (data.plates && data.plates.length > 0) {
+      const auth = data.plates.filter(p => p.authorized).length;
+      document.getElementById('gate-anpr-total').textContent = data.plates.length;
+      document.getElementById('gate-anpr-auth').textContent  = auth;
+      document.getElementById('gate-anpr-denied').textContent = data.plates.length - auth;
+    }
+
+    if (data.status === 'completed') {
+      document.getElementById('gate-anpr-btn').textContent = 'Scan Another Video';
+      document.getElementById('gate-anpr-btn').disabled    = false;
+      document.getElementById('gate-anpr-bar').style.width = '100%';
+      document.getElementById('gate-anpr-pct').textContent = '100%';
+      _gateAnprRenderDecisions(data.plates || []);
+      loadGateLog();
+    }
+    if (data.status === 'error') {
+      document.getElementById('gate-anpr-status').textContent = 'Error: ' + (data.error || 'Unknown');
+      document.getElementById('gate-anpr-btn').disabled    = false;
+      document.getElementById('gate-anpr-btn').textContent = 'Retry';
+      _toast('ANPR scan error: ' + (data.error || 'Unknown'), 'err');
+    }
+  }
+
+  function _gateAnprRenderDecisions(plates) {
+    const container = document.getElementById('gate-anpr-decisions');
+    if (!plates.length) {
+      container.innerHTML = `<div class="panel"><div class="panel-body" style="color:var(--muted-2);font-family:var(--mono);font-size:12px;text-align:center;padding:20px">No plates detected — try a higher-quality gate recording</div></div>`;
+      container.style.display = '';
+      return;
+    }
+
+    const sorted = [...plates].sort((a, b) => {
+      if (a.authorized !== b.authorized) return a.authorized ? -1 : 1;
+      return b.confidence - a.confidence;
+    });
+
+    const iconOk = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
+    const iconX  = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+
+    let html = `<div class="panel"><div class="panel-head"><h3>Gate Decisions</h3><span class="sub">${sorted.length} plate${sorted.length > 1 ? 's' : ''} detected</span></div><div class="panel-body">`;
+
+    sorted.forEach(p => {
+      const cls = p.authorized ? 'granted' : 'denied';
+      const actionBtn = p.authorized
+        ? `<button class="btn pri sm" style="margin-top:9px" onclick="recordVehicleEntry('${p.plate}');loadGateLog()">▶ Record Gate Entry</button>`
+        : `<button class="btn danger sm" style="margin-top:9px" onclick="_toast('Security alerted for plate ${_fmtPlate(p.plate)}','warn')">⚠ Alert Security</button>`;
+      html += `
+        <div class="gate-decision ${cls}" style="margin-bottom:12px">
+          <div class="gd-icon">${p.authorized ? iconOk : iconX}</div>
+          <div style="flex:1;min-width:0">
+            <div class="gd-label">${p.authorized ? '✓ Access Granted' : '✕ Access Denied'}</div>
+            <div class="gd-plate">${_fmtPlate(p.plate)}</div>
+            <div class="gd-sub">${p.authorized
+              ? `${p.owner} &nbsp;·&nbsp; ${p.vehicle_type}`
+              : 'Not in authorized vehicle database'}</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px">
+              ${actionBtn}
+              <button class="btn sm ghost" style="font-size:10px" onclick="openAnprEdit('${p.plate}','gate-anpr-decisions')">✎ Edit / Fix plate</button>
+            </div>
+          </div>
+          <div class="gd-right">
+            <div class="gd-conf-label">OCR confidence</div>
+            <div class="gd-conf">${(p.confidence * 100).toFixed(1)}%</div>
+          </div>
+        </div>`;
+    });
+
+    html += `</div></div>`;
+    container.innerHTML = html;
+    container.style.display = '';
+  }
+
+  // Gate whitelist management
+  async function loadGateWhitelist() {
+    try {
+      const res  = await fetch(`${API}/api/v1/anpr/authorized`);
+      const list = await res.json();
+      document.getElementById('gate-auth-count').textContent = list.length + ' vehicles';
+      document.getElementById('gate-auth-tbody').innerHTML = list.length
+        ? list.map(v => `<tr>
+            <td class="mono" style="font-size:12.5px">${v.plate}</td>
+            <td>${v.owner}</td>
+            <td>${v.vehicle_type}</td>
+            <td><button class="btn sm danger" onclick="gateRemoveVehicle('${v.plate}')">Remove</button></td>
+          </tr>`).join('')
+        : '<tr><td colspan="4" style="text-align:center;color:var(--muted-2);padding:14px;font-family:var(--mono);font-size:11px">No authorized vehicles — add one below</td></tr>';
+    } catch(e) {}
+  }
+
+  async function gateAddVehicle() {
+    const plate = document.getElementById('gate-nv-plate').value.trim();
+    const owner = document.getElementById('gate-nv-owner').value.trim();
+    const vtype = document.getElementById('gate-nv-type').value;
+    const msg   = document.getElementById('gate-nv-msg');
+    if (!plate) { msg.style.color = 'var(--alert)'; msg.textContent = 'Plate is required.'; return; }
+    try {
+      const res = await fetch(`${API}/api/v1/anpr/authorized`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ plate, owner: owner || 'Unknown', vehicle_type: vtype })
+      });
+      if (!res.ok) throw new Error((await res.json()).detail);
+      msg.style.color = 'var(--clear)'; msg.textContent = '✓ Vehicle added to whitelist.';
+      document.getElementById('gate-nv-plate').value = '';
+      document.getElementById('gate-nv-owner').value = '';
+      loadGateWhitelist();
+      loadAuthorisedVehicles();
+    } catch(e) { msg.style.color = 'var(--alert)'; msg.textContent = 'Error: ' + e.message; }
+  }
+
+  async function gateRemoveVehicle(plate) {
+    if (!confirm('Remove ' + plate + ' from whitelist?')) return;
+    try {
+      await fetch(`${API}/api/v1/anpr/authorized/${encodeURIComponent(plate)}`, { method: 'DELETE' });
+      loadGateWhitelist();
+      loadAuthorisedVehicles();
+    } catch(e) {}
+  }
+
+  // ─── Per-camera demo video upload / detection ─────────────────────────────
+  const _camState = {};
+
+  function _camS(id) {
+    if (!_camState[id]) _camState[id] = { file: null, jobId: null, pollTimer: null };
+    return _camState[id];
+  }
+
+  function camUploadToggle(id) {
+    const panel = document.getElementById(`cam-upload-panel-${id}`);
+    const btn   = document.getElementById(`cam-upload-toggle-${id}`);
+    const open  = panel.classList.toggle('open');
+    btn.classList.toggle('active', open);
+  }
+
+  function camDragOver(e, id) {
+    e.preventDefault();
+    document.getElementById(`cam-dz-${id}`).classList.add('drag-over');
+  }
+  function camDragLeave(e, id) {
+    document.getElementById(`cam-dz-${id}`).classList.remove('drag-over');
+  }
+  function camDrop(e, id) {
+    e.preventDefault();
+    document.getElementById(`cam-dz-${id}`).classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f && f.type.startsWith('video/')) _camSetFile(id, f);
+    else _toast('Please drop a video file (MP4, AVI, MOV…)', 'warn');
+  }
+  function camFileChosen(inp, id) {
+    if (inp.files[0]) _camSetFile(id, inp.files[0]);
+  }
+  function _camSetFile(id, f) {
+    const st = _camS(id);
+    if (st._objUrl) URL.revokeObjectURL(st._objUrl);
+    st.file    = f;
+    st._objUrl = URL.createObjectURL(f);
+
+    document.getElementById(`cam-fname-${id}`).textContent =
+      `▶  ${f.name}  (${(f.size / 1048576).toFixed(1)} MB)`;
+    document.getElementById(`cam-det-btn-${id}`).disabled = false;
+    document.getElementById(`cam-status-${id}`).textContent = 'Ready — click Detect/Scan';
+
+    // Show inline video preview inside the upload panel
+    const pWrap = document.getElementById(`cam-vid-preview-${id}`);
+    const pVid  = document.getElementById(`cam-vid-el-${id}`);
+    const pLbl  = document.getElementById(`cam-vid-lbl-${id}`);
+    if (pWrap && pVid) {
+      pVid.src = st._objUrl;
+      pVid.play().catch(() => {});
+      if (pLbl) pLbl.textContent = `▶ ${f.name}`;
+      pWrap.style.display = '';
+    }
+
+    // Also show the video in the camera tile overlay
+    const vid = document.getElementById(`cam-overlay-vid-${id}`);
+    const img = document.getElementById(`cam-overlay-img-${id}`);
+    const ov  = document.getElementById(`cam-overlay-${id}`);
+    const lbl = document.getElementById(`cam-ov-label-${id}`);
+    if (vid && ov) {
+      vid.src = st._objUrl;
+      vid.style.display = 'block';
+      vid.play().catch(() => {});
+      if (img) img.style.display = 'none';
+      if (lbl) lbl.textContent = `▶ ${f.name}`;
+      ov.style.display = 'block';
+    }
+  }
+
+  async function camDetectStart(id) {
+    const st = _camS(id);
+    if (!st.file) return;
+    const btn = document.getElementById(`cam-det-btn-${id}`);
+    btn.disabled = true; btn.textContent = 'Uploading…';
+    document.getElementById(`cam-status-${id}`).textContent = 'Uploading…';
+    document.getElementById(`cam-results-${id}`).style.display = 'none';
+    document.getElementById(`cam-bar-${id}`).style.width = '0';
+
+    // Update inline preview label to show upload is in progress
+    const _pLbl = document.getElementById(`cam-vid-lbl-${id}`);
+    if (_pLbl) _pLbl.textContent = '▶ Uploading…';
+    const _pVid = document.getElementById(`cam-vid-el-${id}`);
+    if (_pVid && _pVid.paused && st._objUrl) _pVid.play().catch(() => {});
+
+    // Keep the video playing in the camera tile while we upload + detect
+    const _ov  = document.getElementById(`cam-overlay-${id}`);
+    const _vid = document.getElementById(`cam-overlay-vid-${id}`);
+    const _img = document.getElementById(`cam-overlay-img-${id}`);
+    const _lbl = document.getElementById(`cam-ov-label-${id}`);
+    if (_ov && st._objUrl) {
+      if (_vid) { if (!_vid.src) _vid.src = st._objUrl; _vid.style.display = 'block'; _vid.play().catch(() => {}); }
+      if (_img) _img.style.display = 'none';
+      if (_lbl) _lbl.textContent = '▶ Scanning…';
+      _ov.style.display = 'block';
+    }
+
+    const fd = new FormData();
+    fd.append('video', st.file);
+    try {
+      const res = await fetch(`${API}/api/v1/vehicles/demo-upload`, { method: 'POST', body: fd });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      st.jobId = data.job_id;
+      btn.textContent = 'Processing…';
+      document.getElementById(`cam-status-${id}`).textContent = 'Processing…';
+      _camPoll(id);
+    } catch (e) {
+      btn.disabled = false; btn.textContent = 'Detect';
+      document.getElementById(`cam-status-${id}`).textContent = 'Error: ' + e.message;
+      _toast('Upload failed: ' + e.message, 'err');
+    }
+  }
+
+  function _camPoll(id) {
+    const st = _camS(id);
+    if (st.pollTimer) clearTimeout(st.pollTimer);
+    st.pollTimer = setTimeout(async () => {
+      try {
+        const res  = await fetch(`${API}/api/v1/vehicles/demo-job/${st.jobId}`);
+        const data = await res.json();
+        _camUpdateUI(id, data);
+        if (data.status !== 'completed' && data.status !== 'error') _camPoll(id);
+      } catch (e) { _camPoll(id); }
+    }, 2000);
+  }
+
+  function _camUpdateUI(id, data) {
+    const pct = Math.min(data.progress || 0, 100);
+    document.getElementById(`cam-bar-${id}`).style.width = pct + '%';
+    const map = { pending:'Pending…', processing:'Processing…', completed:'Done ✓', error:'Error' };
+    document.getElementById(`cam-status-${id}`).textContent = map[data.status] || data.status;
+    // Keep overlay label in sync with processing progress
+    const _lbl = document.getElementById(`cam-ov-label-${id}`);
+    if (_lbl && (data.status === 'processing' || data.status === 'pending')) {
+      _lbl.textContent = `▶ Processing… ${Math.round(pct)}%`;
+    }
+    // Keep inline preview label in sync
+    const _pLbl = document.getElementById(`cam-vid-lbl-${id}`);
+    if (_pLbl) {
+      if (data.status === 'processing' || data.status === 'pending') {
+        _pLbl.textContent = `▶ Scanning… ${Math.round(pct)}%`;
+      } else if (data.status === 'completed') {
+        _pLbl.textContent = '✓ Scan complete';
+      } else if (data.status === 'error') {
+        _pLbl.textContent = '✕ Error';
+      }
+    }
+    const btn = document.getElementById(`cam-det-btn-${id}`);
+    if (data.status === 'completed' && data.result) {
+      btn.textContent = 'Detect Again'; btn.disabled = false;
+      _camRenderResults(id, data.result);
+    }
+    if (data.status === 'error') {
+      btn.disabled = false; btn.textContent = 'Retry';
+      _toast('Detection error: ' + (data.error || 'Unknown'), 'err');
+    }
+  }
+
+  function _camRenderResults(id, result) {
+    const counts = result.counts || {};
+    document.getElementById(`cam-counts-${id}`).innerHTML = Object.entries(counts).length
+      ? Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([t, n]) =>
+          `<span class="chip" style="color:${_VTYPE_COLOR[t]||'var(--text)'};border-color:${_VTYPE_COLOR[t]||'var(--hair)'}44">● ${t}: ${n}</span>`
+        ).join('')
+      : '<span class="chip warn">No vehicles detected</span>';
+
+    const total   = result.total_detections || 0;
+    const sampled = result.frames_processed || 0;
+    const dur     = result.duration_s ? `${result.duration_s.toFixed(1)}s` : '';
+    const cross   = (result.entries_detected || result.exits_detected)
+      ? ` · ↓${result.entries_detected||0} in  ↑${result.exits_detected||0} out` : '';
+    document.getElementById(`cam-stats-${id}`).textContent =
+      `${total} vehicles · ${sampled} frames · ${dur}${cross}`;
+
+    // Show annotated frame both inside the panel and as the in-scene overlay
+    const frameEl = document.getElementById(`cam-frame-${id}`);
+    if (result.sample_frame) {
+      const b64 = 'data:image/jpeg;base64,' + result.sample_frame;
+      frameEl.src = b64;
+      frameEl.style.display = '';
+      // Switch overlay from playing video → annotated detection frame
+      const vid = document.getElementById(`cam-overlay-vid-${id}`);
+      const img = document.getElementById(`cam-overlay-img-${id}`);
+      const ov  = document.getElementById(`cam-overlay-${id}`);
+      const lbl = document.getElementById(`cam-ov-label-${id}`);
+      if (ov) {
+        if (vid) vid.pause();
+        if (img) { img.src = b64; img.style.display = 'block'; }
+        if (vid) vid.style.display = 'none';
+        if (lbl) lbl.textContent = 'Detection result — annotated frame';
+        ov.style.display = 'block';
+      }
+    } else {
+      frameEl.style.display = 'none';
+      // No annotated frame — keep the video playing and update label
+      const lbl = document.getElementById(`cam-ov-label-${id}`);
+      if (lbl) lbl.textContent = 'Video (no annotated frame — YOLO unavailable)';
+    }
+    document.getElementById(`cam-results-${id}`).style.display = '';
+    _camS(id)._detectionDone = true;
+  }
+
+  // Called by onerror on each camera img — shows uploaded video if available,
+  // otherwise falls back to the "No signal" error state.
+  function _camFeedError(id) {
+    const feedImg = document.getElementById(`feed-${id}`);
+    if (feedImg) feedImg.style.display = 'none';
+
+    const st = _camS(id);
+    if (st._objUrl) {
+      // A video has already been uploaded — play it in the overlay instead of showing an error
+      const vid = document.getElementById(`cam-overlay-vid-${id}`);
+      const img = document.getElementById(`cam-overlay-img-${id}`);
+      const ov  = document.getElementById(`cam-overlay-${id}`);
+      const lbl = document.getElementById(`cam-ov-label-${id}`);
+      if (ov) {
+        if (vid && (!vid.src || vid.paused)) { vid.src = st._objUrl; vid.play().catch(() => {}); }
+        if (vid) vid.style.display = 'block';
+        if (img) img.style.display = 'none';
+        if (lbl) lbl.textContent = st._detectionDone ? 'Detection result' : '▶ Demo video (no live feed)';
+        ov.style.display = 'block';
+      }
+    } else {
+      // No video uploaded yet — show the "No signal" placeholder
+      const errEl = document.getElementById(`err-${id}`);
+      if (errEl) errEl.style.display = '';
+    }
+  }
+
+  function camClearOverlay(id) {
+    const ov  = document.getElementById(`cam-overlay-${id}`);
+    const vid = document.getElementById(`cam-overlay-vid-${id}`);
+    const img = document.getElementById(`cam-overlay-img-${id}`);
+    if (vid) { vid.pause(); vid.src = ''; vid.style.display = ''; }
+    if (img) { img.src = ''; img.style.display = 'none'; }
+    if (ov)  ov.style.display = 'none';
+    // Clear the inline panel preview too
+    const pWrap = document.getElementById(`cam-vid-preview-${id}`);
+    const pVid  = document.getElementById(`cam-vid-el-${id}`);
+    if (pVid) { pVid.pause(); pVid.src = ''; }
+    if (pWrap) pWrap.style.display = 'none';
+    const st = _camS(id);
+    if (st._objUrl) { URL.revokeObjectURL(st._objUrl); st._objUrl = null; }
+    st._detectionDone = false;
+    // Reset filename label and disable button
+    const fnameEl = document.getElementById(`cam-fname-${id}`);
+    const camIds = { cam01: 'Drop gate camera video or click to browse', cam12: 'Drop video or click to browse', cam08: 'Drop video or click to browse', cam05: 'Drop video or click to browse' };
+    if (fnameEl) fnameEl.textContent = camIds[id] || 'Drop video or click to browse';
+    const detBtn = document.getElementById(`cam-det-btn-${id}`);
+    detBtn.disabled = true;
+    detBtn.textContent = id === 'cam01' ? 'Scan Plates' : 'Detect';
+    document.getElementById(`cam-status-${id}`).textContent = '—';
+
+    // Clear auth badge and result cards for cam01
+    if (id === 'cam01') _cam01DismissResults();
+
+    // If the live feed img is hidden (stream was down), re-show the error state
+    const feedImg = document.getElementById(`feed-${id}`);
+    if (feedImg && feedImg.style.display === 'none') {
+      const errEl = document.getElementById(`err-${id}`);
+      if (errEl) errEl.style.display = '';
+    }
+  }
+
+  // ─── Vehicle record edit / delete ─────────────────────────────────────────
+  function openVehicleEdit(id, plate, owner, entryTime, exitTime) {
+    document.getElementById('vedit-id').value     = id;
+    document.getElementById('vedit-plate').value  = _fmtPlate(plate);
+    document.getElementById('vedit-owner').value  = owner;
+    document.getElementById('vedit-entry').value  = entryTime;
+    document.getElementById('vedit-exit').value   = exitTime;
+    document.getElementById('vedit-decision').value = '';
+    document.getElementById('vedit-msg').textContent = '';
+    document.getElementById('vehicle-edit-modal').classList.add('open');
+  }
+
+  function closeVehicleEdit() {
+    document.getElementById('vehicle-edit-modal').classList.remove('open');
+  }
+
+  async function saveVehicleEdit() {
+    const id       = document.getElementById('vedit-id').value;
+    const plate    = document.getElementById('vedit-plate').value.trim();
+    const owner    = document.getElementById('vedit-owner').value.trim();
+    const exitTime = document.getElementById('vedit-exit').value.trim();
+    const decision = document.getElementById('vedit-decision').value;
+    const msg      = document.getElementById('vedit-msg');
+    msg.textContent = '';
+
+    try {
+      // Update core visit fields
+      const body = {};
+      if (plate)    body.plate    = plate;
+      if (owner)    body.owner    = owner;
+      body.exit_time = exitTime || null;
+
+      const res = await fetch(`${API}/api/v1/vehicles/${id}`, {
+        method: 'PATCH', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) throw new Error((await res.json()).detail || 'Update failed');
+
+      // Handle whitelist decision
+      if (decision === 'add_whitelist' && plate) {
+        await fetch(`${API}/api/v1/anpr/authorized`, {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ plate, owner: owner || 'Unknown', vehicle_type: 'Car' })
+        });
+      } else if (decision === 'remove_whitelist' && plate) {
+        const normPlate = plate.replace(/\s/g,'').toUpperCase();
+        await fetch(`${API}/api/v1/anpr/authorized/${encodeURIComponent(normPlate)}`, { method: 'DELETE' });
+      }
+
+      msg.style.color = 'var(--clear)';
+      msg.textContent = '✓ Saved.';
+      setTimeout(() => {
+        closeVehicleEdit();
+        loadVehicleData();
+        loadGateWhitelist();
+        loadAuthorisedVehicles();
+      }, 600);
+    } catch(e) {
+      msg.style.color = 'var(--alert)';
+      msg.textContent = 'Error: ' + e.message;
+    }
+  }
+
+  async function deleteVehicleVisit() {
+    const id = document.getElementById('vedit-id').value;
+    const plate = document.getElementById('vedit-plate').value;
+    if (!confirm(`Delete visit record for ${plate}? This cannot be undone.`)) return;
+    try {
+      await fetch(`${API}/api/v1/vehicles/${id}`, { method: 'DELETE' });
+      closeVehicleEdit();
+      loadVehicleData();
+      _toast(`Record deleted — ${plate}`, 'warn');
+    } catch(e) {
+      document.getElementById('vedit-msg').textContent = 'Delete failed: ' + e.message;
+    }
+  }
+
+  // Close modal on backdrop click
+  document.getElementById('vehicle-edit-modal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeVehicleEdit();
+  });
+
+  // ─── ANPR plate-correction / decision edit ────────────────────────────────
+  let _anprEditContext = null; // { containerId, plate }
+
+  function openAnprEdit(originalPlate, containerId, defaultDecision = 'add') {
+    _anprEditContext = { containerId, plate: originalPlate };
+    document.getElementById('aedit-original').value  = originalPlate;
+    document.getElementById('aedit-plate').value     = _fmtPlate(originalPlate);
+    document.getElementById('aedit-owner').value     = '';
+    document.getElementById('aedit-type').value      = 'Car';
+    document.getElementById('aedit-decision').value  = defaultDecision;
+    document.getElementById('aedit-msg').textContent = '';
+    document.getElementById('anpr-edit-modal').classList.add('open');
+  }
+
+  async function cam01QuickRemove(plate) {
+    const norm = plate.replace(/\s/g, '').toUpperCase();
+    try {
+      await fetch(`${API}/api/v1/anpr/authorized/${encodeURIComponent(norm)}`, { method: 'DELETE' });
+      _toast(`${_fmtPlate(plate)} removed from whitelist`, 'warn');
+      loadGateWhitelist();
+      loadAuthorisedVehicles();
+    } catch(e) { _toast('Error: ' + e.message, 'err'); }
+  }
+
+  function closeAnprEdit() {
+    document.getElementById('anpr-edit-modal').classList.remove('open');
+    _anprEditContext = null;
+  }
+
+  async function saveAnprEdit() {
+    const plate    = document.getElementById('aedit-plate').value.trim();
+    const owner    = document.getElementById('aedit-owner').value.trim() || 'Unknown';
+    const vtype    = document.getElementById('aedit-type').value;
+    const decision = document.getElementById('aedit-decision').value;
+    const msg      = document.getElementById('aedit-msg');
+    if (!plate) { msg.style.color='var(--alert)'; msg.textContent='Plate is required.'; return; }
+
+    try {
+      if (decision === 'add') {
+        const res = await fetch(`${API}/api/v1/anpr/authorized`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ plate, owner, vehicle_type: vtype })
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          if (!err.detail?.includes('already')) throw new Error(err.detail);
+        }
+        msg.style.color = 'var(--clear)';
+        msg.textContent = '✓ Added to whitelist — plate now AUTHORIZED.';
+      } else {
+        const normPlate = plate.replace(/\s/g,'').toUpperCase();
+        await fetch(`${API}/api/v1/anpr/authorized/${encodeURIComponent(normPlate)}`, { method: 'DELETE' });
+        msg.style.color = 'var(--watch)';
+        msg.textContent = '✓ Removed from whitelist — plate DENIED.';
+      }
+      setTimeout(() => {
+        closeAnprEdit();
+        loadGateWhitelist();
+        loadAuthorisedVehicles();
+        // Refresh results if we know which panel they came from
+        if (_anprEditContext?.containerId) {
+          const container = document.getElementById(_anprEditContext.containerId);
+          if (container) {
+            const badge = container.querySelector('.anpr-edit-refresh-note');
+            if (!badge) {
+              const note = document.createElement('div');
+              note.className = 'anpr-edit-refresh-note';
+              note.style.cssText = 'font-family:var(--mono);font-size:10px;color:var(--clear);padding:6px 0 2px';
+              note.textContent = '✓ Whitelist updated — re-scan video to see updated decisions.';
+              container.prepend(note);
+            }
+          }
+        }
+      }, 600);
+    } catch(e) {
+      msg.style.color = 'var(--alert)';
+      msg.textContent = 'Error: ' + e.message;
+    }
+  }
+
+  document.getElementById('anpr-edit-modal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeAnprEdit();
+  });
+</script>
