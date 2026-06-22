@@ -511,6 +511,10 @@
                   <button class="btn sm pri" id="cam-det-btn-cam01" onclick="cam01AnprStart()" disabled>Scan Plates</button>
                 </div>
                 <div id="cam-results-cam01" style="display:none;margin-top:6px">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+                    <span style="font-family:var(--mono);font-size:9.5px;color:var(--muted-2);letter-spacing:.08em;text-transform:uppercase">Scan Results</span>
+                    <button onclick="_cam01DismissResults()" style="background:none;border:1px solid var(--hair);border-radius:4px;color:var(--muted);font-size:10px;font-family:var(--mono);padding:2px 8px;cursor:pointer;letter-spacing:.04em;transition:border-color .15s,color .15s" onmouseover="this.style.borderColor='var(--alert)';this.style.color='var(--alert)'" onmouseout="this.style.borderColor='var(--hair)';this.style.color='var(--muted)'">✕ Clear</button>
+                  </div>
                   <div id="cam01-gate-cards"></div>
                 </div>
               </div>
