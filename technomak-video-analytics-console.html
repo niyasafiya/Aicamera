@@ -2493,6 +2493,7 @@
       const border = isAuth ? 'rgba(40,201,168,.35)' : 'rgba(242,86,110,.35)';
       const icon   = isAuth ? '✓' : '✕';
       const label  = isAuth ? 'AUTHORIZED' : 'NOT AUTHORIZED';
+      const cardId = `cam01-card-${p.plate.replace(/[^A-Z0-9]/gi,'')}`;
       const primaryBtn = isAuth
         ? `<button class="btn sm pri" style="font-size:9.5px;padding:3px 8px" onclick="recordVehicleEntry('${p.plate}');loadGateLog()">Record Entry</button>`
         : `<button class="btn sm danger" style="font-size:9.5px;padding:3px 8px" onclick="_toast('Security alerted — ${_fmtPlate(p.plate)}','warn')">Alert</button>`;
@@ -2500,12 +2501,13 @@
         ? `<button class="btn sm danger" style="font-size:9px;padding:2px 7px" onclick="cam01QuickRemove('${p.plate}')">✕ Remove</button>`
         : `<button class="btn sm" style="font-size:9px;padding:2px 7px;border-color:var(--clear);color:var(--clear)" onclick="openAnprEdit('${p.plate}','cam-results-cam01','add')">+ Whitelist</button>`;
       return `
-        <div style="border-radius:5px;background:${bg};border:1px solid ${border};margin-bottom:5px;padding:6px 8px">
+        <div id="${cardId}" style="border-radius:5px;background:${bg};border:1px solid ${border};margin-bottom:5px;padding:6px 8px;position:relative">
           <div style="display:flex;align-items:center;gap:7px">
             <span style="font-family:var(--mono);font-weight:700;color:${color};font-size:10px">${icon}</span>
             <span style="font-family:var(--mono);font-size:11px;font-weight:600;color:${color};flex:1">${_fmtPlate(p.plate)}</span>
             <span style="font-family:var(--mono);font-size:9px;color:${color};letter-spacing:.07em">${label}</span>
             <span style="font-size:9px;color:var(--muted-2)">${(p.confidence*100).toFixed(0)}%</span>
+            <button onclick="_cam01DismissCard('${cardId}')" title="Dismiss" style="background:none;border:none;color:var(--muted-2);font-size:13px;line-height:1;cursor:pointer;padding:0 0 0 4px;flex:0 0 auto" onmouseover="this.style.color='var(--alert)'" onmouseout="this.style.color='var(--muted-2)'">×</button>
           </div>
           <div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap">
             ${primaryBtn}
@@ -2540,6 +2542,14 @@
     if (wrap) wrap.style.display = 'none';
     const cards = document.getElementById('cam01-gate-cards');
     if (cards) cards.innerHTML = '';
+  }
+
+  function _cam01DismissCard(cardId) {
+    const card = document.getElementById(cardId);
+    if (card) card.remove();
+    // If no cards remain, hide the whole panel and badge
+    const remaining = document.querySelectorAll('#cam01-gate-cards [id^="cam01-card-"]');
+    if (!remaining.length) _cam01DismissResults();
   }
 
   // ─── Gate & Access — ANPR scanner ────────────────────────────────────────────
