@@ -3,6 +3,8 @@ uvicorn[standard]==0.30.1
 aiofiles==23.2.1
 python-multipart==0.0.9
 opencv-python==4.9.0.80
+paddlepaddle==2.6.2
+paddleocr==2.7.3
 easyocr==1.7.1
 deepface==0.0.93
 numpy==1.26.4
