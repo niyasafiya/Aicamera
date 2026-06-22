@@ -2393,20 +2393,12 @@
     document.getElementById('cam-bar-cam01').style.width = '0';
     _cam01ClearBadge();
 
-    // Update inline preview label
-    const _pLbl01 = document.getElementById('cam-vid-lbl-cam01');
-    if (_pLbl01) _pLbl01.textContent = '▶ Uploading…';
-    const _pVid01 = document.getElementById('cam-vid-el-cam01');
-    if (_pVid01 && _pVid01.paused && st._objUrl) _pVid01.play().catch(() => {});
-
     // Keep the video playing in the camera tile during upload + ANPR processing
     const _ov  = document.getElementById('cam-overlay-cam01');
     const _vid = document.getElementById('cam-overlay-vid-cam01');
-    const _img = document.getElementById('cam-overlay-img-cam01');
     const _lbl = document.getElementById('cam-ov-label-cam01');
     if (_ov && st._objUrl) {
       if (_vid) { if (!_vid.src) _vid.src = st._objUrl; _vid.style.display = 'block'; _vid.play().catch(() => {}); }
-      if (_img) _img.style.display = 'none';
       if (_lbl) _lbl.textContent = '▶ Scanning plates…';
       _ov.style.display = 'block';
     }
@@ -2420,8 +2412,6 @@
       _cam01JobId = data.job_id;
       btn.textContent = 'Scanning…';
       document.getElementById('cam-status-cam01').textContent = 'Scanning plates…';
-      const _pLbl01b = document.getElementById('cam-vid-lbl-cam01');
-      if (_pLbl01b) _pLbl01b.textContent = '▶ Scanning plates…';
       _cam01Poll();
     } catch (e) {
       btn.disabled = false; btn.textContent = 'Scan Plates';
@@ -2777,18 +2767,7 @@
     document.getElementById(`cam-det-btn-${id}`).disabled = false;
     document.getElementById(`cam-status-${id}`).textContent = 'Ready — click Detect/Scan';
 
-    // Show inline video preview inside the upload panel
-    const pWrap = document.getElementById(`cam-vid-preview-${id}`);
-    const pVid  = document.getElementById(`cam-vid-el-${id}`);
-    const pLbl  = document.getElementById(`cam-vid-lbl-${id}`);
-    if (pWrap && pVid) {
-      pVid.src = st._objUrl;
-      pVid.play().catch(() => {});
-      if (pLbl) pLbl.textContent = `▶ ${f.name}`;
-      pWrap.style.display = '';
-    }
-
-    // Also show the video in the camera tile overlay
+    // Show video only in the camera tile overlay (single player)
     const vid = document.getElementById(`cam-overlay-vid-${id}`);
     const img = document.getElementById(`cam-overlay-img-${id}`);
     const ov  = document.getElementById(`cam-overlay-${id}`);
@@ -2812,20 +2791,12 @@
     document.getElementById(`cam-results-${id}`).style.display = 'none';
     document.getElementById(`cam-bar-${id}`).style.width = '0';
 
-    // Update inline preview label to show upload is in progress
-    const _pLbl = document.getElementById(`cam-vid-lbl-${id}`);
-    if (_pLbl) _pLbl.textContent = '▶ Uploading…';
-    const _pVid = document.getElementById(`cam-vid-el-${id}`);
-    if (_pVid && _pVid.paused && st._objUrl) _pVid.play().catch(() => {});
-
     // Keep the video playing in the camera tile while we upload + detect
     const _ov  = document.getElementById(`cam-overlay-${id}`);
     const _vid = document.getElementById(`cam-overlay-vid-${id}`);
-    const _img = document.getElementById(`cam-overlay-img-${id}`);
     const _lbl = document.getElementById(`cam-ov-label-${id}`);
     if (_ov && st._objUrl) {
       if (_vid) { if (!_vid.src) _vid.src = st._objUrl; _vid.style.display = 'block'; _vid.play().catch(() => {}); }
-      if (_img) _img.style.display = 'none';
       if (_lbl) _lbl.textContent = '▶ Scanning…';
       _ov.style.display = 'block';
     }

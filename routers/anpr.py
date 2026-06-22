@@ -67,8 +67,8 @@ def _process_video(job_id: str, video_path: str):
 
         # Seek directly to evenly-spaced frames — avoids decoding all intermediate frames.
         # For a 2-min 30fps video this saves decoding ~3500 frames we'd otherwise throw away.
-        step    = max(1, int(fps * 4))               # one sample every 4 s
-        targets = list(range(step, total, step))[:5]  # max 5 frames
+        step    = max(1, int(fps * 3))               # one sample every 3 s
+        targets = list(range(step, total, step))[:3]  # max 3 frames
         if not targets:
             targets = [0]                             # very short clip — try first frame
 
@@ -87,6 +87,10 @@ def _process_video(job_id: str, video_path: str):
                     plates_best[norm] = d
 
             _update_job(job_id, "processing", min(99, (i + 1) / len(targets) * 100), None)
+
+            # Stop early if we already have a high-confidence plate
+            if plates_best and max(v["confidence"] for v in plates_best.values()) >= 0.75:
+                break
 
         cap.release()
 
