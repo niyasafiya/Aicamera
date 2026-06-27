@@ -1,15 +1,20 @@
 """
 ANPR (Automatic Number Plate Recognition) endpoints.
-Video upload → background OCR job → results + access log.
+Video upload → background OCR job → annotated output video + access log.
 """
 from __future__ import annotations
 
+import asyncio
+import tempfile
+import threading
 import uuid
 from pathlib import Path
 from typing import List, Optional
 
 import cv2
+import numpy as np
 from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, UploadFile
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 import db
@@ -17,7 +22,11 @@ from services.anpr_service import extract_plates_from_frame
 
 router = APIRouter()
 
-UPLOADS = Path("uploads")
+# Use system temp dir so files are NOT inside OneDrive (avoids cloud sync locking)
+UPLOADS = Path(tempfile.gettempdir()) / "sentinel_ai"
+
+# Maximum frames to annotate (~10 min @ 30 fps)
+_ANNOTATE_MAX_FRAMES = 18_000
 
 
 # ---------------------------------------------------------------------------
@@ -49,10 +58,164 @@ def _update_job(job_id: str, status: str, progress: float, error: Optional[str])
 
 
 # ---------------------------------------------------------------------------
+# Frame / video annotation helpers
+# ---------------------------------------------------------------------------
+
+def _annotate_frame(
+    frame: np.ndarray,
+    detections: List[dict],
+    auth_map: dict,
+) -> np.ndarray:
+    """Draw plate bounding boxes with corner brackets and AUTHORIZED/DENIED labels."""
+    out = frame.copy()
+    fh, fw = out.shape[:2]
+    font  = cv2.FONT_HERSHEY_SIMPLEX
+    BLACK = (0, 0, 0)
+
+    for d in detections:
+        bbox = d.get("bbox")
+        norm = _norm(d["plate"])
+        auth = auth_map.get(norm)
+
+        color = (50, 220, 90) if auth else (40, 40, 235)   # BGR: green / red
+        label = d["plate"] + ("  AUTHORIZED" if auth else "  DENIED")
+
+        if bbox:
+            x1, y1, x2, y2 = (
+                max(0, bbox[0]), max(0, bbox[1]),
+                min(fw - 1, bbox[2]), min(fh - 1, bbox[3]),
+            )
+            bw = x2 - x1
+
+            # Dark shadow outline — ensures visibility on any background
+            cv2.rectangle(out, (x1 - 2, y1 - 2), (x2 + 2, y2 + 2), BLACK, 5)
+            # Main plate rectangle
+            cv2.rectangle(out, (x1, y1), (x2, y2), color, 3)
+
+            # Corner-bracket markers (L-shaped, CCTV style)
+            cl = max(8, min(bw // 4, 22))   # corner arm length
+            for cx, cy, sx, sy in [
+                (x1, y1,  1,  1),   # top-left
+                (x2, y1, -1,  1),   # top-right
+                (x1, y2,  1, -1),   # bottom-left
+                (x2, y2, -1, -1),   # bottom-right
+            ]:
+                cv2.line(out, (cx, cy), (cx + sx * cl, cy), color, 4)
+                cv2.line(out, (cx, cy), (cx, cy + sy * cl), color, 4)
+
+            # Label banner above the box
+            fs = max(0.38, min(0.82, bw / 270))
+            (tw, th), bl = cv2.getTextSize(label, font, fs, 2)
+            ly2 = y1
+            ly1 = max(0, y1 - th - bl - 10)
+            lx2 = min(fw, x1 + tw + 14)
+            # Shadow behind label background
+            cv2.rectangle(out, (x1 - 1, ly1 - 1), (lx2 + 1, ly2 + 1), BLACK, -1)
+            cv2.rectangle(out, (x1, ly1), (lx2, ly2), color, -1)
+            cv2.putText(out, label, (x1 + 6, ly2 - bl - 2),
+                        font, fs, (255, 255, 255), 2, cv2.LINE_AA)
+        else:
+            # No bbox: banner at bottom of frame
+            fs = 0.65
+            (tw, th), bl = cv2.getTextSize(label, font, fs, 2)
+            px, py = 12, fh - 20
+            cv2.rectangle(out, (px - 5, py - th - 5), (px + tw + 5, py + bl + 2), BLACK, -1)
+            cv2.rectangle(out, (px - 4, py - th - 4), (px + tw + 4, py + bl + 1), color, -1)
+            cv2.putText(out, label, (px, py), font, fs, (255, 255, 255), 2, cv2.LINE_AA)
+
+    return out
+
+
+def _write_annotated_video(
+    video_path: str,
+    frame_detections: dict,   # frame_num → list[detection]
+    auth_map: dict,
+    out_path: str,
+    total_frames: int,
+    fps: float,
+    width: int,
+    height: int,
+    job_id: str,
+) -> bool:
+    """Write MP4 with per-vehicle plate overlays that persist ~1.5 s each."""
+    if not frame_detections:
+        return False
+
+    persist = max(1, int(fps * 1.5))
+
+    # Build active_at[frame] = list of detections visible at that frame
+    active_at: dict = {}
+    for fnum, dets in frame_detections.items():
+        for f in range(fnum, min(total_frames + 1, fnum + persist)):
+            if f not in active_at:
+                active_at[f] = []
+            seen = {_norm(d["plate"]) for d in active_at[f]}
+            for d in dets:
+                if _norm(d["plate"]) not in seen:
+                    active_at[f].append(d)
+                    seen.add(_norm(d["plate"]))
+
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        return False
+
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    writer = cv2.VideoWriter(out_path, fourcc, fps, (width, height))
+    if not writer.isOpened():
+        cap.release()
+        return False
+
+    max_frames = min(total_frames, _ANNOTATE_MAX_FRAMES)
+    frame_num = 0
+    while frame_num < max_frames:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        dets = active_at.get(frame_num)
+        if dets:
+            frame = _annotate_frame(frame, dets, auth_map)
+        writer.write(frame)
+        frame_num += 1
+        if frame_num % 150 == 0:
+            pct = 60 + (frame_num / max_frames) * 35
+            _update_job(job_id, "processing", min(95, pct), None)
+
+    cap.release()
+    writer.release()
+    return True
+
+
+# ---------------------------------------------------------------------------
 # Background job — runs in Starlette thread pool (sync function)
 # ---------------------------------------------------------------------------
 
+def _encode_video_background(
+    video_path: str,
+    frame_detections: dict,
+    auth_map: dict,
+    job_id: str,
+    total: int,
+    fps: float,
+    width: int,
+    height: int,
+):
+    """Encode the annotated MP4 after the scan job has already completed.
+    Deletes the source video when done."""
+    try:
+        ann_path = UPLOADS / f"anpr_{job_id}_annotated.mp4"
+        _write_annotated_video(
+            video_path, frame_detections, auth_map,
+            str(ann_path), total, fps, width, height, job_id,
+        )
+    except Exception:
+        import traceback
+        print(f"[ANPR encode {job_id}] {traceback.format_exc()}")
+    finally:
+        Path(video_path).unlink(missing_ok=True)
+
+
 def _process_video(job_id: str, video_path: str):
+    handed_off = False
     try:
         _update_job(job_id, "processing", 0, None)
 
@@ -62,37 +225,86 @@ def _process_video(job_id: str, video_path: str):
             Path(video_path).unlink(missing_ok=True)
             return
 
-        total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 1
-        fps   = cap.get(cv2.CAP_PROP_FPS) or 25
+        total  = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 1
+        fps    = cap.get(cv2.CAP_PROP_FPS) or 25
+        width  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-        # Seek directly to evenly-spaced frames — avoids decoding all intermediate frames.
-        # For a 2-min 30fps video this saves decoding ~3500 frames we'd otherwise throw away.
-        step    = max(1, int(fps * 2))               # one sample every 2 s
-        targets = list(range(step, total, step))[:2]  # max 2 frames
-        if not targets:
-            targets = [0]                             # very short clip — try first frame
+        # Sequential read: cap.grab() advances without full pixel decode (3-5× faster
+        # than cap.set() seeking in compressed H.264/MP4 video).
+        # Short clips get denser sampling so we don't miss the clearest plate frame.
+        if total <= int(fps * 30):              # ≤ 30 s video
+            step = max(1, int(fps * 0.5))       # every 0.5 s
+        else:
+            step = max(1, int(fps * 1.0))       # every 1.0 s for longer clips
+        max_scan  = min(total, int(fps * 300))  # scan at most 5 minutes
 
-        plates_best: dict = {}
+        plates_best:       dict = {}
+        frame_detections:  dict = {}
+        plate_seen_count:  dict = {}   # norm → frames where it was detected
+        frame_num      = 0
+        no_new_streak  = 0
 
-        for i, pos in enumerate(targets):
-            cap.set(cv2.CAP_PROP_POS_FRAMES, pos)
-            ret, frame = cap.read()
+        while frame_num < max_scan:
+            do_decode = (frame_num % step == 0)
+            if do_decode:
+                ret, frame = cap.read()
+            else:
+                ret = cap.grab()
+
             if not ret:
-                continue
-
-            detections = extract_plates_from_frame(frame)
-            for d in detections:
-                norm = _norm(d["plate"])
-                if norm not in plates_best or d["confidence"] > plates_best[norm]["confidence"]:
-                    plates_best[norm] = d
-
-            _update_job(job_id, "processing", min(99, (i + 1) / len(targets) * 100), None)
-
-            # Stop early as soon as any plate is detected
-            if plates_best:
                 break
 
+            if do_decode:
+                detections = extract_plates_from_frame(frame)
+                improved = False
+                if detections:
+                    frame_detections[frame_num] = detections
+                    for d in detections:
+                        norm = _norm(d["plate"])
+                        plate_seen_count[norm] = plate_seen_count.get(norm, 0) + 1
+                        if norm not in plates_best or d["confidence"] > plates_best[norm]["confidence"] + 0.05:
+                            plates_best[norm] = d
+                            improved = True
+
+                no_new_streak = 0 if improved else no_new_streak + 1
+
+                # Fast stop: plate confirmed in 2+ frames with decent confidence
+                if any(
+                    plate_seen_count.get(n, 0) >= 2 and plates_best[n]["confidence"] >= 0.65
+                    for n in plates_best
+                ):
+                    break
+
+                # Fallback stop: no improvement for 5 consecutive decoded frames
+                if plates_best and no_new_streak >= 5:
+                    break
+
+                if frame_num % (step * 2) == 0:
+                    _update_job(job_id, "processing",
+                                min(88, frame_num / max_scan * 88), None)
+
+            frame_num += 1
+
         cap.release()
+
+        # Fallback: pre-filter rejected everything → try first 10 frames without filter
+        if not plates_best:
+            cap2 = cv2.VideoCapture(video_path)
+            for _ in range(min(10, total)):
+                ret, frame = cap2.read()
+                if not ret:
+                    break
+                detections = extract_plates_from_frame(frame)
+                if detections:
+                    frame_detections[frame_num] = detections
+                    for d in detections:
+                        norm = _norm(d["plate"])
+                        if norm not in plates_best or d["confidence"] > plates_best[norm]["confidence"]:
+                            plates_best[norm] = d
+                    if plates_best:
+                        break
+            cap2.release()
 
         # Cross-check against whitelist
         conn = db.get_conn()
@@ -101,7 +313,7 @@ def _process_video(job_id: str, video_path: str):
         ).fetchall()
         auth_map = {_norm(r["plate"]): dict(r) for r in auth_rows}
 
-        plates_out: List[dict] = []
+        # Persist results to DB immediately
         for norm, data in plates_best.items():
             auth     = auth_map.get(norm)
             decision = "GRANTED" if auth else "DENIED"
@@ -119,26 +331,30 @@ def _process_video(job_id: str, video_path: str):
                     auth["vehicle_type"] if auth else "Unknown",
                 ),
             )
-            plates_out.append(
-                {
-                    "plate":        data["plate"],
-                    "confidence":   data["confidence"],
-                    "authorized":   auth is not None,
-                    "owner":        auth["owner"]        if auth else "Unknown",
-                    "vehicle_type": auth["vehicle_type"] if auth else "Unknown",
-                }
-            )
 
         conn.commit()
         conn.close()
+
+        # Mark completed NOW — results are in DB, frontend can show them immediately
         _update_job(job_id, "completed", 100, None)
+
+        # Kick off video encoding in a separate thread so it doesn't block the result
+        if frame_detections:
+            handed_off = True
+            threading.Thread(
+                target=_encode_video_background,
+                args=(video_path, frame_detections, auth_map,
+                      job_id, total, fps, width, height),
+                daemon=True,
+            ).start()
 
     except Exception as exc:
         import traceback
         print(f"[ANPR job {job_id}] {traceback.format_exc()}")
         _update_job(job_id, "error", 0, str(exc))
     finally:
-        Path(video_path).unlink(missing_ok=True)
+        if not handed_off:
+            Path(video_path).unlink(missing_ok=True)
 
 
 # ---------------------------------------------------------------------------
@@ -153,8 +369,9 @@ async def upload_video(
     job_id     = str(uuid.uuid4())
     suffix     = Path(video.filename or "video.mp4").suffix or ".mp4"
     video_path = UPLOADS / f"anpr_{job_id}{suffix}"
-    UPLOADS.mkdir(exist_ok=True)
-    video_path.write_bytes(await video.read())
+    UPLOADS.mkdir(parents=True, exist_ok=True)
+    contents   = await video.read()
+    await asyncio.to_thread(video_path.write_bytes, contents)
 
     conn = db.get_conn()
     conn.execute(
@@ -168,25 +385,46 @@ async def upload_video(
     return {"job_id": job_id}
 
 
+@router.get("/job/{job_id}/video")
+def get_job_video(job_id: str):
+    """Return the annotated output video for a completed job."""
+    video_path = UPLOADS / f"anpr_{job_id}_annotated.mp4"
+    if not video_path.exists():
+        raise HTTPException(404, "No annotated video available for this job")
+    return FileResponse(
+        str(video_path),
+        media_type="video/mp4",
+        headers={"Accept-Ranges": "bytes"},
+    )
+
+
+@router.get("/job/{job_id}/frame")
+def get_job_frame(job_id: str):
+    """Return a fallback annotated JPEG frame (kept for backwards compat)."""
+    frame_path = UPLOADS / f"anpr_{job_id}_frame.jpg"
+    if not frame_path.exists():
+        raise HTTPException(404, "No annotated frame available for this job")
+    return FileResponse(str(frame_path), media_type="image/jpeg")
+
+
 @router.get("/job/{job_id}")
 def get_job(job_id: str):
-    conn   = db.get_conn()
-    job    = conn.execute("SELECT * FROM anpr_jobs WHERE job_id=?", (job_id,)).fetchone()
+    conn = db.get_conn()
+    job  = conn.execute("SELECT * FROM anpr_jobs WHERE job_id=?", (job_id,)).fetchone()
     if not job:
         conn.close()
         raise HTTPException(404, "Job not found")
 
     job = dict(job)
-    plates: List[dict] = []
-    if job["status"] == "completed":
-        rows   = conn.execute(
-            "SELECT * FROM anpr_plates WHERE job_id=?", (job_id,)
-        ).fetchall()
-        plates = [
-            {**dict(r), "authorized": bool(r["authorized"])} for r in rows
-        ]
+    # Return plates at any stage so the UI can show results as they arrive
+    rows   = conn.execute(
+        "SELECT * FROM anpr_plates WHERE job_id=?", (job_id,)
+    ).fetchall()
+    plates = [{**dict(r), "authorized": bool(r["authorized"])} for r in rows]
     conn.close()
-    return {**job, "plates": plates}
+
+    has_video = (UPLOADS / f"anpr_{job_id}_annotated.mp4").exists()
+    return {**job, "plates": plates, "has_video": has_video}
 
 
 @router.get("/authorized")

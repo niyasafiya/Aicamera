@@ -34,3 +34,6 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Stray nested clone of this repo
+Aicamera/

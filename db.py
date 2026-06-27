@@ -83,12 +83,19 @@ def init_db():
     existing = conn.execute("SELECT COUNT(*) FROM authorized_vehicles").fetchone()[0]
     if existing == 0:
         seeds = [
+            # Indian plates
             ("KL07CK4521", "Arun Menon",          "Car"),
             ("KA09AB1234", "Meridian Logistics",   "Truck"),
             ("TN32CD5678", "Coastal Freight",      "Van"),
             ("MH12EF9012", "Vector Supply",        "Truck"),
             ("KL07CK0001", "Technomak Security",   "Car"),
             ("AP28CZ1122", "Warehouse Ops",        "Van"),
+            # Dubai plates
+            ("A12345",  "Sheikh Mohammed",         "Car"),
+            ("B1234",   "Dubai Police",            "Car"),
+            ("CD123",   "Emirates Logistics",      "Truck"),
+            ("X99999",  "Technomak UAE",           "Car"),
+            ("AB5678",  "Al Futtaim Transport",    "Van"),
         ]
         for plate, owner, vtype in seeds:
             conn.execute(

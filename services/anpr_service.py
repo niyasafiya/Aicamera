@@ -32,12 +32,14 @@ _D2L = str.maketrans({"0": "O", "1": "I", "2": "Z", "5": "S",
 _L2D = str.maketrans({"B": "8", "D": "0", "G": "6", "I": "1", "J": "1",
                        "L": "1", "O": "0", "Q": "0", "S": "5", "Z": "2"})
 
-_PLATE_OK   = re.compile(r"[A-Z0-9]")
-_PLATE_CORE = re.compile(r"[A-Z]{2}\d{2}[A-Z]{1,3}\d{3,4}")
+_PLATE_OK    = re.compile(r"[A-Z0-9]")
+_PLATE_CORE  = re.compile(r"[A-Z]{2}\d{2}[A-Z]{1,3}\d{3,4}")
+# Dubai plate: 1-3 letters then 1-5 digits  e.g. A12345, AB1234, XA99999
+_DUBAI_PLATE = re.compile(r"^[A-Z]{1,3}\d{1,5}$")
 
-MIN_PLATE_CHARS  = 4
-_VARIANT_MIN_CONF = 0.25
-_OCR_MIN_CONF     = 0.35
+MIN_PLATE_CHARS  = 3
+_VARIANT_MIN_CONF = 0.10
+_OCR_MIN_CONF     = 0.18
 
 # ---------------------------------------------------------------------------
 # Lazy OCR reader (PaddleOCR with EasyOCR fallback)
@@ -86,11 +88,11 @@ def _get_easyocr():
 # Preprocessing variants  (mirrors YardMonitor)
 # ---------------------------------------------------------------------------
 
-def _upscale(img: np.ndarray, min_h: int = 200, min_w: int = 900) -> np.ndarray:
+def _upscale(img: np.ndarray, min_h: int = 128, min_w: int = 640) -> np.ndarray:
     h, w = img.shape[:2]
     scale = max(min_h / max(h, 1), min_w / max(w, 1), 1.0)
     if scale > 1.0:
-        new_w = min(int(w * scale), 2000)
+        new_w = min(int(w * scale), 1600)
         new_h = int(h * scale)
         img = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_LANCZOS4)
     return img
@@ -103,8 +105,8 @@ def _add_border(img: np.ndarray, px: int = 15) -> np.ndarray:
 
 
 def _preprocess_variants(img: np.ndarray) -> List[np.ndarray]:
-    """Four preprocessed variants (A=CLAHE+unsharp, B=bilateral+Otsu,
-    C=inverted Otsu, D=morph+adaptive) plus gamma correction."""
+    """Variant A only: CLAHE + unsharp mask with gamma correction.
+    Callers access variants[0]; B/C/D were never used so we skip them."""
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) if img.ndim == 3 else img.copy()
 
     # Gamma brightness correction
@@ -128,20 +130,7 @@ def _preprocess_variants(img: np.ndarray) -> List[np.ndarray]:
     blur  = cv2.GaussianBlur(va, (5, 5), 0)
     va    = cv2.addWeighted(va, 1.6, blur, -0.6, 0)
 
-    # B — bilateral + Otsu
-    vb = cv2.bilateralFilter(gray, 11, 17, 17)
-    _, vb = cv2.threshold(vb, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-
-    # C — inverted Otsu (white-on-dark / reflective plates)
-    _, vc = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-
-    # D — morph close + adaptive threshold (fills dirt/wear breaks)
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
-    vd = cv2.morphologyEx(gray, cv2.MORPH_CLOSE, kernel)
-    vd = cv2.adaptiveThreshold(vd, 255, cv2.ADAPTIVE_THRESH_MEAN_C,
-                               cv2.THRESH_BINARY, blockSize=11, C=5)
-
-    return [cv2.cvtColor(v, cv2.COLOR_GRAY2BGR) for v in [va, vb, vc, vd]]
+    return [cv2.cvtColor(va, cv2.COLOR_GRAY2BGR)]
 
 
 # ---------------------------------------------------------------------------
@@ -188,13 +177,28 @@ def _majority_vote(candidates: List[Tuple[str, float]]) -> Optional[Tuple[str, f
 # ---------------------------------------------------------------------------
 
 def _postfix(plate: str) -> str:
-    """Position-aware letter/digit fix for Indian format SS DD (L|LL) NNNN."""
+    """Position-aware letter/digit fix.
+    Detects Dubai format (1-3 letters + 1-5 digits) vs Indian format automatically."""
     # Extract plate pattern from longer strings (bumper sticker noise)
     if len(plate) > 10:
         m = _PLATE_CORE.search(plate)
         if m:
             plate = m.group(0)
 
+    # Dubai format: all letters come first, then all digits
+    first_digit = next((i for i, ch in enumerate(plate) if ch.isdigit()), len(plate))
+    lc, dc = first_digit, len(plate) - first_digit
+    if 1 <= lc <= 3 and 1 <= dc <= 5:
+        # Minimal fix: ensure letter zone has letters, digit zone has digits
+        letters = "".join(
+            ch if ch.isalpha() else ch.translate(_D2L) for ch in plate[:lc]
+        )
+        digits = "".join(
+            ch if ch.isdigit() else ch.translate(_L2D) for ch in plate[lc:]
+        )
+        return letters + digits
+
+    # Indian format: position-aware correction
     n = len(plate)
     if n == 8:
         lp = {0, 1, 4};      dp = {2, 3, 5, 6, 7}
@@ -262,24 +266,39 @@ def _ocr_with_paddle(crop: np.ndarray) -> Optional[Tuple[str, float]]:
     base = _add_border(_upscale(crop))
     candidates: List[Tuple[str, float]] = []
 
-    # Pass 1: base image, det=False
-    candidates.extend(_paddle_ocr_once(paddle, base, det=False))
+    # Pass 1: base image, recognition only
+    p1 = _paddle_ocr_once(paddle, base, det=False)
+    candidates.extend(p1)
+    # High-confidence early exit — no need for pass 2 correction
+    if p1 and max(c for _, c in p1) >= 0.70:
+        result = _majority_vote(candidates)
+        if result:
+            plate = _postfix(result[0])
+            if _looks_like_plate(plate):
+                return plate, round(result[1], 3)
 
-    # Passes 2-5: preprocessed variants, det=False
-    for variant in _preprocess_variants(base):
-        candidates.extend(_paddle_ocr_once(paddle, variant, det=False))
+    # Pass 2: CLAHE variant — always run to provide majority-vote error correction.
+    # Combining pass 1 + pass 2 catches character confusions (0/O, 1/I, 5/S, B/8).
+    variants = _preprocess_variants(base)
+    candidates.extend(_paddle_ocr_once(paddle, variants[0], det=False))
+    if candidates:
+        result = _majority_vote(candidates)
+        if result and result[1] >= 0.40:
+            plate = _postfix(result[0])
+            if _looks_like_plate(plate):
+                return plate, round(result[1], 3)
 
-    # Pass 6: base, det=True (EAST/DB detector finds char bboxes)
-    candidates.extend(_paddle_ocr_once(paddle, base, det=True))
+    # Pass 3: det=True — last resort only when both rec passes found nothing
+    if not candidates:
+        candidates.extend(_paddle_ocr_once(paddle, base, det=True))
 
     result = _majority_vote(candidates)
     if not result:
         return None
-    plate, conf = result
-    plate = _postfix(plate)
+    plate = _postfix(result[0])
     if not _looks_like_plate(plate):
         return None
-    return plate, conf
+    return plate, round(result[1], 3)
 
 
 # ---------------------------------------------------------------------------
@@ -296,8 +315,9 @@ def _ocr_with_easyocr(crop: np.ndarray) -> Optional[Tuple[str, float]]:
 
     base = _add_border(_upscale(crop))
     candidates: List[Tuple[str, float]] = []
+    variants = _preprocess_variants(base)
 
-    for img in [base] + _preprocess_variants(base):
+    for img in [base, variants[0]]:   # base + CLAHE only
         try:
             results = reader.readtext(
                 img, detail=1, paragraph=False,
@@ -371,13 +391,14 @@ def _find_plate_regions(frame: np.ndarray) -> List[tuple]:
     contours, _ = cv2.findContours(closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     regions = []
-    min_area = w * h * 0.008
+    min_area = w * h * 0.004
     for cnt in contours:
         x, y, cw, ch = cv2.boundingRect(cnt)
         if cw * ch < min_area:
             continue
         aspect = cw / max(ch, 1)
-        if not (2.0 <= aspect <= 7.0):
+        # 1.2 lower-bound catches Dubai two-row plates; 9.0 upper-bound for wide strips
+        if not (1.2 <= aspect <= 9.0):
             continue
         pad = 5
         regions.append((
@@ -391,14 +412,29 @@ def _find_plate_regions(frame: np.ndarray) -> List[tuple]:
 # Public: extract plates from a full video frame
 # ---------------------------------------------------------------------------
 
+def quick_has_plate(frame: np.ndarray) -> bool:
+    """Fast contour-only check: does this frame have any plate-like regions?
+    No OCR — used to pre-filter frames before expensive OCR pass."""
+    h, w = frame.shape[:2]
+    roi = frame[int(h * 0.45):, :]
+    rh, rw = roi.shape[:2]
+    if rw > 640:
+        roi_small = cv2.resize(roi, (640, int(rh * 640 / rw)))
+    else:
+        roi_small = roi
+    return len(_find_plate_regions(roi_small)) > 0
+
+
 def extract_plates_from_frame(frame: np.ndarray) -> List[Dict]:
     """Run plate OCR on a full video frame.
     Uses contour detection to find plate regions first (fast), then
-    runs PaddleOCR/EasyOCR only on those small crops."""
+    runs PaddleOCR/EasyOCR only on those small crops.
+    Returns list of dicts with keys: plate, confidence, bbox (full-frame coords or None)."""
 
-    # Work on the bottom 50% — plates are never in sky/ceiling
+    # Work on the bottom 45% — plates are never in sky/ceiling
     h, w = frame.shape[:2]
-    roi = frame[int(h * 0.50):, :]
+    roi_y = int(h * 0.45)
+    roi = frame[roi_y:, :]
 
     # Downscale for contour detection (pure OpenCV — no neural net cost)
     rh, rw = roi.shape[:2]
@@ -409,7 +445,8 @@ def extract_plates_from_frame(frame: np.ndarray) -> List[Dict]:
         roi_small = roi
         scale = 1.0
 
-    best: Dict[str, float] = {}
+    # best[raw_plate] = {"confidence": float, "bbox": tuple|None}
+    best: Dict[str, dict] = {}
 
     regions = _find_plate_regions(roi_small)
     if regions:
@@ -423,8 +460,9 @@ def extract_plates_from_frame(frame: np.ndarray) -> List[Dict]:
             result = read_plate_crop(crop)
             if result:
                 p, c = result["plate"], result["confidence"]
-                if p not in best or c > best[p]:
-                    best[p] = c
+                full_bbox = (sx1, roi_y + sy1, sx2, roi_y + sy2)
+                if p not in best or c > best[p]["confidence"]:
+                    best[p] = {"confidence": c, "bbox": full_bbox}
 
     if not best:
         # Fallback: OCR on the entire bottom strip at reduced size
@@ -435,6 +473,19 @@ def extract_plates_from_frame(frame: np.ndarray) -> List[Dict]:
             roi_fb = roi
         result = read_plate_crop(roi_fb)
         if result:
-            best[result["plate"]] = result["confidence"]
+            p, c = result["plate"], result["confidence"]
+            # Try full-res contour search to get a real bbox for the overlay
+            full_regions = _find_plate_regions(roi)
+            fb_bbox = None
+            if full_regions:
+                # Largest region by area is most likely the plate
+                bx1, by1, bx2, by2 = max(
+                    full_regions, key=lambda r: (r[2] - r[0]) * (r[3] - r[1])
+                )
+                fb_bbox = (bx1, roi_y + by1, bx2, roi_y + by2)
+            best[p] = {"confidence": c, "bbox": fb_bbox}
 
-    return [{"plate": p, "confidence": round(c, 3)} for p, c in best.items()]
+    return [
+        {"plate": p, "confidence": round(v["confidence"], 3), "bbox": v["bbox"]}
+        for p, v in best.items()
+    ]

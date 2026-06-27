@@ -10,42 +10,40 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg-base:#0A0E13; --bg-panel:#10151D; --bg-elevated:#161D27; --bg-tile:#0C1117;
-    --bg-chrome:#0D1219;
-    --hair:#212B38; --hair-soft:rgba(255,255,255,.055);
-    --text:#E8EDF2; --muted:#8794A2; --muted-2:#56636F;
-    --clear:#28C9A8; --watch:#F0A93B; --alert:#F2566E; --active:#4D7CFE;
-    --clear-dim:rgba(40,201,168,.13); --watch-dim:rgba(240,169,59,.13);
-    --alert-dim:rgba(242,86,110,.13); --active-dim:rgba(77,124,254,.14);
+    --bg-base:#F1F5F9; --bg-panel:#FFFFFF; --bg-elevated:#F8FAFC; --bg-tile:#F1F5F9;
+    --bg-chrome:#FFFFFF; --bg-mid:#F1F5F9;
+    --hair:#E2E8F0; --hair-soft:rgba(0,0,0,.05);
+    --text:#0F172A; --muted:#64748B; --muted-2:#94A3B8;
+    --clear:#059669; --watch:#D97706; --alert:#DC2626; --active:#2563EB;
+    --clear-dim:rgba(5,150,105,.10); --watch-dim:rgba(217,119,6,.10);
+    --alert-dim:rgba(220,38,38,.10); --active-dim:rgba(37,99,235,.10);
+    --sidebar:#1E293B; --sidebar-hover:rgba(255,255,255,.07);
+    --sidebar-active:rgba(59,130,246,.18); --sidebar-text:rgba(255,255,255,.72);
+    --sidebar-muted:rgba(255,255,255,.38); --sidebar-border:rgba(255,255,255,.08);
     --mono:"JetBrains Mono",ui-monospace,"SF Mono",Consolas,monospace;
     --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-    --radius:9px; --radius-sm:6px;
-    --rail-w:236px; --tabbar-h:40px; --status-h:30px; --top-h:56px;
-    --shadow:0 18px 50px rgba(0,0,0,.55),0 2px 8px rgba(0,0,0,.4);
+    --radius:10px; --radius-sm:6px;
+    --rail-w:240px; --tabbar-h:42px; --status-h:30px; --top-h:56px;
+    --shadow:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.07);
   }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%}
   body{
-    background:
-      radial-gradient(1100px 560px at 82% -12%,rgba(77,124,254,.06),transparent 60%),
-      radial-gradient(820px 460px at -8% 112%,rgba(40,201,168,.045),transparent 55%),
-      var(--bg-base);
+    background:var(--bg-base);
     color:var(--text); font-family:var(--sans); font-size:13.5px; line-height:1.45;
     -webkit-font-smoothing:antialiased; overflow:hidden;
   }
 
   /* ================= SIGN-IN ================= */
   #signin{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;
-    background:
-      radial-gradient(900px 500px at 50% 20%,rgba(77,124,254,.10),transparent 60%),
-      linear-gradient(180deg,#0A0E13,#070A0E);}
+    background:linear-gradient(135deg,#1E293B 0%,#1E3A5F 60%,#1E2E4A 100%);}
   #signin.hide{display:none}
-  .card{width:360px;background:linear-gradient(180deg,var(--bg-panel),#0D131B);
-    border:1px solid var(--hair);border-radius:16px;padding:30px;box-shadow:var(--shadow)}
+  .card{width:400px;background:#FFFFFF;
+    border:1px solid var(--hair);border-radius:18px;padding:36px;box-shadow:0 32px 80px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.2)}
   .card .lock-logo{display:flex;align-items:center;gap:11px;margin-bottom:22px}
-  .logo{width:36px;height:36px;border-radius:9px;position:relative;flex:0 0 auto;
-    background:radial-gradient(circle at 30% 25%,#1d2a3a,#0c121a);border:1px solid var(--hair)}
-  .logo:before,.logo:after{content:"";position:absolute;width:10px;height:10px;border:2px solid var(--clear)}
+  .logo{width:38px;height:38px;border-radius:10px;position:relative;flex:0 0 auto;
+    background:linear-gradient(135deg,var(--active-dim),rgba(37,99,235,.22));border:1.5px solid rgba(37,99,235,.35)}
+  .logo:before,.logo:after{content:"";position:absolute;width:10px;height:10px;border:2px solid var(--active)}
   .logo:before{top:7px;left:7px;border-right:0;border-bottom:0}
   .logo:after{bottom:7px;right:7px;border-left:0;border-top:0}
   .card b{font-size:16px;letter-spacing:.02em} .card small{display:block;color:var(--muted-2);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase}
@@ -64,27 +62,28 @@
     grid-template-rows:1fr var(--status-h);height:100vh}
 
   /* ---------- Sidebar ---------- */
-  .rail{grid-row:1 / span 2;border-right:1px solid var(--hair);
-    background:linear-gradient(180deg,var(--bg-chrome),rgba(13,18,25,.7));
+  .rail{grid-row:1 / span 2;border-right:0;
+    background:var(--sidebar);
     display:flex;flex-direction:column;overflow:hidden}
-  .brand{display:flex;align-items:center;gap:11px;padding:16px 16px;border-bottom:1px solid var(--hair)}
-  .brand b{font-size:14.5px;letter-spacing:.03em;font-weight:650}
-  .brand small{display:block;color:var(--muted-2);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase}
-  .nav{padding:10px 9px;overflow-y:auto;flex:1}
-  .nav-label{color:var(--muted-2);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;padding:13px 9px 6px}
+  .brand{display:flex;align-items:center;gap:11px;padding:18px 16px;border-bottom:1px solid var(--sidebar-border)}
+  .brand b{font-size:14.5px;letter-spacing:.03em;font-weight:700;color:#F8FAFC}
+  .brand small{display:block;color:var(--sidebar-muted);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase}
+  .nav{padding:10px 8px;overflow-y:auto;flex:1}
+  .nav-label{color:var(--sidebar-muted);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;padding:14px 10px 5px;font-weight:600}
   .nav button{width:100%;display:flex;align-items:center;gap:11px;background:transparent;border:0;
-    color:var(--muted);padding:8px 10px;border-radius:7px;cursor:pointer;text-align:left;
-    font-family:inherit;font-size:13px;transition:background .14s,color .14s}
-  .nav button:hover{background:var(--hair-soft);color:var(--text)}
-  .nav button.active{background:var(--active-dim);color:var(--text)}
-  .nav button.active .ico{color:var(--active)}
-  .ico{width:17px;height:17px;flex:0 0 auto;color:var(--muted-2)}
+    color:var(--sidebar-text);padding:8px 10px;border-radius:8px;cursor:pointer;text-align:left;
+    font-family:inherit;font-size:13px;font-weight:500;transition:background .14s,color .14s}
+  .nav button:hover{background:var(--sidebar-hover);color:#F8FAFC}
+  .nav button.active{background:var(--sidebar-active);color:#93C5FD}
+  .nav button.active .ico{color:#60A5FA}
+  .ico{width:17px;height:17px;flex:0 0 auto;color:var(--sidebar-muted)}
+  .nav button:hover .ico{color:rgba(255,255,255,.7)}
   .nav button .badge{margin-left:auto;font-family:var(--mono);font-size:10px;background:var(--alert);
-    color:#240008;padding:0 6px;border-radius:20px;font-weight:700;line-height:16px}
-  .health{margin:9px;padding:11px;border:1px solid var(--hair);border-radius:var(--radius);background:var(--bg-tile)}
+    color:#fff;padding:0 6px;border-radius:20px;font-weight:700;line-height:16px}
+  .health{margin:10px 10px 12px;padding:12px;border:1px solid var(--sidebar-border);border-radius:var(--radius);background:rgba(0,0,0,.18)}
   .health .row{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;font-size:11.5px}
   .health .row:last-child{margin-bottom:0}
-  .health small{color:var(--muted)} .health b{font-family:var(--mono);font-size:12px}
+  .health small{color:var(--sidebar-muted)} .health b{font-family:var(--mono);font-size:12px;color:#F8FAFC}
   .dot{width:7px;height:7px;border-radius:50%;display:inline-block}
   .dot.live{background:var(--clear);animation:pulse 2s infinite}
   @keyframes pulse{0%,100%{box-shadow:0 0 0 2px var(--clear-dim)}50%{box-shadow:0 0 0 5px transparent}}
@@ -92,7 +91,7 @@
   /* ---------- Top bar ---------- */
   .main{display:flex;flex-direction:column;min-width:0;overflow:hidden}
   .topbar{display:flex;align-items:center;gap:14px;height:var(--top-h);flex:0 0 auto;
-    padding:0 18px;border-bottom:1px solid var(--hair);background:rgba(10,14,19,.8);backdrop-filter:blur(8px)}
+    padding:0 20px;border-bottom:1px solid var(--hair);background:#FFFFFF;box-shadow:0 1px 0 var(--hair)}
   .facility{display:flex;align-items:center;gap:8px}
   .facility select{background:var(--bg-elevated);color:var(--text);border:1px solid var(--hair);
     border-radius:7px;padding:7px 10px;font-family:inherit;font-size:12.5px;cursor:pointer}
@@ -112,20 +111,20 @@
   .iconbtn{position:relative;width:36px;height:36px;border-radius:8px;border:1px solid var(--hair);
     background:var(--bg-elevated);display:grid;place-items:center;cursor:pointer;color:var(--muted)}
   .iconbtn:hover{color:var(--text);border-color:var(--active)}
-  .iconbtn .count{position:absolute;top:-6px;right:-6px;background:var(--alert);color:#240008;
-    font-family:var(--mono);font-size:9.5px;font-weight:700;border-radius:20px;padding:0 5px;border:2px solid var(--bg-base)}
-  .avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#2a3a4f,#16202c);
-    border:1px solid var(--hair);display:grid;place-items:center;font-weight:700;font-size:12.5px;color:var(--clear)}
+  .iconbtn .count{position:absolute;top:-6px;right:-6px;background:var(--alert);color:#fff;
+    font-family:var(--mono);font-size:9.5px;font-weight:700;border-radius:20px;padding:0 5px;border:2px solid var(--bg-panel)}
+  .avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--active-dim),rgba(37,99,235,.2));
+    border:1.5px solid rgba(37,99,235,.35);display:grid;place-items:center;font-weight:700;font-size:12.5px;color:var(--active)}
 
   /* ---------- Tab strip ---------- */
   .tabbar{display:flex;align-items:flex-end;height:var(--tabbar-h);flex:0 0 auto;
-    background:var(--bg-chrome);border-bottom:1px solid var(--hair);padding:0 8px;gap:2px;overflow-x:auto;overflow-y:hidden}
+    background:var(--bg-elevated);border-bottom:1px solid var(--hair);padding:0 8px;gap:2px;overflow-x:auto;overflow-y:hidden}
   .tabbar::-webkit-scrollbar{height:0}
   .tab{display:flex;align-items:center;gap:8px;height:31px;padding:0 11px;cursor:pointer;
     background:transparent;border:1px solid transparent;border-bottom:0;border-radius:8px 8px 0 0;
     color:var(--muted);font-size:12.5px;white-space:nowrap;position:relative;top:1px;transition:background .12s,color .12s}
   .tab:hover{background:var(--hair-soft);color:var(--text)}
-  .tab.active{background:var(--bg-base);border-color:var(--hair);color:var(--text)}
+  .tab.active{background:#FFFFFF;border-color:var(--hair);color:var(--text)}
   .tab.active:after{content:"";position:absolute;left:0;right:0;top:-1px;height:2px;background:var(--active);border-radius:2px}
   .tab .ti{width:14px;height:14px;color:currentColor;opacity:.8}
   .tab .x{width:16px;height:16px;border-radius:4px;display:grid;place-items:center;font-size:13px;color:var(--muted-2)}
@@ -139,19 +138,19 @@
   .crumb{font-family:var(--mono);font-size:11px;color:var(--muted-2);margin-bottom:10px;letter-spacing:.02em}
   .crumb b{color:var(--muted)}
   .view-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:18px;gap:16px;flex-wrap:wrap}
-  .view-head h1{margin:0;font-size:20px;font-weight:650;letter-spacing:-.01em}
+  .view-head h1{margin:0;font-size:22px;font-weight:700;letter-spacing:-.01em;color:var(--text)}
   .view-head p{margin:4px 0 0;color:var(--muted);font-size:12.5px;max-width:62ch}
-  .eyebrow{color:var(--clear);font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;margin-bottom:5px}
+  .eyebrow{color:var(--active);font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;margin-bottom:5px;font-weight:600}
 
   .grid{display:grid;gap:15px}
-  .panel{background:var(--bg-panel);border:1px solid var(--hair);border-radius:var(--radius);overflow:hidden}
-  .panel-head{display:flex;align-items:center;gap:9px;padding:12px 15px;border-bottom:1px solid var(--hair)}
-  .panel-head h3{margin:0;font-size:13px;font-weight:600}
+  .panel{background:var(--bg-panel);border:1px solid var(--hair);border-radius:var(--radius);overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+  .panel-head{display:flex;align-items:center;gap:9px;padding:13px 16px;border-bottom:1px solid var(--hair);background:var(--bg-panel)}
+  .panel-head h3{margin:0;font-size:13px;font-weight:650;color:var(--text)}
   .panel-head .sub{color:var(--muted-2);font-size:11px;margin-left:auto;font-family:var(--mono)}
   .panel-body{padding:15px}
 
   .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:13px}
-  .kpi{background:var(--bg-panel);border:1px solid var(--hair);border-radius:var(--radius);padding:13px;position:relative;overflow:hidden}
+  .kpi{background:var(--bg-panel);border:1px solid var(--hair);border-radius:var(--radius);padding:14px;position:relative;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.04)}
   .kpi .lab{color:var(--muted);font-size:11px}
   .kpi .val{font-family:var(--mono);font-size:24px;font-weight:600;margin-top:5px;letter-spacing:-.01em}
   .kpi .delta{font-size:10.5px;font-family:var(--mono);margin-top:4px}
@@ -159,11 +158,11 @@
   .up{color:var(--clear)} .down{color:var(--alert)} .flat{color:var(--muted-2)}
 
   .feeds{display:grid;grid-template-columns:repeat(2,1fr);gap:13px}
-  .cam{background:var(--bg-tile);border:1px solid var(--hair);border-radius:var(--radius);overflow:hidden;position:relative}
-  .scene{height:166px;position:relative;overflow:hidden;background:#06090d}
+  .cam{background:var(--bg-panel);border:1px solid var(--hair);border-radius:var(--radius);overflow:hidden;position:relative;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+  .scene{height:166px;position:relative;overflow:hidden;background:#070E17}
   .scanline{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--clear),transparent);opacity:.45;animation:scan 4.5s linear infinite}
   @keyframes scan{0%{top:-2px}100%{top:168px}}
-  .cam-meta{display:flex;align-items:center;gap:8px;padding:9px 11px;border-top:1px solid var(--hair);font-size:11.5px}
+  .cam-meta{display:flex;align-items:center;gap:8px;padding:9px 12px;border-top:1px solid var(--hair);font-size:11.5px;background:var(--bg-panel)}
   .cam-meta .name{font-weight:600} .cam-meta .id{font-family:var(--mono);color:var(--muted-2);font-size:10.5px}
   .cam-meta .right{margin-left:auto;display:flex;align-items:center;gap:9px}
   .cam-meta .live{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;color:var(--clear);letter-spacing:.1em}
@@ -172,10 +171,10 @@
   .popout:hover{color:var(--active);border-color:var(--active)}
 
   .bb{position:absolute;border:1.5px solid var(--clear);border-radius:2px}
-  .bb .tag{position:absolute;top:-17px;left:-1.5px;background:var(--clear);color:#042019;
+  .bb .tag{position:absolute;top:-17px;left:-1.5px;background:var(--clear);color:#fff;
     font-family:var(--mono);font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;white-space:nowrap}
-  .bb.warn{border-color:var(--watch)} .bb.warn .tag{background:var(--watch);color:#241700}
-  .bb.crit{border-color:var(--alert);animation:flash 1.1s infinite} .bb.crit .tag{background:var(--alert);color:#2a0009}
+  .bb.warn{border-color:var(--watch)} .bb.warn .tag{background:var(--watch);color:#fff}
+  .bb.crit{border-color:var(--alert);animation:flash 1.1s infinite} .bb.crit .tag{background:var(--alert);color:#fff}
   @keyframes flash{0%,100%{opacity:1}50%{opacity:.5}}
 
   .feed{display:flex;flex-direction:column}
@@ -193,28 +192,31 @@
   .ev .ev-dismiss:hover{background:rgba(242,86,110,.18);color:var(--alert)}
   .ev .act{margin-top:7px;display:flex;gap:7px;flex-wrap:wrap}
 
-  .btn{font-family:inherit;font-size:12px;border-radius:6px;padding:6px 11px;cursor:pointer;
-    border:1px solid var(--hair);background:var(--bg-elevated);color:var(--text);transition:.14s}
-  .btn:hover{border-color:var(--active)}
-  .btn.pri{background:var(--active);border-color:var(--active);color:#05101f;font-weight:600}
+  .btn{font-family:inherit;font-size:12.5px;border-radius:7px;padding:7px 13px;cursor:pointer;
+    border:1.5px solid var(--hair);background:var(--bg-elevated);color:var(--text);transition:.14s;font-weight:500}
+  .btn:hover{border-color:var(--active);background:#FFFFFF}
+  .btn.pri{background:var(--active);border-color:var(--active);color:#FFFFFF;font-weight:600}
+  .btn.pri:hover{background:#3454D1;border-color:#3454D1}
   .btn.danger{background:transparent;border-color:var(--alert);color:var(--alert)}
-  .btn.ghost{background:transparent;color:var(--muted)}
-  .btn.sm{padding:4px 9px;font-size:11px}
+  .btn.danger:hover{background:var(--alert-dim)}
+  .btn.ghost{background:transparent;color:var(--muted);border-color:var(--hair)}
+  .btn.ghost:hover{background:var(--bg-elevated);color:var(--text)}
+  .btn.sm{padding:4px 10px;font-size:11.5px;border-radius:6px}
 
-  .chip{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10.5px;padding:3px 8px;border-radius:20px;border:1px solid var(--hair);color:var(--muted)}
-  .chip.ok{color:var(--clear);border-color:rgba(40,201,168,.4);background:var(--clear-dim)}
-  .chip.warn{color:var(--watch);border-color:rgba(240,169,59,.4);background:var(--watch-dim)}
-  .chip.crit{color:var(--alert);border-color:rgba(242,86,110,.4);background:var(--alert-dim)}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10.5px;padding:3px 9px;border-radius:20px;border:1px solid var(--hair);color:var(--muted);background:var(--bg-elevated)}
+  .chip.ok{color:var(--clear);border-color:rgba(5,150,105,.35);background:var(--clear-dim)}
+  .chip.warn{color:var(--watch);border-color:rgba(217,119,6,.35);background:var(--watch-dim)}
+  .chip.crit{color:var(--alert);border-color:rgba(220,38,38,.35);background:var(--alert-dim)}
 
   table{width:100%;border-collapse:collapse;font-size:12px}
-  th{text-align:left;color:var(--muted-2);font-weight:500;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;padding:9px 14px;border-bottom:1px solid var(--hair)}
+  th{text-align:left;color:var(--muted-2);font-weight:600;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;padding:10px 14px;border-bottom:1.5px solid var(--hair);background:var(--bg-elevated)}
   td{padding:10px 14px;border-bottom:1px solid var(--hair-soft)}
   tr:last-child td{border-bottom:0}
   td.mono,.m{font-family:var(--mono);font-size:11.5px}
   tbody tr:hover{background:var(--hair-soft)}
 
   .fr{display:none;font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.04em;
-    background:var(--active-dim);color:var(--active);border:1px solid rgba(77,124,254,.45);
+    background:var(--active-dim);color:var(--active);border:1px solid rgba(37,99,235,.35);
     padding:1px 6px;border-radius:5px;vertical-align:middle;margin-left:7px}
   body.show-fr .fr{display:inline-block}
 
@@ -222,19 +224,19 @@
   .gauge svg{transform:rotate(-90deg)}
   .gauge .num{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--mono);font-size:21px;font-weight:600}
 
-  .doc{background:#0C1119;border:1px solid var(--hair);border-radius:8px;padding:13px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .doc{background:var(--bg-elevated);border:1px solid var(--hair);border-radius:8px;padding:13px;font-family:var(--mono);font-size:11px;color:var(--muted)}
   .doc .h{color:var(--text);font-weight:700;letter-spacing:.1em;margin-bottom:8px}
-  .doc .line{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed var(--hair-soft)}
-  .doc .line b{color:var(--text)} .hl{background:var(--clear-dim);color:var(--clear);padding:0 4px;border-radius:3px}
+  .doc .line{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed var(--hair)}
+  .doc .line b{color:var(--text)} .hl{background:var(--active-dim);color:var(--active);padding:0 4px;border-radius:3px}
 
   .bars{display:flex;align-items:flex-end;gap:9px;height:118px;padding-top:12px}
-  .bars .b{flex:1;background:linear-gradient(180deg,var(--active),rgba(77,124,254,.22));border-radius:5px 5px 0 0;position:relative;min-width:8px}
+  .bars .b{flex:1;background:linear-gradient(180deg,var(--active),rgba(37,99,235,.15));border-radius:5px 5px 0 0;position:relative;min-width:8px}
   .bars .b span{position:absolute;top:-17px;left:0;right:0;text-align:center;font-family:var(--mono);font-size:9.5px;color:var(--muted)}
   .bars .b small{position:absolute;bottom:-19px;left:0;right:0;text-align:center;font-size:9.5px;color:var(--muted-2)}
 
   .zone-map{height:226px;border:1px solid var(--hair);border-radius:8px;position:relative;overflow:hidden;background:
-    repeating-linear-gradient(0deg,transparent,transparent 27px,var(--hair-soft) 27px,var(--hair-soft) 28px),
-    repeating-linear-gradient(90deg,transparent,transparent 27px,var(--hair-soft) 27px,var(--hair-soft) 28px),#0A0F16}
+    repeating-linear-gradient(0deg,transparent,transparent 27px,var(--hair) 27px,var(--hair) 28px),
+    repeating-linear-gradient(90deg,transparent,transparent 27px,var(--hair) 27px,var(--hair) 28px),#F1F5F9}
   .zone{position:absolute;border-radius:6px;display:grid;place-items:center;font-size:10.5px;text-align:center}
   .zone.restricted{border:1.5px dashed var(--alert);background:var(--alert-dim);color:var(--alert)}
   .zone.safe{border:1.5px solid var(--clear);background:var(--clear-dim);color:var(--clear)}
@@ -248,8 +250,8 @@
 
   /* ---------- Status bar ---------- */
   .statusbar{grid-column:2;display:flex;align-items:center;gap:18px;height:var(--status-h);
-    padding:0 16px;border-top:1px solid var(--hair);background:var(--bg-chrome);
-    font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+    padding:0 18px;border-top:1px solid rgba(255,255,255,.06);background:var(--sidebar);
+    font-family:var(--mono);font-size:10.5px;color:rgba(255,255,255,.4)}
   .statusbar .s{display:flex;align-items:center;gap:6px}
   .statusbar .sp{margin-left:auto}
 
@@ -269,10 +271,12 @@
   @media (max-width:1120px){.kpis{grid-template-columns:repeat(3,1fr)}.two-col{grid-template-columns:1fr}}
   @media (prefers-reduced-motion:reduce){*{animation:none!important}}
   :focus-visible{outline:2px solid var(--active);outline-offset:2px}
-  ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:var(--hair);border-radius:6px}
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-thumb{background:var(--hair);border-radius:6px}
+  ::-webkit-scrollbar-track{background:transparent}
 
   /* ---- ANPR + Biometric module styles ---- */
-  .upload-zone{border:2px dashed var(--hair);border-radius:10px;padding:28px 20px;text-align:center;cursor:pointer;transition:.15s;background:var(--bg-tile)}
+  .upload-zone{border:2px dashed var(--hair);border-radius:10px;padding:28px 20px;text-align:center;cursor:pointer;transition:.15s;background:var(--bg-elevated)}
   .upload-zone:hover,.upload-zone.drag-over{border-color:var(--active);background:var(--active-dim)}
   .upload-zone svg{color:var(--muted-2);margin-bottom:10px}
   .upload-zone .uz-title{color:var(--muted);font-size:13px}
@@ -285,20 +289,20 @@
   .field select{cursor:pointer;background:var(--bg-elevated)}
   .cam-box{border-radius:9px;overflow:hidden;background:#03060b;position:relative;aspect-ratio:4/3}
   .cam-box video,.cam-box img,.cam-box canvas{width:100%;height:100%;object-fit:cover;display:none}
-  .cam-box .cam-placeholder{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted-2);font-size:10.5px;text-align:center;font-family:var(--mono)}
+  .cam-box .cam-placeholder{position:absolute;inset:0;display:grid;place-items:center;color:rgba(255,255,255,.35);font-size:10.5px;text-align:center;font-family:var(--mono)}
   .bio-result-card{border-radius:9px;padding:15px;margin-top:12px;display:none}
-  .bio-result-card.granted{border:1px solid rgba(40,201,168,.5);background:var(--clear-dim)}
-  .bio-result-card.denied{border:1px solid rgba(242,86,110,.5);background:var(--alert-dim)}
+  .bio-result-card.granted{border:1px solid rgba(5,150,105,.4);background:var(--clear-dim)}
+  .bio-result-card.denied{border:1px solid rgba(220,38,38,.4);background:var(--alert-dim)}
   .stats-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
 
   /* ---- Access Decision Cards (ANPR results) ---- */
   .gate-decision{border-radius:12px;padding:22px 26px;display:flex;align-items:center;gap:22px;margin-bottom:18px;animation:decisionIn .35s ease}
   @keyframes decisionIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-  .gate-decision.granted{background:linear-gradient(135deg,rgba(40,201,168,.14),rgba(40,201,168,.04));border:1px solid rgba(40,201,168,.45)}
-  .gate-decision.denied{background:linear-gradient(135deg,rgba(242,86,110,.14),rgba(242,86,110,.04));border:1px solid rgba(242,86,110,.45)}
+  .gate-decision.granted{background:var(--clear-dim);border:1px solid rgba(5,150,105,.4)}
+  .gate-decision.denied{background:var(--alert-dim);border:1px solid rgba(220,38,38,.4)}
   .gd-icon{width:60px;height:60px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto}
-  .gate-decision.granted .gd-icon{background:rgba(40,201,168,.18)}
-  .gate-decision.denied .gd-icon{background:rgba(242,86,110,.18)}
+  .gate-decision.granted .gd-icon{background:rgba(5,150,105,.15)}
+  .gate-decision.denied .gd-icon{background:rgba(220,38,38,.15)}
   .gd-label{font-size:12px;letter-spacing:.15em;text-transform:uppercase;font-family:var(--mono);margin-bottom:4px}
   .gate-decision.granted .gd-label{color:var(--clear)}
   .gate-decision.denied .gd-label{color:var(--alert)}
@@ -314,11 +318,11 @@
 
   .access-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:12px;margin-top:4px}
   .acard{border-radius:10px;overflow:hidden;border:1px solid var(--hair);background:var(--bg-panel);animation:decisionIn .3s ease}
-  .acard.granted{border-color:rgba(40,201,168,.4)}
-  .acard.denied{border-color:rgba(242,86,110,.4)}
+  .acard.granted{border-color:rgba(5,150,105,.35)}
+  .acard.denied{border-color:rgba(220,38,38,.35)}
   .acard-banner{padding:10px 14px;font-size:11.5px;font-weight:700;letter-spacing:.06em;display:flex;align-items:center;gap:8px}
-  .acard.granted .acard-banner{background:rgba(40,201,168,.1);color:var(--clear)}
-  .acard.denied .acard-banner{background:rgba(242,86,110,.1);color:var(--alert)}
+  .acard.granted .acard-banner{background:var(--clear-dim);color:var(--clear)}
+  .acard.denied .acard-banner{background:var(--alert-dim);color:var(--alert)}
   .acard-plate{font-family:var(--mono);font-size:20px;font-weight:700;padding:10px 14px 2px;letter-spacing:.08em}
   .acard.granted .acard-plate{color:var(--clear)}
   .acard.denied .acard-plate{color:var(--alert)}
@@ -342,8 +346,8 @@
     color:#ff5555;text-shadow:0 1px 3px rgba(0,0,0,1);letter-spacing:.08em}
   .cctv-loc{font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.55);letter-spacing:.05em}
   .cctv-conf{font-family:var(--mono);font-size:9px;color:var(--clear);letter-spacing:.04em}
-  .feed-err{position:absolute;inset:0;display:grid;place-items:center;background:#04080e;
-    color:var(--muted-2);font-family:var(--mono);font-size:10px;text-align:center;line-height:1.8}
+  .feed-err{position:absolute;inset:0;display:grid;place-items:center;background:#070E17;
+    color:rgba(255,255,255,.4);font-family:var(--mono);font-size:10px;text-align:center;line-height:1.8}
 
   /* ---- Camera result clip overlay (shown after detection) ---- */
   .cam-result-overlay{position:absolute;inset:0;z-index:6;background:#000;display:none}
@@ -360,8 +364,8 @@
   /* ---- Edit modal ---- */
   .edit-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1000;display:none;place-items:center}
   .edit-modal-backdrop.open{display:grid}
-  .edit-modal{background:var(--bg-tile);border:1px solid var(--hair);border-radius:12px;
-    padding:26px 28px;width:min(480px,94vw);box-shadow:0 24px 64px rgba(0,0,0,.6)}
+  .edit-modal{background:var(--bg-panel);border:1px solid var(--hair);border-radius:14px;
+    padding:28px 30px;width:min(480px,94vw);box-shadow:0 20px 60px rgba(0,0,0,.18)}
   .edit-modal h3{margin:0 0 18px;font-size:15px}
   .edit-modal .field{margin-bottom:13px}
   .edit-modal .field label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;letter-spacing:.04em}
@@ -375,14 +379,14 @@
     color:var(--muted);font-size:10px;font-family:var(--mono);padding:2px 7px;cursor:pointer;
     letter-spacing:.05em;transition:border-color .15s,color .15s}
   .cam-upload-btn:hover,.cam-upload-btn.active{border-color:var(--active);color:var(--active)}
-  .cam-upload-panel{border-top:1px solid var(--hair);background:#03060b;padding:10px 11px;display:none}
+  .cam-upload-panel{border-top:1px solid var(--hair);background:var(--bg-elevated);padding:10px 11px;display:none}
   .cam-upload-panel.open{display:block}
-  .cam-dz{border:1px dashed var(--hair);border-radius:5px;padding:8px 10px;
+  .cam-dz{border:1.5px dashed var(--hair);border-radius:6px;padding:9px 10px;
     font-size:10px;font-family:var(--mono);color:var(--muted-2);cursor:pointer;
-    text-align:center;transition:border-color .15s;margin-bottom:7px}
+    text-align:center;transition:border-color .15s;margin-bottom:7px;background:var(--bg-panel)}
   .cam-dz:hover,.cam-dz.drag-over{border-color:var(--active);color:var(--active)}
   .cam-det-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px}
-  .cam-prog-wrap{flex:1;min-width:60px;height:3px;background:var(--bg-mid);border-radius:2px;overflow:hidden}
+  .cam-prog-wrap{flex:1;min-width:60px;height:3px;background:var(--hair);border-radius:2px;overflow:hidden}
   .cam-prog-fill{height:100%;width:0;background:var(--active);border-radius:2px;transition:width .4s}
   .cam-det-status{font-size:10px;font-family:var(--mono);color:var(--muted);flex:1;min-width:60px}
   .cam-det-counts{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px}
@@ -710,6 +714,16 @@
           </div>
         </div>
 
+        <!-- Annotated detection frame (shown after scan) -->
+        <div id="gate-anpr-frame-wrap" style="display:none;margin-bottom:15px">
+          <div class="panel">
+            <div class="panel-head"><h3>Detection Frame</h3><span class="sub" id="gate-anpr-frame-sub">Annotated plate detection</span></div>
+            <div class="panel-body" style="padding:0;position:relative;background:#000;border-radius:0 0 var(--radius) var(--radius);overflow:hidden;aspect-ratio:16/9">
+              <img id="gate-anpr-frame-img" style="width:100%;height:100%;object-fit:contain;display:block" alt="Detection frame">
+            </div>
+          </div>
+        </div>
+
         <!-- Gate decision cards (shown after detection) -->
         <div id="gate-anpr-decisions" style="display:none;margin-bottom:15px"></div>
 
@@ -977,7 +991,9 @@
               <div id="anpr-fname" style="margin-top:9px;font-family:var(--mono);font-size:10.5px;color:var(--muted-2)"></div>
               <div id="anpr-vid-preview" style="display:none;position:relative;border-radius:4px;overflow:hidden;background:#000;aspect-ratio:16/9;margin-top:10px">
                 <video id="anpr-vid-el" style="width:100%;height:100%;object-fit:cover" autoplay loop muted playsinline></video>
-                <span id="anpr-vid-lbl" style="position:absolute;bottom:4px;left:5px;font-size:9px;font-family:var(--mono);background:rgba(0,0,0,.7);color:var(--muted-2);padding:2px 6px;border-radius:3px;letter-spacing:.04em">▶ Preview</span>
+                <video id="anpr-annotated-vid" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:3" controls loop muted playsinline></video>
+                <img id="anpr-annotated-img" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2" alt="Detection frame">
+                <span id="anpr-vid-lbl" style="position:absolute;bottom:4px;left:5px;font-size:9px;font-family:var(--mono);background:rgba(0,0,0,.7);color:var(--muted-2);padding:2px 6px;border-radius:3px;letter-spacing:.04em;z-index:4">▶ Preview</span>
               </div>
               <button class="btn pri" id="anpr-upload-btn" style="width:100%;margin-top:12px" onclick="anprStartJob()" disabled>Analyse Video</button>
             </div>
@@ -1310,6 +1326,42 @@
   // ANPR MODULE
   // =====================================================================
   const API = 'http://127.0.0.1:8000';
+
+  /**
+   * Try to play a video file in a <video> element.
+   * MOV / QuickTime files cannot be played in Chrome on Windows — if the
+   * browser reports it can't play the format we hide the video and show a
+   * friendly fallback message so the user isn't left with a black screen.
+   * The upload to the server always works regardless of browser preview.
+   * @param {HTMLVideoElement} vid
+   * @param {string} objUrl   — blob URL
+   * @param {File}   f        — the original File object
+   * @param {HTMLElement} lbl — the label overlay element (or null)
+   * @param {HTMLElement} wrap — the wrapper div to show/hide (or null)
+   */
+  function _playVideoOrFallback(vid, objUrl, f, lbl, wrap) {
+    if (!vid) return;
+    const ext  = (f.name || '').split('.').pop().toLowerCase();
+    const type = f.type || `video/${ext}`;
+    // canPlayType returns '' (can't), 'maybe', or 'probably'
+    const supported = vid.canPlayType(type) !== '';
+
+    if (supported) {
+      vid.src = objUrl;
+      vid.style.display = 'block';
+      vid.play().catch(() => {});
+      if (lbl) { lbl.textContent = `▶ ${f.name}`; lbl.style.color = ''; }
+    } else {
+      // Browser cannot preview this format (e.g. MOV in Chrome on Windows)
+      vid.pause(); vid.src = ''; vid.style.display = 'none';
+      if (lbl) {
+        lbl.style.color = 'var(--watch)';
+        lbl.textContent = `▶ ${f.name}  ·  preview unavailable in browser (upload works fine)`;
+      }
+    }
+    if (wrap) wrap.style.display = '';
+  }
+
   let anprFile = null, anprJobId = null, anprPollTimer = null, anprObjUrl = null;
 
   // Drag-and-drop
@@ -1317,7 +1369,9 @@
     ev.preventDefault();
     document.getElementById('anpr-zone').classList.remove('drag-over');
     const f = ev.dataTransfer.files[0];
-    if (f && f.type.startsWith('video/')) _setAnprFile(f);
+    const vexts = ['mp4','avi','mov','mkv','webm','m4v','ts','mts','3gp','flv'];
+    if (f && (f.type.startsWith('video/') || vexts.includes((f.name||'').split('.').pop().toLowerCase()))) _setAnprFile(f);
+    else if (f) _toast('Please drop a video file (MP4, MOV, AVI…)', 'warn');
   }
   function anprFileChosen(inp) { if (inp.files[0]) _setAnprFile(inp.files[0]); }
   function _setAnprFile(f) {
@@ -1327,16 +1381,11 @@
     document.getElementById('anpr-fname').textContent = `▶  ${f.name}  (${(f.size/1048576).toFixed(1)} MB)`;
     document.getElementById('anpr-upload-btn').disabled = false;
     document.getElementById('anpr-zone').style.borderColor = 'var(--active)';
-    // Show inline video preview
-    const vid = document.getElementById('anpr-vid-el');
-    const lbl = document.getElementById('anpr-vid-lbl');
+    // Show inline video preview (with format compatibility check)
+    const vid  = document.getElementById('anpr-vid-el');
+    const lbl  = document.getElementById('anpr-vid-lbl');
     const wrap = document.getElementById('anpr-vid-preview');
-    if (vid && wrap) {
-      vid.src = anprObjUrl;
-      vid.play().catch(() => {});
-      if (lbl) lbl.textContent = `▶ ${f.name}`;
-      wrap.style.display = '';
-    }
+    _playVideoOrFallback(vid, anprObjUrl, f, lbl, wrap);
   }
 
   async function anprStartJob() {
@@ -1344,11 +1393,17 @@
     const btn = document.getElementById('anpr-upload-btn');
     btn.disabled = true; btn.textContent = 'Uploading…';
 
-    // Keep video playing; update label
+    // Reset annotated video/frame; restore original preview
+    const _annVid = document.getElementById('anpr-annotated-vid');
+    if (_annVid) { _annVid.style.display = 'none'; _annVid.src = ''; }
+    const _annImg = document.getElementById('anpr-annotated-img');
+    if (_annImg) { _annImg.style.display = 'none'; _annImg.src = ''; }
     const _lbl = document.getElementById('anpr-vid-lbl');
     const _vid = document.getElementById('anpr-vid-el');
-    if (_lbl) _lbl.textContent = '▶ Uploading…';
-    if (_vid && _vid.paused) _vid.play().catch(() => {});
+    if (_lbl) _lbl.style.display = '';
+    // Don't force show video if it was hidden due to unsupported format
+    if (_vid && _vid.src) { _vid.style.display = 'block'; if (_vid.paused) _vid.play().catch(() => {}); }
+    if (_lbl && _lbl.textContent.indexOf('unavailable') === -1) _lbl.textContent = '▶ Uploading…';
 
     const fd = new FormData();
     fd.append('video', anprFile);
@@ -1360,7 +1415,7 @@
       anprJobId = data.job_id;
       btn.textContent = 'Scanning…';
       document.getElementById('anpr-status-lbl').textContent = 'Processing';
-      if (_lbl) _lbl.textContent = '▶ Scanning plates…';
+      if (_lbl && _lbl.textContent.indexOf('unavailable') === -1) _lbl.textContent = '▶ Scanning plates…';
       _anprPoll();
     } catch (e) {
       btn.disabled = false; btn.textContent = 'Analyse Video';
@@ -1376,9 +1431,12 @@
         const res = await fetch(`${API}/api/v1/anpr/job/${anprJobId}`);
         const data = await res.json();
         _anprUpdateUI(data);
-        if (data.status !== 'completed' && data.status !== 'error') _anprPoll();
+        // Keep polling after completed only if we're still waiting for the video
+        const done = data.status === 'completed' || data.status === 'error';
+        const needVideo = data.status === 'completed' && !data.has_video;
+        if (!done || needVideo) _anprPoll();
       } catch (e) { _anprPoll(); } // retry on network hiccup
-    }, 2000);
+    }, 800);
   }
 
   function _anprUpdateUI(data) {
@@ -1402,11 +1460,13 @@
       }
     }
 
+    // Show plates immediately whenever we have them (during scan or after)
     if (data.plates && data.plates.length > 0) {
       const auth = data.plates.filter(p => p.authorized).length;
       document.getElementById('anpr-total').textContent = data.plates.length;
       document.getElementById('anpr-auth').textContent = auth;
       document.getElementById('anpr-denied').textContent = data.plates.length - auth;
+      _renderAnprResults(data.plates);
     }
 
     if (data.status === 'completed') {
@@ -1414,8 +1474,29 @@
       document.getElementById('anpr-upload-btn').disabled = false;
       document.getElementById('anpr-bar').style.width = '100%';
       document.getElementById('anpr-pct').textContent = '100%';
-      _renderAnprResults(data.plates || []);
     }
+
+    // Load the annotated video as soon as it's ready (encoding finishes in background)
+    const annVid = document.getElementById('anpr-annotated-vid');
+    if (data.has_video && annVid && anprJobId && !annVid.src.includes('/video')) {
+      const vidEl = document.getElementById('anpr-vid-el');
+      const annImg = document.getElementById('anpr-annotated-img');
+      const wrap = document.getElementById('anpr-vid-preview');
+      const lbl  = document.getElementById('anpr-vid-lbl');
+      if (vidEl) vidEl.style.display = 'none';
+      if (annImg) { annImg.style.display = 'none'; annImg.src = ''; }
+      if (wrap) wrap.style.display = '';
+      if (lbl) lbl.style.display = 'none';
+      annVid.onerror = () => {
+        annVid.style.display = 'none';
+        if (lbl) { lbl.style.display = ''; lbl.textContent = '✓ Scan complete'; }
+      };
+      annVid.style.display = 'block';
+      annVid.src = `${API}/api/v1/anpr/job/${anprJobId}/video?t=${Date.now()}`;
+      annVid.load();
+      annVid.play().catch(() => {});
+    }
+
     if (data.status === 'error') {
       document.getElementById('anpr-status-lbl').textContent = 'Error: ' + (data.error || 'Unknown');
       document.getElementById('anpr-upload-btn').disabled = false;
@@ -1424,9 +1505,13 @@
   }
 
   function _fmtPlate(raw) {
-    // KL07CK4521 → KL07 CK 4521
+    // Indian: KL07CK4521 → KL07 CK 4521
     const m = raw.match(/^([A-Z]{2})(\d{2})([A-Z]{1,3})(\d{4})$/i);
-    return m ? `${m[1]}${m[2]} ${m[3]} ${m[4]}` : raw;
+    if (m) return `${m[1]}${m[2]} ${m[3]} ${m[4]}`;
+    // Dubai: A12345 → A 12345, AB1234 → AB 1234
+    const d = raw.match(/^([A-Z]{1,3})(\d{1,5})$/i);
+    if (d) return `${d[1]} ${d[2]}`;
+    return raw;
   }
 
   function _renderAnprResults(plates) {
@@ -1529,6 +1614,7 @@
       document.getElementById('nv-plate').value='';
       document.getElementById('nv-owner').value='';
       loadAuthorisedVehicles();
+      loadGateWhitelist();
     } catch(e) { msg.style.color='var(--alert)'; msg.textContent='Error: '+e.message; }
   }
 
@@ -1670,7 +1756,7 @@
       const pname = p.name.replace(/'/g, "\\'");
       inner.innerHTML = `
         <div style="display:flex;align-items:center;gap:12px">
-          <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#1d3a2a,#0c1c14);display:grid;place-items:center;font-weight:700;font-size:16px;color:var(--clear);flex:0 0 auto">${p.name.charAt(0)}</div>
+          <div style="width:44px;height:44px;border-radius:50%;background:var(--active-dim);border:1.5px solid rgba(37,99,235,.3);display:grid;place-items:center;font-weight:700;font-size:16px;color:var(--active);flex:0 0 auto">${p.name.charAt(0)}</div>
           <div>
             <div style="font-weight:600;font-size:14px">${p.name}</div>
             <div style="font-family:var(--mono);font-size:11px;color:var(--muted)">${p.employee_id} · ${p.department} · ${p.clearance_level}</div>
@@ -2397,14 +2483,15 @@
     document.getElementById('cam-bar-cam01').style.width = '0';
     _cam01ClearBadge();
 
-    // Keep the video playing in the camera tile during upload + ANPR processing
+    // Keep the video (or fallback label) visible during upload + ANPR processing
     const _ov  = document.getElementById('cam-overlay-cam01');
     const _vid = document.getElementById('cam-overlay-vid-cam01');
     const _lbl = document.getElementById('cam-ov-label-cam01');
-    if (_ov && st._objUrl) {
-      if (_vid) { if (!_vid.src) _vid.src = st._objUrl; _vid.style.display = 'block'; _vid.play().catch(() => {}); }
-      if (_lbl) _lbl.textContent = '▶ Scanning plates…';
+    if (_ov && st._objUrl && st.file) {
       _ov.style.display = 'block';
+      if (_vid && !_vid.src) _playVideoOrFallback(_vid, st._objUrl, st.file, _lbl, null);
+      else if (_vid && _vid.src && _vid.paused) _vid.play().catch(() => {});
+      if (_lbl && _lbl.textContent.indexOf('unavailable') === -1) _lbl.textContent = '▶ Scanning plates…';
     }
 
     const fd = new FormData();
@@ -2458,6 +2545,17 @@
       btn.textContent = 'Scan Again'; btn.disabled = false;
       _cam01RenderResults(data.plates || []);
       if (document.getElementById('view-gate').classList.contains('on')) loadGateLog();
+
+      // Switch cam01 overlay from playing video → annotated detection frame
+      const ovImg = document.getElementById('cam-overlay-img-cam01');
+      const ovVid = document.getElementById('cam-overlay-vid-cam01');
+      const ovLbl = document.getElementById('cam-ov-label-cam01');
+      if (ovImg && _cam01JobId) {
+        ovImg.onload  = () => { ovImg.style.display = 'block'; if (ovVid) ovVid.style.display = 'none'; };
+        ovImg.onerror = () => { ovImg.style.display = 'none'; if (ovVid) ovVid.style.display = 'block'; };
+        ovImg.src = `${API}/api/v1/anpr/job/${_cam01JobId}/frame?t=${Date.now()}`;
+        if (ovLbl) ovLbl.textContent = 'Detection result — annotated frame';
+      }
     }
     if (data.status === 'error') {
       btn.disabled = false; btn.textContent = 'Retry';
@@ -2470,7 +2568,7 @@
     const cards = document.getElementById('cam01-gate-cards');
 
     if (!plates.length) {
-      cards.innerHTML = `<div style="font-family:var(--mono);font-size:10px;color:var(--muted-2);padding:6px 0">No plates detected — try a clearer video</div>`;
+      cards.innerHTML = `<div style="font-family:var(--mono);font-size:10px;color:var(--muted-2);padding:6px 0">No plates detected in this video</div>`;
       wrap.style.display = '';
       _cam01ShowBadge(null);
       return;
@@ -2499,7 +2597,7 @@
         : `<button class="btn sm danger" style="font-size:9.5px;padding:3px 8px" onclick="_toast('Security alerted — ${_fmtPlate(p.plate)}','warn')">Alert</button>`;
       const wlBtn = isAuth
         ? `<button class="btn sm danger" style="font-size:9px;padding:2px 7px" onclick="cam01QuickRemove('${p.plate}')">✕ Remove</button>`
-        : `<button class="btn sm" style="font-size:9px;padding:2px 7px;border-color:var(--clear);color:var(--clear)" onclick="openAnprEdit('${p.plate}','cam-results-cam01','add')">+ Whitelist</button>`;
+        : `<button class="btn sm" id="wl-btn-${p.plate.replace(/[^A-Z0-9]/gi,'')}" style="font-size:9px;padding:2px 7px;border-color:var(--clear);color:var(--clear)" onclick="cam01QuickAddWhitelist('${p.plate}',this)">+ Whitelist</button>`;
       return `
         <div id="${cardId}" style="border-radius:5px;background:${bg};border:1px solid ${border};margin-bottom:5px;padding:6px 8px;position:relative">
           <div style="display:flex;align-items:center;gap:7px">
@@ -2578,6 +2676,7 @@
     btn.disabled = true; btn.textContent = 'Uploading…';
     document.getElementById('gate-anpr-status').textContent = 'Uploading…';
     document.getElementById('gate-anpr-decisions').style.display = 'none';
+    document.getElementById('gate-anpr-frame-wrap').style.display = 'none';
     document.getElementById('gate-anpr-bar').style.width = '0';
     document.getElementById('gate-anpr-pct').textContent = '—';
 
@@ -2634,6 +2733,18 @@
       document.getElementById('gate-anpr-pct').textContent = '100%';
       _gateAnprRenderDecisions(data.plates || []);
       loadGateLog();
+
+      // Show annotated detection frame
+      const frameWrap = document.getElementById('gate-anpr-frame-wrap');
+      const frameImg  = document.getElementById('gate-anpr-frame-img');
+      const frameSub  = document.getElementById('gate-anpr-frame-sub');
+      if (frameWrap && frameImg && gateAnprJobId) {
+        frameImg.onload  = () => { frameWrap.style.display = ''; };
+        frameImg.onerror = () => { frameWrap.style.display = 'none'; };
+        frameImg.src = `${API}/api/v1/anpr/job/${gateAnprJobId}/frame?t=${Date.now()}`;
+        const n = (data.plates || []).length;
+        if (frameSub) frameSub.textContent = `${n} plate${n !== 1 ? 's' : ''} detected`;
+      }
     }
     if (data.status === 'error') {
       document.getElementById('gate-anpr-status').textContent = 'Error: ' + (data.error || 'Unknown');
@@ -2646,7 +2757,7 @@
   function _gateAnprRenderDecisions(plates) {
     const container = document.getElementById('gate-anpr-decisions');
     if (!plates.length) {
-      container.innerHTML = `<div class="panel"><div class="panel-body" style="color:var(--muted-2);font-family:var(--mono);font-size:12px;text-align:center;padding:20px">No plates detected — try a higher-quality gate recording</div></div>`;
+      container.innerHTML = `<div class="panel"><div class="panel-body" style="color:var(--muted-2);font-family:var(--mono);font-size:12px;text-align:center;padding:20px">No plates detected in this video</div></div>`;
       container.style.display = '';
       return;
     }
@@ -2665,7 +2776,8 @@
       const cls = p.authorized ? 'granted' : 'denied';
       const actionBtn = p.authorized
         ? `<button class="btn pri sm" style="margin-top:9px" onclick="recordVehicleEntry('${p.plate}');loadGateLog()">▶ Record Gate Entry</button>`
-        : `<button class="btn danger sm" style="margin-top:9px" onclick="_toast('Security alerted for plate ${_fmtPlate(p.plate)}','warn')">⚠ Alert Security</button>`;
+        : `<button class="btn danger sm" style="margin-top:9px" onclick="_toast('Security alerted for plate ${_fmtPlate(p.plate)}','warn')">⚠ Alert Security</button>
+           <button class="btn sm" id="gate-wl-btn-${p.plate.replace(/[^A-Z0-9]/gi,'')}" style="margin-top:9px;border-color:var(--clear);color:var(--clear)" onclick="gateQuickAddWhitelist('${p.plate}',this)">+ Add to Whitelist</button>`;
       html += `
         <div class="gate-decision ${cls}" style="margin-bottom:12px">
           <div class="gd-icon">${p.authorized ? iconOk : iconX}</div>
@@ -2781,18 +2893,15 @@
     document.getElementById(`cam-det-btn-${id}`).disabled = false;
     document.getElementById(`cam-status-${id}`).textContent = 'Ready — click Detect/Scan';
 
-    // Show video only in the camera tile overlay (single player)
+    // Show video in the camera tile overlay (with format compatibility check)
     const vid = document.getElementById(`cam-overlay-vid-${id}`);
     const img = document.getElementById(`cam-overlay-img-${id}`);
     const ov  = document.getElementById(`cam-overlay-${id}`);
     const lbl = document.getElementById(`cam-ov-label-${id}`);
     if (vid && ov) {
-      vid.src = st._objUrl;
-      vid.style.display = 'block';
-      vid.play().catch(() => {});
       if (img) img.style.display = 'none';
-      if (lbl) lbl.textContent = `▶ ${f.name}`;
       ov.style.display = 'block';
+      _playVideoOrFallback(vid, st._objUrl, f, lbl, null);
     }
   }
 
@@ -3087,6 +3196,74 @@
       loadGateWhitelist();
       loadAuthorisedVehicles();
     } catch(e) { _toast('Error: ' + e.message, 'err'); }
+  }
+
+  async function cam01QuickAddWhitelist(plate, btn) {
+    btn.disabled = true;
+    btn.textContent = '…';
+    try {
+      const res = await fetch(`${API}/api/v1/anpr/authorized`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ plate, owner: 'Unknown', vehicle_type: 'Car' })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        if (err.detail?.includes('already')) {
+          btn.textContent = '✓ Listed';
+          btn.disabled = true;
+          _toast(`${_fmtPlate(plate)} is already in the whitelist`, 'warn');
+        } else {
+          btn.textContent = '✕ Error';
+          btn.disabled = false;
+          _toast('Error: ' + err.detail, 'err');
+        }
+        return;
+      }
+      btn.textContent = '✓ Added';
+      btn.style.color = 'var(--clear)';
+      btn.disabled = true;
+      _toast(`${_fmtPlate(plate)} added to whitelist`, 'ok');
+      loadGateWhitelist();
+      loadAuthorisedVehicles();
+    } catch(e) {
+      btn.textContent = '✕ Error';
+      btn.disabled = false;
+      _toast('Error: ' + e.message, 'err');
+    }
+  }
+
+  async function gateQuickAddWhitelist(plate, btn) {
+    btn.disabled = true;
+    btn.textContent = '…';
+    try {
+      const res = await fetch(`${API}/api/v1/anpr/authorized`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ plate, owner: 'Unknown', vehicle_type: 'Car' })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        if (err.detail?.includes('already')) {
+          btn.textContent = '✓ Listed';
+          btn.disabled = true;
+          _toast(`${_fmtPlate(plate)} is already in the whitelist`, 'warn');
+        } else {
+          btn.textContent = '✕ Error';
+          btn.disabled = false;
+          _toast('Error: ' + err.detail, 'err');
+        }
+        return;
+      }
+      btn.textContent = '✓ Added to Whitelist';
+      btn.style.color = 'var(--clear)';
+      btn.disabled = true;
+      _toast(`${_fmtPlate(plate)} added to whitelist`, 'ok');
+      loadGateWhitelist();
+      loadAuthorisedVehicles();
+    } catch(e) {
+      btn.textContent = '✕ Error';
+      btn.disabled = false;
+      _toast('Error: ' + e.message, 'err');
+    }
   }
 
   function closeAnprEdit() {

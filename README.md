@@ -165,10 +165,11 @@ Interactive API docs: **http://127.0.0.1:8000/docs**
 ---
 
 ## Biometric Pipeline
-
+ 
 1. Enrolment: face image uploaded → DeepFace extracts embedding → stored in `faces/`
 2. Verification: query image compared against all stored embeddings using cosine similarity
 3. Returns match name, confidence score, and GRANTED / DENIED decision
+
 
 ---
 

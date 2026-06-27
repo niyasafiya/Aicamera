@@ -32,19 +32,21 @@ app.add_middleware(
 )
 
 
-def _warmup_easyocr():
-    from services.anpr_service import _get_reader
-    print("[Startup] Loading EasyOCR models in background…")
-    _get_reader()
-    print("[Startup] EasyOCR ready — first scan will be fast.")
+def _warmup_ocr():
+    from services.anpr_service import _get_paddle, _get_easyocr
+    print("[Startup] Loading OCR models in background…")
+    reader = _get_paddle()
+    if reader is None or reader == "FAILED":
+        _get_easyocr()
+    print("[Startup] OCR ready — first scan will be fast.")
 
 
 @app.on_event("startup")
 async def on_startup():
-    for d in ("uploads", "data/faces"):
+    for d in ("data/faces",):   # uploads go to system temp dir (outside OneDrive)
         Path(d).mkdir(parents=True, exist_ok=True)
     db.init_db()
-    threading.Thread(target=_warmup_easyocr, daemon=True).start()
+    threading.Thread(target=_warmup_ocr, daemon=True).start()
     print("\n  Sentinel AI backend ready — http://127.0.0.1:8000\n")
 
 
