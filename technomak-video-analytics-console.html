@@ -10,16 +10,17 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg-base:#F1F5F9; --bg-panel:#FFFFFF; --bg-elevated:#F8FAFC; --bg-tile:#F1F5F9;
-    --bg-chrome:#FFFFFF; --bg-mid:#F1F5F9;
-    --hair:#E2E8F0; --hair-soft:rgba(0,0,0,.05);
-    --text:#0F172A; --muted:#64748B; --muted-2:#94A3B8;
-    --clear:#059669; --watch:#D97706; --alert:#DC2626; --active:#2563EB;
-    --clear-dim:rgba(5,150,105,.10); --watch-dim:rgba(217,119,6,.10);
-    --alert-dim:rgba(220,38,38,.10); --active-dim:rgba(37,99,235,.10);
-    --sidebar:#1E293B; --sidebar-hover:rgba(255,255,255,.07);
-    --sidebar-active:rgba(59,130,246,.18); --sidebar-text:rgba(255,255,255,.72);
-    --sidebar-muted:rgba(255,255,255,.38); --sidebar-border:rgba(255,255,255,.08);
+    /* Technomak — black / red / white professional palette */
+    --bg-base:#F3F4F6; --bg-panel:#FFFFFF; --bg-elevated:#FAFAFB; --bg-tile:#F3F4F6;
+    --bg-chrome:#0B0B0D; --bg-mid:#F3F4F6;
+    --hair:#E4E4E7; --hair-soft:rgba(0,0,0,.05);
+    --text:#0B0B0D; --muted:#5B5B66; --muted-2:#9A9AA5;
+    --clear:#16A34A; --watch:#D97706; --alert:#DC2626; --active:#E11D2A;
+    --clear-dim:rgba(22,163,74,.10); --watch-dim:rgba(217,119,6,.10);
+    --alert-dim:rgba(220,38,38,.10); --active-dim:rgba(225,29,42,.10);
+    --sidebar:#0B0B0D; --sidebar-hover:rgba(255,255,255,.06);
+    --sidebar-active:rgba(225,29,42,.22); --sidebar-text:rgba(255,255,255,.74);
+    --sidebar-muted:rgba(255,255,255,.40); --sidebar-border:rgba(255,255,255,.08);
     --mono:"JetBrains Mono",ui-monospace,"SF Mono",Consolas,monospace;
     --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
     --radius:10px; --radius-sm:6px;
@@ -36,13 +37,13 @@
 
   /* ================= SIGN-IN ================= */
   #signin{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;
-    background:linear-gradient(135deg,#1E293B 0%,#1E3A5F 60%,#1E2E4A 100%);}
+    background:radial-gradient(120% 120% at 80% 0%,#2A0A0E 0%,#140406 45%,#0B0B0D 100%);}
   #signin.hide{display:none}
   .card{width:400px;background:#FFFFFF;
     border:1px solid var(--hair);border-radius:18px;padding:36px;box-shadow:0 32px 80px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.2)}
   .card .lock-logo{display:flex;align-items:center;gap:11px;margin-bottom:22px}
   .logo{width:38px;height:38px;border-radius:10px;position:relative;flex:0 0 auto;
-    background:linear-gradient(135deg,var(--active-dim),rgba(37,99,235,.22));border:1.5px solid rgba(37,99,235,.35)}
+    background:linear-gradient(135deg,var(--active-dim),rgba(225,29,42,.22));border:1.5px solid rgba(225,29,42,.40)}
   .logo:before,.logo:after{content:"";position:absolute;width:10px;height:10px;border:2px solid var(--active)}
   .logo:before{top:7px;left:7px;border-right:0;border-bottom:0}
   .logo:after{bottom:7px;right:7px;border-left:0;border-top:0}
@@ -65,8 +66,8 @@
   .rail{grid-row:1 / span 2;border-right:0;
     background:var(--sidebar);
     display:flex;flex-direction:column;overflow:hidden}
-  .brand{display:flex;align-items:center;gap:11px;padding:18px 16px;border-bottom:1px solid var(--sidebar-border)}
-  .brand b{font-size:14.5px;letter-spacing:.03em;font-weight:700;color:#F8FAFC}
+  .brand{display:flex;align-items:center;gap:11px;padding:18px 16px;border-bottom:1px solid var(--sidebar-border);box-shadow:inset 0 -2px 0 rgba(225,29,42,.55)}
+  .brand b{font-size:15px;letter-spacing:.12em;font-weight:700;color:#FFFFFF}
   .brand small{display:block;color:var(--sidebar-muted);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase}
   .nav{padding:10px 8px;overflow-y:auto;flex:1}
   .nav-label{color:var(--sidebar-muted);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;padding:14px 10px 5px;font-weight:600}
@@ -74,8 +75,8 @@
     color:var(--sidebar-text);padding:8px 10px;border-radius:8px;cursor:pointer;text-align:left;
     font-family:inherit;font-size:13px;font-weight:500;transition:background .14s,color .14s}
   .nav button:hover{background:var(--sidebar-hover);color:#F8FAFC}
-  .nav button.active{background:var(--sidebar-active);color:#93C5FD}
-  .nav button.active .ico{color:#60A5FA}
+  .nav button.active{background:var(--sidebar-active);color:#FCA5A5;box-shadow:inset 3px 0 0 var(--active)}
+  .nav button.active .ico{color:#F87171}
   .ico{width:17px;height:17px;flex:0 0 auto;color:var(--sidebar-muted)}
   .nav button:hover .ico{color:rgba(255,255,255,.7)}
   .nav button .badge{margin-left:auto;font-family:var(--mono);font-size:10px;background:var(--alert);
@@ -88,10 +89,16 @@
   .dot.live{background:var(--clear);animation:pulse 2s infinite}
   @keyframes pulse{0%,100%{box-shadow:0 0 0 2px var(--clear-dim)}50%{box-shadow:0 0 0 5px transparent}}
 
+  /* ---------- Collapsible sidebar ---------- */
+  .console{transition:grid-template-columns .2s ease}
+  .console.nav-collapsed{grid-template-columns:0 1fr}
+  .console.nav-collapsed .rail{display:none}
+  .hamburger{flex:0 0 auto;margin-right:2px}
+
   /* ---------- Top bar ---------- */
-  .main{display:flex;flex-direction:column;min-width:0;overflow:hidden}
+  .main{grid-column:2;grid-row:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
   .topbar{display:flex;align-items:center;gap:14px;height:var(--top-h);flex:0 0 auto;
-    padding:0 20px;border-bottom:1px solid var(--hair);background:#FFFFFF;box-shadow:0 1px 0 var(--hair)}
+    padding:0 20px;border-bottom:1px solid var(--hair);border-top:3px solid var(--active);background:#FFFFFF;box-shadow:0 1px 0 var(--hair)}
   .facility{display:flex;align-items:center;gap:8px}
   .facility select{background:var(--bg-elevated);color:var(--text);border:1px solid var(--hair);
     border-radius:7px;padding:7px 10px;font-family:inherit;font-size:12.5px;cursor:pointer}
@@ -113,8 +120,8 @@
   .iconbtn:hover{color:var(--text);border-color:var(--active)}
   .iconbtn .count{position:absolute;top:-6px;right:-6px;background:var(--alert);color:#fff;
     font-family:var(--mono);font-size:9.5px;font-weight:700;border-radius:20px;padding:0 5px;border:2px solid var(--bg-panel)}
-  .avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--active-dim),rgba(37,99,235,.2));
-    border:1.5px solid rgba(37,99,235,.35);display:grid;place-items:center;font-weight:700;font-size:12.5px;color:var(--active)}
+  .avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--active-dim),rgba(225,29,42,.2));
+    border:1.5px solid rgba(225,29,42,.35);display:grid;place-items:center;font-weight:700;font-size:12.5px;color:var(--active)}
 
   /* ---------- Tab strip ---------- */
   .tabbar{display:flex;align-items:flex-end;height:var(--tabbar-h);flex:0 0 auto;
@@ -157,9 +164,18 @@
   .kpi .accent{position:absolute;left:0;top:0;bottom:0;width:3px}
   .up{color:var(--clear)} .down{color:var(--alert)} .flat{color:var(--muted-2)}
 
+  /* Operations status strip (replaces top KPI boxes) */
+  .ops-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:15px;
+    padding:10px 16px;background:var(--bg-chrome);border-radius:var(--radius);
+    border-left:3px solid var(--active);color:rgba(255,255,255,.82);font-size:12px}
+  .ops-bar-left{display:flex;align-items:center;gap:9px;font-weight:600;letter-spacing:.02em}
+  .ops-bar-right{display:flex;align-items:center;gap:12px;color:rgba(255,255,255,.6);font-size:11.5px}
+  .ops-bar-right .m{color:#fff}
+  .ops-sep{width:1px;height:13px;background:rgba(255,255,255,.18)}
+
   .feeds{display:grid;grid-template-columns:repeat(2,1fr);gap:13px}
   .cam{background:var(--bg-panel);border:1px solid var(--hair);border-radius:var(--radius);overflow:hidden;position:relative;box-shadow:0 1px 4px rgba(0,0,0,.04)}
-  .scene{height:166px;position:relative;overflow:hidden;background:#070E17}
+  .scene{aspect-ratio:16/9;position:relative;overflow:hidden;background:#0A0A0C}
   .scanline{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--clear),transparent);opacity:.45;animation:scan 4.5s linear infinite}
   @keyframes scan{0%{top:-2px}100%{top:168px}}
   .cam-meta{display:flex;align-items:center;gap:8px;padding:9px 12px;border-top:1px solid var(--hair);font-size:11.5px;background:var(--bg-panel)}
@@ -196,7 +212,7 @@
     border:1.5px solid var(--hair);background:var(--bg-elevated);color:var(--text);transition:.14s;font-weight:500}
   .btn:hover{border-color:var(--active);background:#FFFFFF}
   .btn.pri{background:var(--active);border-color:var(--active);color:#FFFFFF;font-weight:600}
-  .btn.pri:hover{background:#3454D1;border-color:#3454D1}
+  .btn.pri:hover{background:#B91722;border-color:#B91722}
   .btn.danger{background:transparent;border-color:var(--alert);color:var(--alert)}
   .btn.danger:hover{background:var(--alert-dim)}
   .btn.ghost{background:transparent;color:var(--muted);border-color:var(--hair)}
@@ -216,7 +232,7 @@
   tbody tr:hover{background:var(--hair-soft)}
 
   .fr{display:none;font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.04em;
-    background:var(--active-dim);color:var(--active);border:1px solid rgba(37,99,235,.35);
+    background:var(--active-dim);color:var(--active);border:1px solid rgba(225,29,42,.35);
     padding:1px 6px;border-radius:5px;vertical-align:middle;margin-left:7px}
   body.show-fr .fr{display:inline-block}
 
@@ -230,7 +246,7 @@
   .doc .line b{color:var(--text)} .hl{background:var(--active-dim);color:var(--active);padding:0 4px;border-radius:3px}
 
   .bars{display:flex;align-items:flex-end;gap:9px;height:118px;padding-top:12px}
-  .bars .b{flex:1;background:linear-gradient(180deg,var(--active),rgba(37,99,235,.15));border-radius:5px 5px 0 0;position:relative;min-width:8px}
+  .bars .b{flex:1;background:linear-gradient(180deg,var(--active),rgba(225,29,42,.15));border-radius:5px 5px 0 0;position:relative;min-width:8px}
   .bars .b span{position:absolute;top:-17px;left:0;right:0;text-align:center;font-family:var(--mono);font-size:9.5px;color:var(--muted)}
   .bars .b small{position:absolute;bottom:-19px;left:0;right:0;text-align:center;font-size:9.5px;color:var(--muted-2)}
 
@@ -247,6 +263,9 @@
   .col-2{grid-template-columns:repeat(2,1fr)} .col-3{grid-template-columns:repeat(3,1fr)}
   .span-2{grid-column:span 2}
   .two-col{display:grid;grid-template-columns:1fr 340px;gap:15px;align-items:start}
+  /* Operations feeds: keep camera tiles compact (clean 16:9), event feed takes the slack */
+  #view-overview .two-col{grid-template-columns:1fr 470px}
+  @media (max-width:1120px){#view-overview .two-col{grid-template-columns:1fr}}
 
   /* ---------- Status bar ---------- */
   .statusbar{grid-column:2;display:flex;align-items:center;gap:18px;height:var(--status-h);
@@ -287,7 +306,7 @@
   .field input,.field select{width:100%;background:var(--bg-tile);border:1px solid var(--hair);color:var(--text);border-radius:7px;padding:9px 11px;font-family:inherit;font-size:12.5px}
   .field input:focus,.field select:focus{outline:none;border-color:var(--active);box-shadow:0 0 0 3px var(--active-dim)}
   .field select{cursor:pointer;background:var(--bg-elevated)}
-  .cam-box{border-radius:9px;overflow:hidden;background:#03060b;position:relative;aspect-ratio:4/3}
+  .cam-box{border-radius:9px;overflow:hidden;background:#08080a;position:relative;aspect-ratio:4/3}
   .cam-box video,.cam-box img,.cam-box canvas{width:100%;height:100%;object-fit:cover;display:none}
   .cam-box .cam-placeholder{position:absolute;inset:0;display:grid;place-items:center;color:rgba(255,255,255,.35);font-size:10.5px;text-align:center;font-family:var(--mono)}
   .bio-result-card{border-radius:9px;padding:15px;margin-top:12px;display:none}
@@ -333,7 +352,7 @@
   .acard-row b{color:var(--text);font-weight:500}
 
   /* ---- CCTV live-feed styles ---- */
-  .cctv-wrap{position:relative;width:100%;height:100%;overflow:hidden;background:#04080e}
+  .cctv-wrap{position:relative;width:100%;height:100%;overflow:hidden;background:#08080a}
   /* The MJPEG stream already has HUD + bounding boxes drawn by OpenCV.
      Mild filter only — detection colours must stay readable. */
   .cctv-feed{width:100%;height:100%;object-fit:cover;display:block;
@@ -346,7 +365,7 @@
     color:#ff5555;text-shadow:0 1px 3px rgba(0,0,0,1);letter-spacing:.08em}
   .cctv-loc{font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.55);letter-spacing:.05em}
   .cctv-conf{font-family:var(--mono);font-size:9px;color:var(--clear);letter-spacing:.04em}
-  .feed-err{position:absolute;inset:0;display:grid;place-items:center;background:#070E17;
+  .feed-err{position:absolute;inset:0;display:grid;place-items:center;background:#0A0A0C;
     color:rgba(255,255,255,.4);font-family:var(--mono);font-size:10px;text-align:center;line-height:1.8}
 
   /* ---- Camera result clip overlay (shown after detection) ---- */
@@ -360,6 +379,29 @@
   .cam-ov-label{position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,.65);
     border-radius:4px;padding:3px 8px;font-family:var(--mono);font-size:9px;
     color:rgba(255,255,255,.75);letter-spacing:.05em;z-index:2}
+
+  /* ---- Vehicle detection box (upload / scanning / result) ---- */
+  .scan-box{position:absolute;top:14%;left:14%;right:14%;bottom:16%;z-index:7;display:none;
+    border:2px solid var(--sb-color,#fff);border-radius:4px;pointer-events:none;
+    box-shadow:0 0 0 9999px rgba(0,0,0,.04) inset;transition:border-color .25s}
+  .scan-box.show{display:block}
+  .scan-box.scanning{--sb-color:#FFFFFF;animation:sbPulse 1.1s ease-in-out infinite}
+  .scan-box.granted{--sb-color:#16A34A}
+  .scan-box.denied{--sb-color:#DC2626}
+  @keyframes sbPulse{0%,100%{border-color:rgba(255,255,255,.95)}50%{border-color:rgba(255,255,255,.35)}}
+  .scan-box .sb-l{position:absolute;width:16px;height:16px;border:3px solid var(--sb-color,#fff)}
+  .scan-box .sb-tl{top:-2px;left:-2px;border-right:0;border-bottom:0}
+  .scan-box .sb-tr{top:-2px;right:-2px;border-left:0;border-bottom:0}
+  .scan-box .sb-bl{bottom:-2px;left:-2px;border-right:0;border-top:0}
+  .scan-box .sb-br{bottom:-2px;right:-2px;border-left:0;border-top:0}
+  .scan-box .sb-line{position:absolute;left:0;right:0;height:2px;top:0;
+    background:linear-gradient(90deg,transparent,var(--sb-color,#fff),transparent);opacity:.8;display:none}
+  .scan-box.scanning .sb-line{display:block;animation:sbScan 1.8s linear infinite}
+  @keyframes sbScan{0%{top:0}100%{top:100%}}
+  .scan-box .sb-tag{position:absolute;top:-22px;left:-2px;background:var(--sb-color,#fff);color:#0B0B0D;
+    font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.08em;
+    padding:2px 7px;border-radius:3px;white-space:nowrap}
+  .scan-box.granted .sb-tag,.scan-box.denied .sb-tag{color:#fff}
 
   /* ---- Edit modal ---- */
   .edit-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1000;display:none;place-items:center}
@@ -397,7 +439,7 @@
 <!-- ================= SIGN-IN ================= -->
 <div id="signin">
   <div class="card">
-    <div class="lock-logo"><div class="logo"></div><div><b>Sentinel</b><small>Technomak</small></div></div>
+    <div class="lock-logo"><div class="logo"></div><div><b>TECHNOMAK</b><small>Sentinel · Video Analytics</small></div></div>
     <h2>Sign in to console</h2>
     <p>Video analytics operations — Warehouse North.</p>
     <div class="field"><label>Operator ID</label><input id="userf" value="ns.operator" autocomplete="off"></div>
@@ -408,10 +450,10 @@
 </div>
 
 <!-- ================= CONSOLE ================= -->
-<div class="console">
+<div class="console nav-collapsed">
   <!-- Sidebar -->
   <aside class="rail">
-    <div class="brand"><div class="logo"></div><div><b>Sentinel</b><small>Technomak</small></div></div>
+    <div class="brand"><div class="logo"></div><div><b>TECHNOMAK</b><small>Sentinel · Analytics</small></div></div>
     <nav class="nav" id="nav">
       <div class="nav-label">Monitor</div>
       <button class="active" data-view="overview" data-label="Operations"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Operations</button>
@@ -424,7 +466,6 @@
       <div class="nav-label">System</div>
       <button data-view="cameras" data-label="Cameras"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l4-2 11 5v7l-11 5-4-2z"/><circle cx="9" cy="12" r="2.4"/></svg>Cameras</button>
       <div class="nav-label">AI Detection</div>
-      <button data-view="anpr" data-label="ANPR Detection"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="10" rx="2"/><path d="M6 11h.01M9 11h6M18 11h.01"/></svg>ANPR Detection</button>
       <button data-view="biometric" data-label="Biometric Auth"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-1a6 6 0 0 1 12 0v1"/><path d="M17 12s1 1 1 3-1 3-1 3"/><path d="M7 12s-1 1-1 3 1 3 1 3"/></svg>Biometric Auth</button>
     </nav>
     <div class="health">
@@ -438,6 +479,9 @@
   <!-- Main column -->
   <div class="main">
     <header class="topbar">
+      <div class="iconbtn hamburger" id="navToggle" onclick="toggleNav()" title="Show / hide menu" role="button" tabindex="0">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </div>
       <div class="facility">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M3 21h18M5 21V8l7-4 7 4v13"/><path d="M9 21v-6h6v6"/></svg>
         <select aria-label="Facility"><option>Warehouse North — Coimbatore</option><option>Distribution Hub — Kochi</option><option>Plant 2 — Chennai</option></select>
@@ -466,13 +510,9 @@
           <div><div class="eyebrow">Live</div><h1>Operations overview</h1><p>Real-time analytics across every camera. Critical events surface here first.</p></div>
           <button class="btn">Export shift report</button>
         </div>
-        <div class="kpis" style="margin-bottom:15px">
-          <div class="kpi"><span class="accent" style="background:var(--clear)"></span><div class="lab">Cameras online</div><div class="val">24/24</div><div class="delta up">▲ all healthy</div></div>
-          <div class="kpi"><span class="accent" style="background:var(--alert)"></span><div class="lab">Open alerts</div><div class="val">3</div><div class="delta down">▲ 2 vs last hr</div></div>
-          <div class="kpi"><span class="accent" style="background:var(--active)"></span><div class="lab">Vehicles on site</div><div class="val">12</div><div class="delta flat">— stable</div></div>
-          <div class="kpi"><span class="accent" style="background:var(--active)"></span><div class="lab">Avg turnaround</div><div class="val">34m</div><div class="delta up">▼ 6m faster</div></div>
-          <div class="kpi"><span class="accent" style="background:var(--clear)"></span><div class="lab">PPE compliance</div><div class="val">96%</div><div class="delta up">▲ 3% today</div></div>
-          <div class="kpi"><span class="accent" style="background:var(--watch)"></span><div class="lab">Gate events</div><div class="val">148</div><div class="delta flat">since 06:00</div></div>
+        <div class="ops-bar">
+          <div class="ops-bar-left"><span class="dot live"></span><span>All systems operational</span></div>
+          <div class="ops-bar-right"><span>Warehouse North</span><span class="ops-sep"></span><span id="ops-clock" class="m">--:--:--</span></div>
         </div>
         <div class="two-col">
           <div class="grid feeds">
@@ -490,6 +530,14 @@
                     <img id="cam-overlay-img-cam01" alt="">
                     <button class="cam-ov-close" onclick="camClearOverlay('cam01')">× LIVE</button>
                     <span class="cam-ov-label" id="cam-ov-label-cam01">Uploaded video</span>
+                  </div>
+                  <!-- Vehicle detection box — appears on upload, animates while scanning,
+                       turns green if authorised / red if not after detection -->
+                  <div class="scan-box" id="cam01-scan-box">
+                    <span class="sb-l sb-tl"></span><span class="sb-l sb-tr"></span>
+                    <span class="sb-l sb-bl"></span><span class="sb-l sb-br"></span>
+                    <span class="sb-line"></span>
+                    <span class="sb-tag" id="cam01-scan-tag">SCANNING…</span>
                   </div>
                   <!-- Authorization status overlay — shown after ANPR scan -->
                   <div id="cam01-auth-badge" style="display:none;position:absolute;bottom:6px;left:6px;right:6px;z-index:5;border-radius:5px;padding:5px 10px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.07em;backdrop-filter:blur(5px);align-items:center;gap:8px">
@@ -656,11 +704,9 @@
         <div class="crumb">Warehouse North <b>/ Alerts</b></div>
         <div class="view-head"><div><div class="eyebrow">Unified queue</div><h1>Alerts</h1><p>Every detection that needs a human decision, ranked by severity.</p></div>
           <div style="display:flex;gap:8px"><button class="btn ghost">Filter</button><button class="btn">Mark all reviewed</button></div></div>
-        <div class="panel"><div class="panel-head"><h3>Active alerts</h3><span class="sub">3 open · 12 today</span></div>
-          <div class="feed">
-            <div class="ev"><span class="sev crit"></span><div class="body"><div class="t">Tailgating detected <span class="fr">FR-G3</span></div><div class="d">Turnstile B · CAM-05 · 2 entrants on 1 authorized scan</div><div class="act"><button class="btn sm pri">Review 30s clip</button><button class="btn sm">Dispatch guard</button><button class="btn sm ghost">Dismiss</button></div></div><span class="when">09:41:07</span></div>
-            <div class="ev"><span class="sev crit"></span><div class="body"><div class="t">PPE violation — no vest <span class="fr">FR-P1</span></div><div class="d">Aisle 4 · CAM-08 · hard hat present, vest absent</div><div class="act"><button class="btn sm pri">Review 30s clip</button><button class="btn sm ghost">Dismiss</button></div></div><span class="when">09:39:52</span></div>
-            <div class="ev"><span class="sev watch"></span><div class="body"><div class="t">Delivery count mismatch <span class="fr">FR-M2</span></div><div class="d">Bay 2 · DN-88231 · vision counted 6, DN lists 8</div><div class="act"><button class="btn sm pri">Open verification</button><button class="btn sm ghost">Flag for audit</button></div></div><span class="when">09:38:10</span></div>
+        <div class="panel"><div class="panel-head"><h3>Active alerts</h3><span class="sub" id="alerts-count">0 open</span><button class="btn sm ghost" style="margin-left:auto;font-size:10px" onclick="clearAllAlerts()">Clear all</button></div>
+          <div class="feed" id="alerts-feed">
+            <div class="ev" id="alerts-empty"><div class="body" style="color:var(--muted-2);font-size:11.5px">No active alerts. Alerts raised from the cameras or the gate appear here.</div></div>
           </div>
         </div>
       </section>
@@ -714,7 +760,24 @@
           </div>
         </div>
 
-        <!-- Annotated detection frame (shown after scan) -->
+        <!-- Gate camera video with moving detection box (like CAM-01) -->
+        <div class="panel" id="gate-vid-panel" style="display:none;margin-bottom:15px">
+          <div class="panel-head"><h3>Gate Camera</h3><span class="sub" id="gate-vid-sub">Preview</span>
+            <button class="btn sm ghost" style="margin-left:auto;font-size:10px" onclick="gateClearVideo()">Clear</button></div>
+          <div style="position:relative;background:#0A0A0C;aspect-ratio:16/9;overflow:hidden;border-radius:0 0 var(--radius) var(--radius)">
+            <div class="cctv-wrap" id="gate-cctv">
+              <video id="gate-anpr-vid" class="cctv-feed" style="filter:none" autoplay loop muted playsinline></video>
+              <div class="scan-box" id="gate-scan-box">
+                <span class="sb-l sb-tl"></span><span class="sb-l sb-tr"></span>
+                <span class="sb-l sb-bl"></span><span class="sb-l sb-br"></span>
+                <span class="sb-line"></span>
+                <span class="sb-tag" id="gate-scan-tag">SCANNING…</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Annotated detection frame (fallback if no detector / track) -->
         <div id="gate-anpr-frame-wrap" style="display:none;margin-bottom:15px">
           <div class="panel">
             <div class="panel-head"><h3>Detection Frame</h3><span class="sub" id="gate-anpr-frame-sub">Annotated plate detection</span></div>
@@ -740,7 +803,7 @@
             <div class="panel-head"><h3>Tailgating <span class="fr">FR-G3</span></h3><span class="sub">CAM-05</span></div>
             <div class="cam" style="border:0;border-radius:0"><div class="scene" style="height:146px;background:linear-gradient(180deg,#120b0f,#0d141e)"><div class="scanline" style="animation-delay:2s;background:linear-gradient(90deg,transparent,var(--alert),transparent)"></div><div class="bb" style="left:24%;top:30%;width:38px;height:92px"><span class="tag">BADGE ✓</span></div><div class="bb crit" style="left:48%;top:34%;width:38px;height:88px"><span class="tag">NO SCAN ✕</span></div></div></div>
             <div class="panel-body"><span class="chip crit">● Tailgating event</span><p style="color:var(--muted);font-size:12px;margin:9px 0 11px">2 people passed on a single authorized scan.</p>
-              <div style="display:flex;gap:7px"><button class="btn pri sm">Review clip</button><button class="btn sm">Dispatch guard</button></div></div>
+              <div style="display:flex;gap:7px"><button class="btn pri sm">Review clip</button><button class="btn sm" onclick="pushAlert('crit','Tailgating event — guard dispatched','CAM-05 · Turnstile B · 2 people passed on a single authorized scan')">Dispatch guard</button></div></div>
           </div>
         </div>
 
@@ -964,101 +1027,6 @@
         </tbody></table></div>
       </section>
 
-      <!-- ===================== ANPR DETECTION ===================== -->
-      <section class="view" id="view-anpr">
-        <div class="crumb">Warehouse North <b>/ ANPR Detection</b></div>
-        <div class="view-head">
-          <div><div class="eyebrow">AI Module</div><h1>Automatic Number Plate Recognition</h1>
-            <p>Upload a video to detect every license plate, cross-check against the authorised vehicle database, and get instant access decisions.</p>
-          </div>
-        </div>
-
-        <!-- Row 1: Upload + Status -->
-        <div class="grid col-2" style="margin-bottom:15px">
-          <div class="panel">
-            <div class="panel-head"><h3>Upload Video</h3></div>
-            <div class="panel-body">
-              <div class="upload-zone" id="anpr-zone"
-                ondragover="event.preventDefault();this.classList.add('drag-over')"
-                ondragleave="this.classList.remove('drag-over')"
-                ondrop="anprDrop(event)"
-                onclick="document.getElementById('anpr-file-in').click()">
-                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                <div class="uz-title">Drop video here or click to browse</div>
-                <div class="uz-sub">MP4 · AVI · MOV · MKV · WebM</div>
-              </div>
-              <input type="file" id="anpr-file-in" accept="video/*" style="display:none" onchange="anprFileChosen(this)">
-              <div id="anpr-fname" style="margin-top:9px;font-family:var(--mono);font-size:10.5px;color:var(--muted-2)"></div>
-              <div id="anpr-vid-preview" style="display:none;position:relative;border-radius:4px;overflow:hidden;background:#000;aspect-ratio:16/9;margin-top:10px">
-                <video id="anpr-vid-el" style="width:100%;height:100%;object-fit:cover" autoplay loop muted playsinline></video>
-                <video id="anpr-annotated-vid" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:3" controls loop muted playsinline></video>
-                <img id="anpr-annotated-img" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2" alt="Detection frame">
-                <span id="anpr-vid-lbl" style="position:absolute;bottom:4px;left:5px;font-size:9px;font-family:var(--mono);background:rgba(0,0,0,.7);color:var(--muted-2);padding:2px 6px;border-radius:3px;letter-spacing:.04em;z-index:4">▶ Preview</span>
-              </div>
-              <button class="btn pri" id="anpr-upload-btn" style="width:100%;margin-top:12px" onclick="anprStartJob()" disabled>Analyse Video</button>
-            </div>
-          </div>
-          <div class="panel">
-            <div class="panel-head"><h3>Processing Status</h3><span class="sub" id="anpr-status-lbl">Idle</span></div>
-            <div class="panel-body">
-              <div style="margin-bottom:14px">
-                <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-                  <span style="font-size:11.5px;color:var(--muted)">Progress</span>
-                  <span style="font-family:var(--mono);font-size:11px" id="anpr-pct">—</span>
-                </div>
-                <div class="progress-track"><div class="progress-fill" id="anpr-bar"></div></div>
-              </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-                <div class="kpi" style="padding:10px"><div class="lab">Total Plates</div><div class="val" id="anpr-total" style="font-size:22px">—</div></div>
-                <div class="kpi" style="padding:10px"><div class="lab">Authorised</div><div class="val" id="anpr-auth" style="font-size:22px;color:var(--clear)">—</div></div>
-                <div class="kpi" style="padding:10px"><div class="lab">Denied</div><div class="val" id="anpr-denied" style="font-size:22px;color:var(--alert)">—</div></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Row 2: Results table -->
-        <div class="panel" id="anpr-results-panel" style="margin-bottom:15px;display:none">
-          <div class="panel-head"><h3>Detection Results</h3><span class="sub" id="anpr-results-sub"></span></div>
-          <div style="overflow-x:auto">
-            <table>
-              <thead><tr><th>#</th><th>Number Plate</th><th>Confidence</th><th>Status</th><th>Registered Owner</th><th>Vehicle Type</th><th>Decision</th></tr></thead>
-              <tbody id="anpr-results-body"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Row 3: Manage authorised vehicles -->
-        <div class="grid col-2">
-          <div class="panel">
-            <div class="panel-head"><h3>Authorised Vehicles</h3><span class="sub" id="auth-count-lbl"></span></div>
-            <div style="max-height:300px;overflow-y:auto">
-              <table><thead><tr><th>Plate</th><th>Owner</th><th>Type</th><th></th></tr></thead>
-              <tbody id="auth-tbody"></tbody></table>
-            </div>
-          </div>
-          <div class="panel">
-            <div class="panel-head"><h3>Add Vehicle to Whitelist</h3></div>
-            <div class="panel-body" style="display:grid;gap:11px">
-              <div class="field"><label>Number Plate</label><input id="nv-plate" placeholder="KL07 CK 4521"></div>
-              <div class="field"><label>Owner / Company</label><input id="nv-owner" placeholder="Company or person name"></div>
-              <div class="field"><label>Vehicle Type</label>
-                <select id="nv-type"><option>Car</option><option>Truck</option><option>Van</option><option>Motorcycle</option><option>Bus</option></select>
-              </div>
-              <button class="btn pri" onclick="addVehicle()">Add to Whitelist</button>
-              <div id="nv-msg" style="font-family:var(--mono);font-size:10.5px"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Row 4: Access log -->
-        <div class="panel" style="margin-top:15px">
-          <div class="panel-head"><h3>ANPR Access Log</h3><button class="btn sm ghost" onclick="loadAccessLog()">Refresh</button></div>
-          <table><thead><tr><th>Time</th><th>Plate</th><th>Confidence</th><th>Authorised</th><th>Decision</th></tr></thead>
-          <tbody id="access-log-body"></tbody></table>
-        </div>
-      </section>
-
       <!-- ===================== BIOMETRIC AUTH ===================== -->
       <section class="view" id="view-biometric">
         <div class="crumb">Warehouse North <b>/ Biometric Auth</b></div>
@@ -1210,6 +1178,7 @@
     <div class="field"><label>ACCESS DECISION</label>
       <select id="aedit-decision">
         <option value="add">Add to authorized whitelist → GRANTED</option>
+        <option value="update">Update owner / details (keep authorized)</option>
         <option value="deny">Keep denied / remove from whitelist → DENIED</option>
       </select>
     </div>
@@ -1276,6 +1245,12 @@
   nav.addEventListener('click',e=>{const b=e.target.closest('button[data-view]'); if(b) open(b.dataset.view);});
   openTabs.push('overview'); activeView='overview'; render();
 
+  // Three-line menu: hide / show the left sidebar
+  window.toggleNav = function(){ document.querySelector('.console').classList.toggle('nav-collapsed'); };
+  document.getElementById('navToggle').addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleNav(); }
+  });
+
   // -------- FR toggle --------
   const tg=document.getElementById('frToggle');
   function flip(){const on=document.body.classList.toggle('show-fr');tg.classList.toggle('on',on);tg.setAttribute('aria-checked',on);}
@@ -1284,7 +1259,8 @@
 
   // -------- clock --------
   const clk=document.getElementById('clock');
-  (function tick(){clk.textContent=new Date().toLocaleTimeString('en-GB');setTimeout(tick,1000);})();
+  const opsClk=document.getElementById('ops-clock');
+  (function tick(){const t=new Date().toLocaleTimeString('en-GB');clk.textContent=t;if(opsClk)opsClk.textContent=t;setTimeout(tick,1000);})();
 
   // -------- pop-out windows --------
   const layer=document.getElementById('windows'); let z=801, off=0;
@@ -1531,7 +1507,7 @@
 
     const primaryBtnHtml = primary.authorized
       ? `<button class="btn pri sm" style="margin-top:11px" onclick="recordVehicleEntry('${primary.plate}')">▶ Record Gate Entry</button>`
-      : `<button class="btn danger sm" style="margin-top:11px" onclick="_toast('Security alerted','warn')">⚠ Alert Security</button>`;
+      : `<button class="btn danger sm" style="margin-top:11px" onclick="raiseVehicleAlert('${primary.plate}','Gate &amp; Access')">⚠ Alert Security</button>`;
 
     let html = `
       <div class="panel-head">
@@ -1585,15 +1561,19 @@
 
   // Authorised vehicles
   async function loadAuthorisedVehicles() {
+    if (!document.getElementById('auth-tbody')) return;   // ANPR tab removed
     try {
       const res = await fetch(`${API}/api/v1/anpr/authorized`);
       const list = await res.json();
       document.getElementById('auth-count-lbl').textContent = list.length + ' vehicles';
       document.getElementById('auth-tbody').innerHTML = list.map(v => `<tr>
         <td class="mono" style="font-size:12.5px">${v.plate}</td>
-        <td>${v.owner}</td>
+        <td>${_alertEsc(v.owner)}</td>
         <td>${v.vehicle_type}</td>
-        <td><button class="btn sm danger" onclick="removeVehicle('${v.plate}')">Remove</button></td>
+        <td style="white-space:nowrap">
+          <button class="btn sm wl-edit" data-plate="${v.plate}" data-owner="${_alertEsc(v.owner)}" data-type="${_alertEsc(v.vehicle_type)}">Edit</button>
+          <button class="btn sm danger" onclick="removeVehicle('${v.plate}')">Remove</button>
+        </td>
       </tr>`).join('');
     } catch(e) {}
   }
@@ -1627,6 +1607,7 @@
   }
 
   async function loadAccessLog() {
+    if (!document.getElementById('access-log-body')) return;   // ANPR tab removed
     try {
       const res = await fetch(`${API}/api/v1/anpr/log`);
       const list = await res.json();
@@ -1756,7 +1737,7 @@
       const pname = p.name.replace(/'/g, "\\'");
       inner.innerHTML = `
         <div style="display:flex;align-items:center;gap:12px">
-          <div style="width:44px;height:44px;border-radius:50%;background:var(--active-dim);border:1.5px solid rgba(37,99,235,.3);display:grid;place-items:center;font-weight:700;font-size:16px;color:var(--active);flex:0 0 auto">${p.name.charAt(0)}</div>
+          <div style="width:44px;height:44px;border-radius:50%;background:var(--active-dim);border:1.5px solid rgba(225,29,42,.3);display:grid;place-items:center;font-weight:700;font-size:16px;color:var(--active);flex:0 0 auto">${p.name.charAt(0)}</div>
           <div>
             <div style="font-weight:600;font-size:14px">${p.name}</div>
             <div style="font-family:var(--mono);font-size:11px;color:var(--muted)">${p.employee_id} · ${p.department} · ${p.clearance_level}</div>
@@ -2258,6 +2239,62 @@
       '<div class="ev"><div class="body" style="color:var(--muted-2);font-size:11px">No events — cleared by user</div></div>';
   }
 
+  // ----- Alerts queue (populated when an Alert button is clicked anywhere) -----
+  let _alertCount = 0;
+  function _alertEsc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+  function _refreshAlertBadges(){
+    const navBadge = document.querySelector('.nav button[data-view="alerts"] .badge');
+    if (navBadge){ navBadge.textContent = _alertCount; navBadge.style.display = _alertCount ? '' : 'none'; }
+    const bell = document.querySelector('.topbar .iconbtn .count');
+    if (bell){ bell.textContent = _alertCount; bell.style.display = _alertCount ? '' : 'none'; }
+    const lbl = document.getElementById('alerts-count');
+    if (lbl) lbl.textContent = _alertCount + ' open';
+  }
+  function _alertsEmptyCheck(){
+    const feed = document.getElementById('alerts-feed');
+    if (feed && !feed.querySelector('.ev')){
+      feed.innerHTML = '<div class="ev" id="alerts-empty"><div class="body" style="color:var(--muted-2);font-size:11.5px">No active alerts.</div></div>';
+    }
+  }
+  window.pushAlert = function(severity, title, detail){
+    const feed = document.getElementById('alerts-feed');
+    if (!feed) return;
+    const empty = document.getElementById('alerts-empty');
+    if (empty) empty.remove();
+    const sev = (severity==='crit'||severity==='watch'||severity==='clear') ? severity : 'watch';
+    const when = new Date().toLocaleTimeString('en-GB');
+    const row = document.createElement('div');
+    row.className = 'ev';
+    row.innerHTML =
+      `<span class="sev ${sev}"></span>`+
+      `<div class="body"><div class="t">${_alertEsc(title)}</div>`+
+      `<div class="d">${_alertEsc(detail||'')}</div></div>`+
+      `<span class="when">${when}</span>`+
+      `<button class="ev-dismiss" title="Dismiss" onclick="dismissAlert(this)">×</button>`;
+    feed.prepend(row);
+    _alertCount++;
+    _refreshAlertBadges();
+  };
+  window.dismissAlert = function(btn){
+    const row = btn.closest('.ev'); if (row) row.remove();
+    _alertCount = Math.max(0, _alertCount - 1);
+    _refreshAlertBadges();
+    _alertsEmptyCheck();
+  };
+  window.clearAllAlerts = function(){
+    const feed = document.getElementById('alerts-feed'); if (feed) feed.innerHTML = '';
+    _alertCount = 0; _refreshAlertBadges(); _alertsEmptyCheck();
+  };
+  // Helper used by camera / gate "Alert" buttons
+  window.raiseVehicleAlert = function(plate, where){
+    pushAlert('crit', 'Unauthorized vehicle — access denied',
+              _fmtPlate(plate) + ' detected at ' + (where||'gate') + ' · not on whitelist');
+    _toast('Security alerted — ' + _fmtPlate(plate), 'warn');
+    if (typeof open === 'function') { /* keep current view */ }
+  };
+  // Reset the seeded "3" badges to a real count on load
+  _refreshAlertBadges();
+
   async function loadOverviewFeed() {
     try {
       const [anprRes, bioRes] = await Promise.all([
@@ -2472,6 +2509,7 @@
 
   // ─── CAM-01 Main Gate — ANPR plate detection + authorization ─────────────────
   let _cam01JobId = null, _cam01PollTimer = null;
+  let _cam01TrackRAF = null, _cam01Track = null;
 
   async function cam01AnprStart() {
     const st = _camS('cam01');
@@ -2482,6 +2520,8 @@
     document.getElementById('cam-results-cam01').style.display = 'none';
     document.getElementById('cam-bar-cam01').style.width = '0';
     _cam01ClearBadge();
+    _cam01StopTracking();
+    _cam01SetScanBox('scanning', 'SCANNING…');
 
     // Keep the video (or fallback label) visible during upload + ANPR processing
     const _ov  = document.getElementById('cam-overlay-cam01');
@@ -2541,24 +2581,33 @@
     }
     const btn = document.getElementById('cam-det-btn-cam01');
 
+    if (data.status === 'processing' || data.status === 'pending') {
+      _cam01SetScanBox('scanning', `SCANNING ${Math.round(pct)}%`);
+    }
+
     if (data.status === 'completed') {
       btn.textContent = 'Scan Again'; btn.disabled = false;
       _cam01RenderResults(data.plates || []);
+
+      // Colour the detection box: green if authorised, red otherwise
+      const plates = data.plates || [];
+      if (plates.length) {
+        const top = [...plates].sort((a, b) =>
+          a.authorized !== b.authorized ? (a.authorized ? -1 : 1) : b.confidence - a.confidence)[0];
+        _cam01SetScanBox(top.authorized ? 'granted' : 'denied',
+          (top.authorized ? 'AUTHORIZED · ' : 'DENIED · ') + _fmtPlate(top.plate));
+      } else {
+        _cam01SetScanBox('denied', 'NO PLATE');
+      }
       if (document.getElementById('view-gate').classList.contains('on')) loadGateLog();
 
-      // Switch cam01 overlay from playing video → annotated detection frame
-      const ovImg = document.getElementById('cam-overlay-img-cam01');
-      const ovVid = document.getElementById('cam-overlay-vid-cam01');
-      const ovLbl = document.getElementById('cam-ov-label-cam01');
-      if (ovImg && _cam01JobId) {
-        ovImg.onload  = () => { ovImg.style.display = 'block'; if (ovVid) ovVid.style.display = 'none'; };
-        ovImg.onerror = () => { ovImg.style.display = 'none'; if (ovVid) ovVid.style.display = 'block'; };
-        ovImg.src = `${API}/api/v1/anpr/job/${_cam01JobId}/frame?t=${Date.now()}`;
-        if (ovLbl) ovLbl.textContent = 'Detection result — annotated frame';
-      }
+      // Start the moving detection box that follows the vehicle. The track is
+      // built in the background, so retry a few times before falling back.
+      _cam01TryTrackingWithRetry(_cam01JobId, 12);
     }
     if (data.status === 'error') {
       btn.disabled = false; btn.textContent = 'Retry';
+      _cam01SetScanBox('denied', 'ERROR');
       _toast('Scan error: ' + (data.error || 'Unknown'), 'err');
     }
   }
@@ -2594,7 +2643,7 @@
       const cardId = `cam01-card-${p.plate.replace(/[^A-Z0-9]/gi,'')}`;
       const primaryBtn = isAuth
         ? `<button class="btn sm pri" style="font-size:9.5px;padding:3px 8px" onclick="recordVehicleEntry('${p.plate}');loadGateLog()">Record Entry</button>`
-        : `<button class="btn sm danger" style="font-size:9.5px;padding:3px 8px" onclick="_toast('Security alerted — ${_fmtPlate(p.plate)}','warn')">Alert</button>`;
+        : `<button class="btn sm danger" style="font-size:9.5px;padding:3px 8px" onclick="raiseVehicleAlert('${p.plate}','CAM-01 · Main Gate')">Alert</button>`;
       const wlBtn = isAuth
         ? `<button class="btn sm danger" style="font-size:9px;padding:2px 7px" onclick="cam01QuickRemove('${p.plate}')">✕ Remove</button>`
         : `<button class="btn sm" id="wl-btn-${p.plate.replace(/[^A-Z0-9]/gi,'')}" style="font-size:9px;padding:2px 7px;border-color:var(--clear);color:var(--clear)" onclick="cam01QuickAddWhitelist('${p.plate}',this)">+ Whitelist</button>`;
@@ -2634,8 +2683,117 @@
     document.getElementById('cam01-auth-badge').style.display = 'none';
   }
 
+  // Vehicle detection box overlay on the CAM-01 scene.
+  // state: 'ready' (white, on upload) | 'scanning' (animated) | 'granted' (green)
+  //        | 'denied' (red) | 'hide'
+  function _cam01SetScanBox(state, text) {
+    const box = document.getElementById('cam01-scan-box');
+    if (!box) return;
+    box.classList.remove('scanning', 'granted', 'denied');
+    // Clear any tracking geometry so the CSS %-based frame applies again
+    box.style.left = box.style.top = box.style.width = box.style.height = '';
+    box.style.right = box.style.bottom = '';
+    if (state === 'hide') { box.classList.remove('show'); return; }
+    box.classList.add('show');
+    if (state === 'scanning' || state === 'granted' || state === 'denied') box.classList.add(state);
+    const tag = document.getElementById('cam01-scan-tag');
+    if (tag && text != null) tag.textContent = text;
+  }
+
+  // Drive the detection box so it follows the vehicle, using the backend track.
+  // Returns true if a live tracking box was started, false to use the fallback.
+  async function _cam01StartTracking(jobId) {
+    _cam01StopTracking();
+    try {
+      const res = await fetch(`${API}/api/v1/anpr/job/${jobId}/track?t=${Date.now()}`);
+      if (!res.ok) return false;
+      _cam01Track = await res.json();
+    } catch (e) { return false; }
+    if (!_cam01Track || !_cam01Track.boxes || !_cam01Track.boxes.length) return false;
+
+    const vid = document.getElementById('cam-overlay-vid-cam01');
+    const ov  = document.getElementById('cam-overlay-cam01');
+    const img = document.getElementById('cam-overlay-img-cam01');
+    const box = document.getElementById('cam01-scan-box');
+    const st  = _camS('cam01');
+    if (!vid || !box || !st || !st._objUrl) return false;
+
+    // Make sure the ORIGINAL uploaded video is what's playing (not a still frame)
+    if (img) { img.style.display = 'none'; img.src = ''; }
+    if (!vid.src) vid.src = st._objUrl;
+    vid.style.display = 'block'; vid.loop = true; vid.muted = true;
+    vid.play().catch(() => {});
+    if (ov) ov.style.display = 'block';
+
+    // Free the box for absolute px positioning, keep its green/red colour + label
+    box.classList.remove('scanning');
+    box.classList.add('show', _cam01Track.decision === 'granted' ? 'granted' : 'denied');
+    box.style.right = 'auto'; box.style.bottom = 'auto';
+
+    const boxes = _cam01Track.boxes, iw = _cam01Track.width, ih = _cam01Track.height;
+    const draw = () => {
+      const t = vid.currentTime;
+      let a = boxes[0], b = boxes[boxes.length - 1];
+      if (t <= boxes[0].t) { a = b = boxes[0]; }
+      else if (t >= boxes[boxes.length - 1].t) { a = b = boxes[boxes.length - 1]; }
+      else {
+        for (let i = 0; i < boxes.length - 1; i++) {
+          if (boxes[i].t <= t && t <= boxes[i + 1].t) { a = boxes[i]; b = boxes[i + 1]; break; }
+        }
+      }
+      const span = (b.t - a.t) || 1;
+      const k = Math.min(1, Math.max(0, (t - a.t) / span));
+      const bx = a.x + (b.x - a.x) * k, by = a.y + (b.y - a.y) * k;
+      const bw = a.w + (b.w - a.w) * k, bh = a.h + (b.h - a.h) * k;
+      // Map intrinsic video coords → displayed pixels (object-fit:cover)
+      const W = vid.clientWidth, H = vid.clientHeight;
+      const scale = Math.max(W / iw, H / ih);
+      const offX = (W - iw * scale) / 2, offY = (H - ih * scale) / 2;
+      box.style.left   = (offX + bx * scale) + 'px';
+      box.style.top    = (offY + by * scale) + 'px';
+      box.style.width  = (bw * scale) + 'px';
+      box.style.height = (bh * scale) + 'px';
+      _cam01TrackRAF = requestAnimationFrame(draw);
+    };
+    _cam01TrackRAF = requestAnimationFrame(draw);
+    return true;
+  }
+
+  function _cam01StopTracking() {
+    if (_cam01TrackRAF) { cancelAnimationFrame(_cam01TrackRAF); _cam01TrackRAF = null; }
+    _cam01Track = null;
+    const box = document.getElementById('cam01-scan-box');
+    if (box) {
+      box.style.left = box.style.top = box.style.width = box.style.height = '';
+      box.style.right = box.style.bottom = '';
+    }
+  }
+
+  function _cam01TryTrackingWithRetry(jobId, attemptsLeft) {
+    if (jobId !== _cam01JobId) return;          // a newer scan has started
+    _cam01StartTracking(jobId).then(ok => {
+      if (ok || jobId !== _cam01JobId) return;  // tracking running, or superseded
+      if (attemptsLeft > 0) {
+        setTimeout(() => _cam01TryTrackingWithRetry(jobId, attemptsLeft - 1), 1500);
+        return;
+      }
+      // Fallback: annotated still frame (box visible but not moving)
+      const ovImg = document.getElementById('cam-overlay-img-cam01');
+      const ovVid = document.getElementById('cam-overlay-vid-cam01');
+      const ovLbl = document.getElementById('cam-ov-label-cam01');
+      if (ovImg) {
+        ovImg.onload  = () => { ovImg.style.display = 'block'; if (ovVid) ovVid.style.display = 'none'; };
+        ovImg.onerror = () => { ovImg.style.display = 'none'; if (ovVid) ovVid.style.display = 'block'; };
+        ovImg.src = `${API}/api/v1/anpr/job/${jobId}/frame?t=${Date.now()}`;
+        if (ovLbl) ovLbl.textContent = 'Detection result';
+      }
+    });
+  }
+
   function _cam01DismissResults() {
     _cam01ClearBadge();
+    _cam01StopTracking();
+    _cam01SetScanBox('hide');
     const wrap = document.getElementById('cam-results-cam01');
     if (wrap) wrap.style.display = 'none';
     const cards = document.getElementById('cam01-gate-cards');
@@ -2652,6 +2810,81 @@
 
   // ─── Gate & Access — ANPR scanner ────────────────────────────────────────────
   let gateAnprFile = null, gateAnprJobId = null, gateAnprTimer = null;
+  let gateTrackRAF = null, gateTrack = null, gateObjUrl = null;
+
+  // Gate detection box (mirrors CAM-01): ready / scanning / granted / denied / hide
+  function _gateSetScanBox(state, text){
+    const box = document.getElementById('gate-scan-box'); if(!box) return;
+    box.classList.remove('scanning','granted','denied');
+    box.style.left = box.style.top = box.style.width = box.style.height = '';
+    box.style.right = box.style.bottom = '';
+    if(state === 'hide'){ box.classList.remove('show'); return; }
+    box.classList.add('show');
+    if(state === 'scanning' || state === 'granted' || state === 'denied') box.classList.add(state);
+    const tag = document.getElementById('gate-scan-tag');
+    if(tag && text != null) tag.textContent = text;
+  }
+  function _gateStopTracking(){
+    if(gateTrackRAF){ cancelAnimationFrame(gateTrackRAF); gateTrackRAF = null; }
+    gateTrack = null;
+    const box = document.getElementById('gate-scan-box');
+    if(box){ box.style.left = box.style.top = box.style.width = box.style.height = ''; box.style.right = box.style.bottom = ''; }
+  }
+  async function _gateStartTracking(jobId){
+    _gateStopTracking();
+    try {
+      const res = await fetch(`${API}/api/v1/anpr/job/${jobId}/track?t=${Date.now()}`);
+      if(!res.ok) return false;
+      gateTrack = await res.json();
+    } catch(e){ return false; }
+    if(!gateTrack || !gateTrack.boxes || !gateTrack.boxes.length) return false;
+    const vid = document.getElementById('gate-anpr-vid');
+    const box = document.getElementById('gate-scan-box');
+    if(!vid || !box || !gateObjUrl) return false;
+    if(!vid.src) vid.src = gateObjUrl;
+    vid.loop = true; vid.muted = true; vid.play().catch(()=>{});
+    box.classList.remove('scanning');
+    box.classList.add('show', gateTrack.decision === 'granted' ? 'granted' : 'denied');
+    box.style.right = 'auto'; box.style.bottom = 'auto';
+    const boxes = gateTrack.boxes, iw = gateTrack.width, ih = gateTrack.height;
+    const draw = () => {
+      const t = vid.currentTime;
+      let a = boxes[0], b = boxes[boxes.length - 1];
+      if(t <= boxes[0].t){ a = b = boxes[0]; }
+      else if(t >= boxes[boxes.length - 1].t){ a = b = boxes[boxes.length - 1]; }
+      else { for(let i = 0; i < boxes.length - 1; i++){ if(boxes[i].t <= t && t <= boxes[i+1].t){ a = boxes[i]; b = boxes[i+1]; break; } } }
+      const span = (b.t - a.t) || 1, k = Math.min(1, Math.max(0, (t - a.t) / span));
+      const bx = a.x + (b.x - a.x) * k, by = a.y + (b.y - a.y) * k;
+      const bw = a.w + (b.w - a.w) * k, bh = a.h + (b.h - a.h) * k;
+      const W = vid.clientWidth, H = vid.clientHeight, scale = Math.max(W / iw, H / ih);
+      const offX = (W - iw * scale) / 2, offY = (H - ih * scale) / 2;
+      box.style.left = (offX + bx * scale) + 'px'; box.style.top = (offY + by * scale) + 'px';
+      box.style.width = (bw * scale) + 'px'; box.style.height = (bh * scale) + 'px';
+      gateTrackRAF = requestAnimationFrame(draw);
+    };
+    gateTrackRAF = requestAnimationFrame(draw);
+    return true;
+  }
+  function _gateTryTrackingWithRetry(jobId, attemptsLeft){
+    if(jobId !== gateAnprJobId) return;
+    _gateStartTracking(jobId).then(ok => {
+      if(ok || jobId !== gateAnprJobId) return;
+      if(attemptsLeft > 0){ setTimeout(() => _gateTryTrackingWithRetry(jobId, attemptsLeft - 1), 1500); return; }
+      const frameWrap = document.getElementById('gate-anpr-frame-wrap');
+      const frameImg  = document.getElementById('gate-anpr-frame-img');
+      if(frameWrap && frameImg){
+        frameImg.onload  = () => { frameWrap.style.display = ''; };
+        frameImg.onerror = () => { frameWrap.style.display = 'none'; };
+        frameImg.src = `${API}/api/v1/anpr/job/${jobId}/frame?t=${Date.now()}`;
+      }
+    });
+  }
+  window.gateClearVideo = function(){
+    _gateStopTracking(); _gateSetScanBox('hide');
+    const vid = document.getElementById('gate-anpr-vid'); if(vid){ vid.pause(); vid.src = ''; }
+    const panel = document.getElementById('gate-vid-panel'); if(panel) panel.style.display = 'none';
+    if(gateObjUrl){ URL.revokeObjectURL(gateObjUrl); gateObjUrl = null; }
+  };
 
   function gateAnprDrop(ev) {
     ev.preventDefault();
@@ -2668,6 +2901,16 @@
     document.getElementById('gate-anpr-btn').disabled = false;
     document.getElementById('gate-anpr-zone').style.borderColor = 'var(--active)';
     document.getElementById('gate-anpr-status').textContent = 'Ready — click Scan for Plates';
+
+    // Show the dropped video in the gate scene with the detection box (like CAM-01)
+    if (gateObjUrl) URL.revokeObjectURL(gateObjUrl);
+    gateObjUrl = URL.createObjectURL(f);
+    const panel = document.getElementById('gate-vid-panel');
+    const vid   = document.getElementById('gate-anpr-vid');
+    if (panel) panel.style.display = '';
+    if (vid) { vid.src = gateObjUrl; vid.play().catch(() => {}); }
+    _gateStopTracking();
+    _gateSetScanBox('ready', 'VEHICLE');
   }
 
   async function gateAnprStart() {
@@ -2679,6 +2922,8 @@
     document.getElementById('gate-anpr-frame-wrap').style.display = 'none';
     document.getElementById('gate-anpr-bar').style.width = '0';
     document.getElementById('gate-anpr-pct').textContent = '—';
+    _gateStopTracking();
+    _gateSetScanBox('scanning', 'SCANNING…');
 
     const fd = new FormData();
     fd.append('video', gateAnprFile);
@@ -2719,6 +2964,10 @@
     };
     document.getElementById('gate-anpr-status').textContent = map[data.status] || data.status;
 
+    if (data.status === 'processing' || data.status === 'pending') {
+      _gateSetScanBox('scanning', `SCANNING ${Math.round(pct)}%`);
+    }
+
     if (data.plates && data.plates.length > 0) {
       const auth = data.plates.filter(p => p.authorized).length;
       document.getElementById('gate-anpr-total').textContent = data.plates.length;
@@ -2734,22 +2983,26 @@
       _gateAnprRenderDecisions(data.plates || []);
       loadGateLog();
 
-      // Show annotated detection frame
-      const frameWrap = document.getElementById('gate-anpr-frame-wrap');
-      const frameImg  = document.getElementById('gate-anpr-frame-img');
-      const frameSub  = document.getElementById('gate-anpr-frame-sub');
-      if (frameWrap && frameImg && gateAnprJobId) {
-        frameImg.onload  = () => { frameWrap.style.display = ''; };
-        frameImg.onerror = () => { frameWrap.style.display = 'none'; };
-        frameImg.src = `${API}/api/v1/anpr/job/${gateAnprJobId}/frame?t=${Date.now()}`;
-        const n = (data.plates || []).length;
-        if (frameSub) frameSub.textContent = `${n} plate${n !== 1 ? 's' : ''} detected`;
+      // Colour the detection box green/red, then start the moving tracking box
+      const plates = data.plates || [];
+      if (plates.length) {
+        const top = [...plates].sort((a, b) =>
+          a.authorized !== b.authorized ? (a.authorized ? -1 : 1) : b.confidence - a.confidence)[0];
+        _gateSetScanBox(top.authorized ? 'granted' : 'denied',
+          (top.authorized ? 'AUTHORIZED · ' : 'DENIED · ') + _fmtPlate(top.plate));
+      } else {
+        _gateSetScanBox('denied', 'NO PLATE');
       }
+      const frameSub = document.getElementById('gate-anpr-frame-sub');
+      const n = plates.length;
+      if (frameSub) frameSub.textContent = `${n} plate${n !== 1 ? 's' : ''} detected`;
+      _gateTryTrackingWithRetry(gateAnprJobId, 12);
     }
     if (data.status === 'error') {
       document.getElementById('gate-anpr-status').textContent = 'Error: ' + (data.error || 'Unknown');
       document.getElementById('gate-anpr-btn').disabled    = false;
       document.getElementById('gate-anpr-btn').textContent = 'Retry';
+      _gateSetScanBox('denied', 'ERROR');
       _toast('ANPR scan error: ' + (data.error || 'Unknown'), 'err');
     }
   }
@@ -2776,7 +3029,7 @@
       const cls = p.authorized ? 'granted' : 'denied';
       const actionBtn = p.authorized
         ? `<button class="btn pri sm" style="margin-top:9px" onclick="recordVehicleEntry('${p.plate}');loadGateLog()">▶ Record Gate Entry</button>`
-        : `<button class="btn danger sm" style="margin-top:9px" onclick="_toast('Security alerted for plate ${_fmtPlate(p.plate)}','warn')">⚠ Alert Security</button>
+        : `<button class="btn danger sm" style="margin-top:9px" onclick="raiseVehicleAlert('${p.plate}','Gate &amp; Access')">⚠ Alert Security</button>
            <button class="btn sm" id="gate-wl-btn-${p.plate.replace(/[^A-Z0-9]/gi,'')}" style="margin-top:9px;border-color:var(--clear);color:var(--clear)" onclick="gateQuickAddWhitelist('${p.plate}',this)">+ Add to Whitelist</button>`;
       html += `
         <div class="gate-decision ${cls}" style="margin-bottom:12px">
@@ -2813,9 +3066,12 @@
       document.getElementById('gate-auth-tbody').innerHTML = list.length
         ? list.map(v => `<tr>
             <td class="mono" style="font-size:12.5px">${v.plate}</td>
-            <td>${v.owner}</td>
+            <td>${_alertEsc(v.owner)}</td>
             <td>${v.vehicle_type}</td>
-            <td><button class="btn sm danger" onclick="gateRemoveVehicle('${v.plate}')">Remove</button></td>
+            <td style="white-space:nowrap">
+              <button class="btn sm wl-edit" data-plate="${v.plate}" data-owner="${_alertEsc(v.owner)}" data-type="${_alertEsc(v.vehicle_type)}">Edit</button>
+              <button class="btn sm danger" onclick="gateRemoveVehicle('${v.plate}')">Remove</button>
+            </td>
           </tr>`).join('')
         : '<tr><td colspan="4" style="text-align:center;color:var(--muted-2);padding:14px;font-family:var(--mono);font-size:11px">No authorized vehicles — add one below</td></tr>';
     } catch(e) {}
@@ -2903,6 +3159,9 @@
       ov.style.display = 'block';
       _playVideoOrFallback(vid, st._objUrl, f, lbl, null);
     }
+
+    // Show the vehicle detection box as soon as a gate video is uploaded
+    if (id === 'cam01') _cam01SetScanBox('ready', 'VEHICLE');
   }
 
   async function camDetectStart(id) {
@@ -3064,6 +3323,7 @@
     if (vid) { vid.pause(); vid.src = ''; vid.style.display = ''; }
     if (img) { img.src = ''; img.style.display = 'none'; }
     if (ov)  ov.style.display = 'none';
+    if (id === 'cam01') { _cam01StopTracking(); _cam01SetScanBox('hide'); }
     // Clear the inline panel preview too
     const pWrap = document.getElementById(`cam-vid-preview-${id}`);
     const pVid  = document.getElementById(`cam-vid-el-${id}`);
@@ -3188,6 +3448,23 @@
     document.getElementById('anpr-edit-modal').classList.add('open');
   }
 
+  // Edit an existing whitelist vehicle (e.g. rename "Unknown" owner to a real name)
+  window.editWhitelistVehicle = function(plate, owner, type){
+    _anprEditContext = { containerId: null, plate };
+    document.getElementById('aedit-original').value = plate;
+    document.getElementById('aedit-plate').value    = _fmtPlate(plate);
+    document.getElementById('aedit-owner').value     = (owner && owner !== 'Unknown') ? owner : '';
+    document.getElementById('aedit-type').value      = type || 'Car';
+    document.getElementById('aedit-decision').value  = 'update';
+    document.getElementById('aedit-msg').textContent = '';
+    document.getElementById('anpr-edit-modal').classList.add('open');
+  };
+  // Delegated handler for the Edit buttons in the whitelist tables
+  document.addEventListener('click', e => {
+    const b = e.target.closest('.wl-edit');
+    if (b) editWhitelistVehicle(b.dataset.plate, b.dataset.owner, b.dataset.type);
+  });
+
   async function cam01QuickRemove(plate) {
     const norm = plate.replace(/\s/g, '').toUpperCase();
     try {
@@ -3291,6 +3568,15 @@
         }
         msg.style.color = 'var(--clear)';
         msg.textContent = '✓ Added to whitelist — plate now AUTHORIZED.';
+      } else if (decision === 'update') {
+        const original = document.getElementById('aedit-original').value.replace(/\s/g,'').toUpperCase();
+        const res = await fetch(`${API}/api/v1/anpr/authorized/${encodeURIComponent(original)}`, {
+          method: 'PUT', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ owner, vehicle_type: vtype, new_plate: plate.replace(/\s/g,'').toUpperCase() })
+        });
+        if (!res.ok) throw new Error((await res.json()).detail || 'Update failed');
+        msg.style.color = 'var(--clear)';
+        msg.textContent = '✓ Vehicle details updated.';
       } else {
         const normPlate = plate.replace(/\s/g,'').toUpperCase();
         await fetch(`${API}/api/v1/anpr/authorized/${encodeURIComponent(normPlate)}`, { method: 'DELETE' });
