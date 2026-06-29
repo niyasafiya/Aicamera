@@ -4,14 +4,104 @@ Register → store encoding; Verify → compare against DB.
 """
 from __future__ import annotations
 
+import asyncio
+import tempfile
+import uuid
+from pathlib import Path
+from typing import Optional
+
+import cv2
 from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile
 from pydantic import BaseModel
-from typing import Optional
 
 import db
 from services import bio_service
 
 router = APIRouter()
+
+# Reuse the same temp dir as the ANPR module
+_UPLOADS = Path(tempfile.gettempdir()) / "sentinel_ai"
+
+# Lazy person detector (YOLOv4-tiny via OpenCV DNN — detects PERSON, unlike the
+# vehicle-only Detector in services/yolo_service.py)
+_people_detector = None
+
+
+def _get_people_detector():
+    global _people_detector
+    if _people_detector is None:
+        from detector import YOLODetector
+        _people_detector = YOLODetector(conf_thresh=0.35)
+    return _people_detector
+
+
+def _scan_people_video(video_path: str) -> dict:
+    """Run person detection across an uploaded clip. Returns a verdict plus a
+    per-time box of the main person so the front-end can draw a moving box.
+
+    decision: 'granted' (one person, access ok) | 'tailgating' (2+ in a frame)
+              | 'none' (no person found) | 'unavailable' (detector missing)
+    """
+    try:
+        det = _get_people_detector()
+    except Exception:
+        return {"decision": "unavailable", "people_max": 0,
+                "frames_with_person": 0, "boxes": []}
+
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        raise HTTPException(400, "Cannot open video file")
+
+    fps    = cap.get(cv2.CAP_PROP_FPS) or 25
+    total  = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 0
+    width  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    step   = max(1, int(round(fps / 8)))     # ~8 samples/sec
+    limit  = min(total or 6000, 6000)
+
+    boxes, people_max, frames_with_person, idx = [], 0, 0, 0
+    while idx < limit:
+        if not cap.grab():
+            break
+        if idx % step == 0:
+            ok, frame = cap.retrieve()
+            if not ok:
+                break
+            fh, fw = frame.shape[:2]
+            sf = 1.0
+            if fw > 960:
+                sf = 960.0 / fw
+                frame = cv2.resize(frame, (960, int(fh * sf)))
+            try:
+                dets = det.detect(frame)
+            except Exception:
+                dets = []
+            persons = [d for d in dets if getattr(d, "label", "") == "PERSON"]
+            if persons:
+                frames_with_person += 1
+                people_max = max(people_max, len(persons))
+                p = max(persons, key=lambda d: (d.x2 - d.x1) * (d.y2 - d.y1))
+                inv = 1.0 / sf
+                boxes.append({
+                    "t": round(idx / fps, 3),
+                    "x": int(p.x1 * inv), "y": int(p.y1 * inv),
+                    "w": int((p.x2 - p.x1) * inv), "h": int((p.y2 - p.y1) * inv),
+                })
+        idx += 1
+    cap.release()
+
+    if people_max >= 2:
+        decision = "tailgating"
+    elif frames_with_person > 0:
+        decision = "granted"
+    else:
+        decision = "none"
+
+    return {
+        "decision": decision, "people_max": people_max,
+        "frames_with_person": frames_with_person,
+        "fps": fps, "width": width, "height": height, "boxes": boxes,
+    }
 
 
 class UpdatePerson(BaseModel):
@@ -99,6 +189,40 @@ async def verify_face(photo: UploadFile = File(...)):
     )
     conn.commit()
     conn.close()
+
+    return result
+
+
+@router.post("/face-video")
+async def face_video(video: UploadFile = File(...)):
+    """Gate face / tailgating demo: detect people in an uploaded clip and decide
+    grant vs. tailgating alert. Returns a moving person-box track for the UI."""
+    _UPLOADS.mkdir(parents=True, exist_ok=True)
+    suffix = Path(video.filename or "v.mp4").suffix or ".mp4"
+    tmp    = _UPLOADS / f"face_{uuid.uuid4().hex}{suffix}"
+    tmp.write_bytes(await video.read())
+    try:
+        result = await asyncio.to_thread(_scan_people_video, str(tmp))
+    finally:
+        tmp.unlink(missing_ok=True)
+
+    # Log to bio_log so it shows in the overview event feed
+    dec_map = {"granted": "GRANTED", "tailgating": "DENIED",
+               "none": "DENIED", "unavailable": "DENIED"}
+    name_map = {"granted": "Authorized person", "tailgating": "Tailgating — 2+ people",
+                "none": "No face detected", "unavailable": "Detector unavailable"}
+    try:
+        conn = db.get_conn()
+        conn.execute(
+            "INSERT INTO bio_log (person_name, confidence, decision) VALUES (?,?,?)",
+            (name_map.get(result["decision"], "Face check"),
+             1.0 if result["decision"] == "granted" else 0.0,
+             dec_map.get(result["decision"], "DENIED")),
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
 
     return result
 

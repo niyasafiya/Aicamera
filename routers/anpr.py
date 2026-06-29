@@ -5,6 +5,8 @@ Video upload → background OCR job → annotated output video + access log.
 from __future__ import annotations
 
 import asyncio
+import difflib
+import json
 import tempfile
 import threading
 import uuid
@@ -18,7 +20,13 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 import db
-from services.anpr_service import extract_plates_from_frame
+from services.anpr_service import (
+    _looks_like_plate,
+    _majority_vote,
+    _postfix,
+    extract_plates_from_frame,
+)
+from services.yolo_service import get_detector
 
 router = APIRouter()
 
@@ -27,6 +35,10 @@ UPLOADS = Path(tempfile.gettempdir()) / "sentinel_ai"
 
 # Maximum frames to annotate (~10 min @ 30 fps)
 _ANNOTATE_MAX_FRAMES = 18_000
+
+# Downscale frames wider than this before OCR/vehicle detection — big speed win on
+# 1080p/4K clips, plates stay readable. Bboxes are scaled back to full resolution.
+_MAX_SCAN_W = 1280
 
 
 # ---------------------------------------------------------------------------
@@ -39,12 +51,181 @@ class AuthVehicle(BaseModel):
     vehicle_type: str = "Car"
 
 
+class AuthVehicleUpdate(BaseModel):
+    owner:        Optional[str] = None
+    vehicle_type: Optional[str] = None
+    new_plate:    Optional[str] = None
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
 def _norm(plate: str) -> str:
     return plate.upper().replace(" ", "").replace("-", "")
+
+
+def _cluster_and_vote(all_dets: List[dict]) -> dict:
+    """Accuracy pass: group every plate read across all sampled frames by string
+    similarity, then run a confidence-weighted character-level majority vote on
+    each group. This corrects single-frame OCR mistakes (1/I, 0/O, S/5, B/8 …)
+    by letting multiple frames agree on each character. No extra OCR work, so
+    scan speed is unchanged.
+
+    Returns {norm_plate: {"plate", "confidence", "bbox"}} and also rewrites each
+    detection's "plate" in place so the annotated video matches the final read.
+    """
+    clusters: List[dict] = []
+    for d in all_dets:
+        p = _norm(d["plate"])
+        if not p:
+            continue
+        placed = False
+        for c in clusters:
+            # Compare against the cluster's first (representative) read
+            if difflib.SequenceMatcher(None, p, c["reads"][0][0]).ratio() >= 0.7:
+                c["reads"].append((p, d["confidence"]))
+                c["dets"].append(d)
+                placed = True
+                break
+        if not placed:
+            clusters.append({"reads": [(p, d["confidence"])], "dets": [d]})
+
+    best: dict = {}
+    for c in clusters:
+        voted = _majority_vote(c["reads"])
+        if not voted:
+            continue
+        plate = _postfix(voted[0])
+        if not _looks_like_plate(plate):
+            # Voting produced something invalid — keep the strongest raw read
+            plate = max(c["reads"], key=lambda x: x[1])[0]
+        conf = round(voted[1], 3)
+
+        # Best bbox = the highest-confidence detection in this cluster
+        bd = max(c["dets"], key=lambda x: x["confidence"])
+        # Rewrite every frame's label so the burned-in overlay matches the table
+        for det in c["dets"]:
+            det["plate"] = plate
+
+        norm = _norm(plate)
+        if norm not in best or conf > best[norm]["confidence"]:
+            best[norm] = {"plate": plate, "confidence": conf, "bbox": bd.get("bbox")}
+    return best
+
+
+def _scale_box(box, factor: float):
+    return tuple(int(v * factor) for v in box)
+
+
+def _attach_vehicle_boxes(frame: np.ndarray, detections: List[dict]) -> None:
+    """Run the vehicle detector ONCE on a frame that already has a plate, and
+    attach the surrounding vehicle's bounding box to each plate detection
+    (key 'vehicle_bbox'). The annotator then draws a green/red box around the
+    whole car. Detector runs only on the handful of plate frames, so the extra
+    cost is small. Degrades silently to plate-only boxes if YOLO is unavailable.
+    All coordinates stay in `frame` space — the caller scales them if needed.
+    """
+    try:
+        det = get_detector()
+        if not getattr(det, "available", False):
+            return
+        vehicles = det.detect(frame)
+    except Exception:
+        return
+    if not vehicles:
+        return
+
+    for d in detections:
+        pb = d.get("bbox")
+        if pb:
+            px = (pb[0] + pb[2]) / 2
+            py = (pb[1] + pb[3]) / 2
+            # Prefer the vehicle box that contains the plate centre …
+            containing = [
+                v for v in vehicles
+                if v.bbox[0] <= px <= v.bbox[2] and v.bbox[1] <= py <= v.bbox[3]
+            ]
+            pool = containing or vehicles
+            chosen = min(
+                pool,
+                key=lambda v: ((v.bbox[0] + v.bbox[2]) / 2 - px) ** 2
+                            + ((v.bbox[1] + v.bbox[3]) / 2 - py) ** 2,
+            )
+        else:
+            # No plate box — use the largest vehicle in frame
+            chosen = max(
+                vehicles,
+                key=lambda v: (v.bbox[2] - v.bbox[0]) * (v.bbox[3] - v.bbox[1]),
+            )
+        d["vehicle_bbox"] = tuple(chosen.bbox)
+
+
+def _build_track_json(
+    video_path: str,
+    fps: float,
+    width: int,
+    height: int,
+    decision: str,
+    total: int,
+    job_id: str,
+) -> None:
+    """Sample the vehicle position ~10×/second across the whole clip and save it
+    as JSON. The front-end overlays a box on the playing video and interpolates
+    between these samples so it follows the vehicle. Runs in the background
+    encode thread, so it never blocks the scan result.
+    """
+    try:
+        det = get_detector()
+        if not getattr(det, "available", False):
+            return
+    except Exception:
+        return
+
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        return
+
+    f       = fps or 25
+    step    = max(1, int(round(f / 10)))    # ~10 samples per second
+    limit   = min(total or _ANNOTATE_MAX_FRAMES, _ANNOTATE_MAX_FRAMES)
+    boxes   = []
+    idx     = 0
+    while idx < limit:
+        if not cap.grab():
+            break
+        if idx % step == 0:
+            ok, frame = cap.retrieve()
+            if not ok:
+                break
+            fh, fw = frame.shape[:2]
+            sf = 1.0
+            if fw > 960:
+                sf = 960.0 / fw
+                frame = cv2.resize(frame, (960, int(fh * sf)))
+            try:
+                vehicles = det.detect(frame)
+            except Exception:
+                vehicles = []
+            if vehicles:
+                v = max(vehicles, key=lambda d: (d.bbox[2] - d.bbox[0]) * (d.bbox[3] - d.bbox[1]))
+                inv = 1.0 / sf
+                x1, y1, x2, y2 = v.bbox
+                boxes.append({
+                    "t": round(idx / f, 3),
+                    "x": int(x1 * inv), "y": int(y1 * inv),
+                    "w": int((x2 - x1) * inv), "h": int((y2 - y1) * inv),
+                })
+        idx += 1
+    cap.release()
+
+    if not boxes:
+        return
+    payload = {
+        "fps": f, "width": width, "height": height,
+        "decision": decision, "boxes": boxes,
+    }
+    (UPLOADS / f"anpr_{job_id}_track.json").write_text(json.dumps(payload))
 
 
 def _update_job(job_id: str, status: str, progress: float, error: Optional[str]):
@@ -79,6 +260,44 @@ def _annotate_frame(
 
         color = (50, 220, 90) if auth else (40, 40, 235)   # BGR: green / red
         label = d["plate"] + ("  AUTHORIZED" if auth else "  DENIED")
+
+        # ---- Vehicle box: green if authorised, red if not ----
+        vbox = d.get("vehicle_bbox")
+        if vbox:
+            vx1, vy1, vx2, vy2 = (
+                max(0, vbox[0]), max(0, vbox[1]),
+                min(fw - 1, vbox[2]), min(fh - 1, vbox[3]),
+            )
+            vw = vx2 - vx1
+            # Thick rectangle around the whole vehicle (+ dark outline for contrast)
+            cv2.rectangle(out, (vx1 - 2, vy1 - 2), (vx2 + 2, vy2 + 2), BLACK, 6)
+            cv2.rectangle(out, (vx1, vy1), (vx2, vy2), color, 3)
+            # Corner brackets (targeting-style)
+            cl = max(14, min(vw // 6, 46))
+            for cx, cy, sx, sy in [
+                (vx1, vy1, 1, 1), (vx2, vy1, -1, 1),
+                (vx1, vy2, 1, -1), (vx2, vy2, -1, -1),
+            ]:
+                cv2.line(out, (cx, cy), (cx + sx * cl, cy), color, 5)
+                cv2.line(out, (cx, cy), (cx, cy + sy * cl), color, 5)
+            # Label banner above the vehicle
+            fs = max(0.55, min(1.0, vw / 420))
+            (tw, th), bl = cv2.getTextSize(label, font, fs, 2)
+            ly2 = vy1
+            ly1 = max(0, vy1 - th - bl - 12)
+            lx2 = min(fw, vx1 + tw + 16)
+            cv2.rectangle(out, (vx1 - 1, ly1 - 1), (lx2 + 1, ly2 + 1), BLACK, -1)
+            cv2.rectangle(out, (vx1, ly1), (lx2, ly2), color, -1)
+            cv2.putText(out, label, (vx1 + 7, ly2 - bl - 3),
+                        font, fs, (255, 255, 255), 2, cv2.LINE_AA)
+            # Thin highlight on the plate itself (no extra label)
+            if bbox:
+                px1, py1, px2, py2 = (
+                    max(0, bbox[0]), max(0, bbox[1]),
+                    min(fw - 1, bbox[2]), min(fh - 1, bbox[3]),
+                )
+                cv2.rectangle(out, (px1, py1), (px2, py2), color, 2)
+            continue
 
         if bbox:
             x1, y1, x2, y2 = (
@@ -198,9 +417,16 @@ def _encode_video_background(
     fps: float,
     width: int,
     height: int,
+    decision: str = "denied",
 ):
-    """Encode the annotated MP4 after the scan job has already completed.
-    Deletes the source video when done."""
+    """After the scan result is already returned: (1) build the vehicle-tracking
+    JSON the front-end uses to draw a moving box, and (2) encode the annotated
+    MP4. Deletes the source video when done."""
+    try:
+        _build_track_json(video_path, fps, width, height, decision, total, job_id)
+    except Exception:
+        import traceback
+        print(f"[ANPR track {job_id}] {traceback.format_exc()}")
     try:
         ann_path = UPLOADS / f"anpr_{job_id}_annotated.mp4"
         _write_annotated_video(
@@ -242,6 +468,7 @@ def _process_video(job_id: str, video_path: str):
         plates_best:       dict = {}
         frame_detections:  dict = {}
         plate_seen_count:  dict = {}   # norm → frames where it was detected
+        all_dets:          List[dict] = []   # every read, for cross-frame voting
         frame_num      = 0
         no_new_streak  = 0
 
@@ -256,10 +483,32 @@ def _process_video(job_id: str, video_path: str):
                 break
 
             if do_decode:
-                detections = extract_plates_from_frame(frame)
+                # Downscale wide frames before OCR — much faster on HD/4K clips.
+                fh, fw = frame.shape[:2]
+                if fw > _MAX_SCAN_W:
+                    sf = _MAX_SCAN_W / fw
+                    scan_frame = cv2.resize(frame, (_MAX_SCAN_W, int(fh * sf)))
+                else:
+                    sf = 1.0
+                    scan_frame = frame
+
+                detections = extract_plates_from_frame(scan_frame)
                 improved = False
                 if detections:
+                    # Draw a box around the whole vehicle (green/red later) — detector
+                    # runs only on this plate frame, so the speed cost is minimal.
+                    _attach_vehicle_boxes(scan_frame, detections)
+                    # Map all boxes back to full-resolution coordinates.
+                    if sf != 1.0:
+                        inv = 1.0 / sf
+                        for d in detections:
+                            if d.get("bbox"):
+                                d["bbox"] = _scale_box(d["bbox"], inv)
+                            if d.get("vehicle_bbox"):
+                                d["vehicle_bbox"] = _scale_box(d["vehicle_bbox"], inv)
+
                     frame_detections[frame_num] = detections
+                    all_dets.extend(detections)
                     for d in detections:
                         norm = _norm(d["plate"])
                         plate_seen_count[norm] = plate_seen_count.get(norm, 0) + 1
@@ -269,7 +518,9 @@ def _process_video(job_id: str, video_path: str):
 
                 no_new_streak = 0 if improved else no_new_streak + 1
 
-                # Fast stop: plate confirmed in 2+ frames with decent confidence
+                # Stop once a plate is confirmed in 2+ frames with decent confidence.
+                # Cross-frame voting still corrects characters with 2 samples, and
+                # stopping sooner keeps scanning fast.
                 if any(
                     plate_seen_count.get(n, 0) >= 2 and plates_best[n]["confidence"] >= 0.65
                     for n in plates_best
@@ -298,6 +549,7 @@ def _process_video(job_id: str, video_path: str):
                 detections = extract_plates_from_frame(frame)
                 if detections:
                     frame_detections[frame_num] = detections
+                    all_dets.extend(detections)
                     for d in detections:
                         norm = _norm(d["plate"])
                         if norm not in plates_best or d["confidence"] > plates_best[norm]["confidence"]:
@@ -305,6 +557,12 @@ def _process_video(job_id: str, video_path: str):
                     if plates_best:
                         break
             cap2.release()
+
+        # Accuracy pass: cross-frame majority vote over every read collected above.
+        if all_dets:
+            voted_best = _cluster_and_vote(all_dets)
+            if voted_best:
+                plates_best = voted_best
 
         # Cross-check against whitelist
         conn = db.get_conn()
@@ -338,15 +596,18 @@ def _process_video(job_id: str, video_path: str):
         # Mark completed NOW — results are in DB, frontend can show them immediately
         _update_job(job_id, "completed", 100, None)
 
-        # Kick off video encoding in a separate thread so it doesn't block the result
-        if frame_detections:
-            handed_off = True
-            threading.Thread(
-                target=_encode_video_background,
-                args=(video_path, frame_detections, auth_map,
-                      job_id, total, fps, width, height),
-                daemon=True,
-            ).start()
+        # Overall gate decision drives the tracking-box colour (green/red).
+        decision = "granted" if any(auth_map.get(n) for n in plates_best) else "denied"
+
+        # Background: build the vehicle-tracking JSON (+ annotated MP4). Always run
+        # so the moving box shows even when the plate is unreadable / not authorised.
+        handed_off = True
+        threading.Thread(
+            target=_encode_video_background,
+            args=(video_path, frame_detections, auth_map,
+                  job_id, total, fps, width, height, decision),
+            daemon=True,
+        ).start()
 
     except Exception as exc:
         import traceback
@@ -396,6 +657,15 @@ def get_job_video(job_id: str):
         media_type="video/mp4",
         headers={"Accept-Ranges": "bytes"},
     )
+
+
+@router.get("/job/{job_id}/track")
+def get_job_track(job_id: str):
+    """Vehicle-position samples for the moving detection box (front-end overlay)."""
+    track_path = UPLOADS / f"anpr_{job_id}_track.json"
+    if not track_path.exists():
+        raise HTTPException(404, "No track available for this job")
+    return FileResponse(str(track_path), media_type="application/json")
 
 
 @router.get("/job/{job_id}/frame")
@@ -452,6 +722,41 @@ def add_authorized(body: AuthVehicle):
     conn.commit()
     conn.close()
     return {"plate": norm, "owner": body.owner, "vehicle_type": body.vehicle_type}
+
+
+@router.put("/authorized/{plate}")
+def update_authorized(plate: str, body: AuthVehicleUpdate):
+    """Update an authorised vehicle's owner / type, and optionally rename the plate.
+    Lets the operator turn an 'Unknown' owner into a real name in place."""
+    norm = _norm(plate)
+    conn = db.get_conn()
+    row = conn.execute(
+        "SELECT plate, owner, vehicle_type FROM authorized_vehicles WHERE plate=?",
+        (norm,),
+    ).fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(404, f"Plate {norm} not in whitelist")
+
+    new_norm = _norm(body.new_plate) if body.new_plate else norm
+    owner    = body.owner        if body.owner        is not None else row["owner"]
+    vtype    = body.vehicle_type if body.vehicle_type is not None else row["vehicle_type"]
+
+    if new_norm != norm:
+        clash = conn.execute(
+            "SELECT 1 FROM authorized_vehicles WHERE plate=?", (new_norm,)
+        ).fetchone()
+        if clash:
+            conn.close()
+            raise HTTPException(409, f"Plate {new_norm} already in whitelist")
+
+    conn.execute(
+        "UPDATE authorized_vehicles SET plate=?, owner=?, vehicle_type=? WHERE plate=?",
+        (new_norm, owner, vtype, norm),
+    )
+    conn.commit()
+    conn.close()
+    return {"plate": new_norm, "owner": owner, "vehicle_type": vtype}
 
 
 @router.delete("/authorized/{plate}", status_code=204)
