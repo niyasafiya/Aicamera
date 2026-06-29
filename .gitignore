@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+
+# Environment / secrets
+.env
+
+# Database
+*.db
+*.sqlite3
+
+# Large model weights
+*.pt
+*.pth
+*.onnx
+
+# Alert snapshot images
+alert_images/
+
+# Logs
+*.log
+*.err
+
+# Aicamera subfolder (separate repo)
+Aicamera/
+
+# OS
+.DS_Store
+Thumbs.db
