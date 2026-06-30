@@ -140,12 +140,12 @@ class PPEDetector:
         Only flags a violation when the model positively detects NO hat.
         """
         h_frame, w_frame = frame.shape[:2]
-        min_box_h = h_frame * 0.08  # ignore detections shorter than 8% of frame height
+        min_box_h = h_frame * 0.05  # ignore detections shorter than 5% of frame height
 
         # class=0 is COCO "person" — no other class is ever returned
-        pr = self._person_model(frame, conf=0.6, classes=[0], verbose=False)[0]
+        pr = self._person_model(frame, conf=0.4, classes=[0], verbose=False)[0]
 
-        # Filter by minimum height and collect
+        # Filter by minimum height and aspect ratio
         raw: list[tuple[list, float]] = []
         for b in pr.boxes:
             x1, y1, x2, y2 = b.xyxy[0].tolist()
@@ -153,16 +153,16 @@ class PPEDetector:
             box_w = x2 - x1
             if box_h < min_box_h:
                 continue
-            # A person box should be taller than it is wide (or close to square for seated people)
-            if box_w > 0 and (box_h / box_w) < 0.5:
+            # Skip very flat boxes — a person is always taller than they are wide
+            if box_w > 0 and (box_h / box_w) < 0.4:
                 continue
             raw.append(([x1, y1, x2, y2], float(b.conf)))
 
-        # NMS: merge boxes that share more than 35% overlap — catches same person detected twice
+        # NMS: if two boxes share more than 40% overlap, keep the higher-confidence one
         raw.sort(key=lambda t: t[1], reverse=True)
         kept: list[tuple[list, float]] = []
         for box, conf in raw:
-            if not any(_box_overlap(box, k[0]) > 0.35 for k in kept):
+            if not any(_box_overlap(box, k[0]) > 0.40 for k in kept):
                 kept.append((box, conf))
 
         persons      = [k[0] for k in kept]

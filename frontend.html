@@ -907,6 +907,122 @@
             <div id="pd-chips"></div><div id="pd-table"></div>
           </div>
         </div>
+
+        <!-- Safety Camera Grid -->
+        <div class="view-head" style="margin-top:22px;margin-bottom:12px">
+          <div><div class="eyebrow">Live Feeds</div><h1 style="font-size:17px">Safety Cameras</h1><p>Upload footage to any camera to run people detection, PPE check, and activity analysis.</p></div>
+        </div>
+        <div class="feeds">
+
+          <!-- SC-08 · Warehouse Aisle 4 -->
+          <div class="cam" id="cam-card-sc08">
+            <div class="scene"><div class="cctv-wrap">
+              <img id="feed-sc08" class="cctv-feed" src="http://127.0.0.1:8000/stream/cam08" onerror="_camFeedError('sc08')">
+              <div class="feed-err" id="err-sc08" style="display:none">⚠ No signal<br><span style="font-size:8.5px;color:var(--muted-2)">CAM-08 · AISLE 4</span><br><span style="font-size:8px;color:var(--muted-2);margin-top:4px;display:block">↑ Upload to detect</span></div>
+              <div class="cam-result-overlay" id="cam-overlay-sc08">
+                <video id="cam-overlay-vid-sc08" autoplay loop muted playsinline></video>
+                <img id="cam-overlay-img-sc08" alt="">
+                <button class="cam-ov-close" onclick="camClearOverlay('sc08')">× LIVE</button>
+                <span class="cam-ov-label" id="cam-ov-label-sc08">Uploaded video</span>
+              </div>
+            </div></div>
+            <div class="cam-meta"><span class="name">Warehouse Aisle 4</span><span class="id">CAM-08</span><span class="right"><span class="live"><span class="dot live"></span>LIVE</span><button class="cam-upload-btn" id="cam-upload-toggle-sc08" onclick="camUploadToggle('sc08')" title="Upload footage">↑ Upload</button></span></div>
+            <div class="cam-upload-panel" id="cam-upload-panel-sc08">
+              <div class="cam-dz" id="cam-dz-sc08" onclick="document.getElementById('cam-file-sc08').click()" ondragover="camDragOver(event,'sc08')" ondragleave="camDragLeave(event,'sc08')" ondrop="camDrop(event,'sc08')">
+                <input type="file" accept="video/*,image/*" id="cam-file-sc08" style="display:none" onchange="camFileChosen(this,'sc08')">
+                <span id="cam-fname-sc08">Drop video or photo to browse</span>
+              </div>
+              <div id="cam-vid-preview-sc08" style="display:none;position:relative;border-radius:4px;overflow:hidden;background:#000;aspect-ratio:16/9;margin-top:8px">
+                <video id="cam-vid-el-sc08" style="width:100%;height:100%;object-fit:cover" autoplay loop muted playsinline></video>
+                <img id="cam-img-el-sc08" style="display:none;width:100%;height:100%;object-fit:cover">
+                <span id="cam-vid-lbl-sc08" style="position:absolute;bottom:4px;left:5px;font-size:9px;font-family:var(--mono);background:rgba(0,0,0,.7);color:var(--muted-2);padding:2px 6px;border-radius:3px;letter-spacing:.04em">▶ Preview</span>
+              </div>
+              <div class="cam-det-row">
+                <div class="cam-prog-wrap"><div class="cam-prog-fill" id="cam-bar-sc08"></div></div>
+                <span class="cam-det-status" id="cam-status-sc08">—</span>
+                <button class="btn sm pri" id="cam-det-btn-sc08" onclick="camDetectStart('sc08')" disabled>Detect</button>
+              </div>
+              <div id="cam-results-sc08" style="display:none">
+                <div class="cam-det-counts" id="cam-counts-sc08"></div>
+                <div class="cam-det-stats" id="cam-stats-sc08"></div>
+                <img id="cam-frame-sc08" class="cam-det-frame" style="display:none">
+              </div>
+            </div>
+          </div>
+
+          <!-- SC-12 · Loading Bay 2 -->
+          <div class="cam" id="cam-card-sc12">
+            <div class="scene"><div class="cctv-wrap">
+              <img id="feed-sc12" class="cctv-feed" src="http://127.0.0.1:8000/stream/cam12" onerror="_camFeedError('sc12')">
+              <div class="feed-err" id="err-sc12" style="display:none">⚠ No signal<br><span style="font-size:8.5px;color:var(--muted-2)">CAM-12 · LOADING BAY 2</span><br><span style="font-size:8px;color:var(--muted-2);margin-top:4px;display:block">↑ Upload to detect</span></div>
+              <div class="cam-result-overlay" id="cam-overlay-sc12">
+                <video id="cam-overlay-vid-sc12" autoplay loop muted playsinline></video>
+                <img id="cam-overlay-img-sc12" alt="">
+                <button class="cam-ov-close" onclick="camClearOverlay('sc12')">× LIVE</button>
+                <span class="cam-ov-label" id="cam-ov-label-sc12">Uploaded video</span>
+              </div>
+            </div></div>
+            <div class="cam-meta"><span class="name">Loading Bay 2</span><span class="id">CAM-12</span><span class="right"><span class="live"><span class="dot live"></span>LIVE</span><button class="cam-upload-btn" id="cam-upload-toggle-sc12" onclick="camUploadToggle('sc12')" title="Upload footage">↑ Upload</button></span></div>
+            <div class="cam-upload-panel" id="cam-upload-panel-sc12">
+              <div class="cam-dz" id="cam-dz-sc12" onclick="document.getElementById('cam-file-sc12').click()" ondragover="camDragOver(event,'sc12')" ondragleave="camDragLeave(event,'sc12')" ondrop="camDrop(event,'sc12')">
+                <input type="file" accept="video/*,image/*" id="cam-file-sc12" style="display:none" onchange="camFileChosen(this,'sc12')">
+                <span id="cam-fname-sc12">Drop video or photo to browse</span>
+              </div>
+              <div id="cam-vid-preview-sc12" style="display:none;position:relative;border-radius:4px;overflow:hidden;background:#000;aspect-ratio:16/9;margin-top:8px">
+                <video id="cam-vid-el-sc12" style="width:100%;height:100%;object-fit:cover" autoplay loop muted playsinline></video>
+                <img id="cam-img-el-sc12" style="display:none;width:100%;height:100%;object-fit:cover">
+                <span id="cam-vid-lbl-sc12" style="position:absolute;bottom:4px;left:5px;font-size:9px;font-family:var(--mono);background:rgba(0,0,0,.7);color:var(--muted-2);padding:2px 6px;border-radius:3px;letter-spacing:.04em">▶ Preview</span>
+              </div>
+              <div class="cam-det-row">
+                <div class="cam-prog-wrap"><div class="cam-prog-fill" id="cam-bar-sc12"></div></div>
+                <span class="cam-det-status" id="cam-status-sc12">—</span>
+                <button class="btn sm pri" id="cam-det-btn-sc12" onclick="camDetectStart('sc12')" disabled>Detect</button>
+              </div>
+              <div id="cam-results-sc12" style="display:none">
+                <div class="cam-det-counts" id="cam-counts-sc12"></div>
+                <div class="cam-det-stats" id="cam-stats-sc12"></div>
+                <img id="cam-frame-sc12" class="cam-det-frame" style="display:none">
+              </div>
+            </div>
+          </div>
+
+          <!-- SC-05 · Turnstile B -->
+          <div class="cam" id="cam-card-sc05">
+            <div class="scene"><div class="cctv-wrap">
+              <img id="feed-sc05" class="cctv-feed" src="http://127.0.0.1:8000/stream/cam05" onerror="_camFeedError('sc05')">
+              <div class="feed-err" id="err-sc05" style="display:none">⚠ No signal<br><span style="font-size:8.5px;color:var(--muted-2)">CAM-05 · TURNSTILE B</span><br><span style="font-size:8px;color:var(--muted-2);margin-top:4px;display:block">↑ Upload to detect</span></div>
+              <div class="cam-result-overlay" id="cam-overlay-sc05">
+                <video id="cam-overlay-vid-sc05" autoplay loop muted playsinline></video>
+                <img id="cam-overlay-img-sc05" alt="">
+                <button class="cam-ov-close" onclick="camClearOverlay('sc05')">× LIVE</button>
+                <span class="cam-ov-label" id="cam-ov-label-sc05">Uploaded video</span>
+              </div>
+            </div></div>
+            <div class="cam-meta"><span class="name">Turnstile B</span><span class="id">CAM-05</span><span class="right"><span class="live"><span class="dot live"></span>LIVE</span><button class="cam-upload-btn" id="cam-upload-toggle-sc05" onclick="camUploadToggle('sc05')" title="Upload footage">↑ Upload</button></span></div>
+            <div class="cam-upload-panel" id="cam-upload-panel-sc05">
+              <div class="cam-dz" id="cam-dz-sc05" onclick="document.getElementById('cam-file-sc05').click()" ondragover="camDragOver(event,'sc05')" ondragleave="camDragLeave(event,'sc05')" ondrop="camDrop(event,'sc05')">
+                <input type="file" accept="video/*,image/*" id="cam-file-sc05" style="display:none" onchange="camFileChosen(this,'sc05')">
+                <span id="cam-fname-sc05">Drop video or photo to browse</span>
+              </div>
+              <div id="cam-vid-preview-sc05" style="display:none;position:relative;border-radius:4px;overflow:hidden;background:#000;aspect-ratio:16/9;margin-top:8px">
+                <video id="cam-vid-el-sc05" style="width:100%;height:100%;object-fit:cover" autoplay loop muted playsinline></video>
+                <img id="cam-img-el-sc05" style="display:none;width:100%;height:100%;object-fit:cover">
+                <span id="cam-vid-lbl-sc05" style="position:absolute;bottom:4px;left:5px;font-size:9px;font-family:var(--mono);background:rgba(0,0,0,.7);color:var(--muted-2);padding:2px 6px;border-radius:3px;letter-spacing:.04em">▶ Preview</span>
+              </div>
+              <div class="cam-det-row">
+                <div class="cam-prog-wrap"><div class="cam-prog-fill" id="cam-bar-sc05"></div></div>
+                <span class="cam-det-status" id="cam-status-sc05">—</span>
+                <button class="btn sm pri" id="cam-det-btn-sc05" onclick="camDetectStart('sc05')" disabled>Detect</button>
+              </div>
+              <div id="cam-results-sc05" style="display:none">
+                <div class="cam-det-counts" id="cam-counts-sc05"></div>
+                <div class="cam-det-stats" id="cam-stats-sc05"></div>
+                <img id="cam-frame-sc05" class="cam-det-frame" style="display:none">
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /feeds -->
       </section>
 
       <!-- VEHICLE -->
@@ -3284,7 +3400,7 @@
     }
 
     // Safety cameras: people + PPE detection via the sentinel backend
-    const _SAFETY_CAM_IDS = { cam05: 'CAM-05', cam08: 'CAM-08', cam12: 'CAM-12' };
+    const _SAFETY_CAM_IDS = { cam05: 'CAM-05', cam08: 'CAM-08', cam12: 'CAM-12', sc05: 'CAM-05', sc08: 'CAM-08', sc12: 'CAM-12' };
     if (id in _SAFETY_CAM_IDS) {
       const isImage = st._isImage;
       const endpoint = isImage ? '/api/safety/analyze-image' : '/api/safety/analyze-video';
