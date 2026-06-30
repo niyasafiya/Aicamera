@@ -848,10 +848,10 @@
         <div class="crumb">Warehouse North <b>/ People &amp; Safety</b></div>
         <div class="view-head"><div><div class="eyebrow">Module</div><h1>People &amp; Safety</h1><p>PPE compliance, restricted-zone intrusion, and person-down detection.</p></div></div>
         <div class="grid col-3" style="margin-bottom:15px">
-          <div class="panel"><div class="panel-head"><h3>PPE compliance <span class="fr">FR-P1</span></h3><span class="sub">live</span></div>
-            <div class="panel-body" style="text-align:center"><div class="gauge"><svg width="112" height="112" viewBox="0 0 112 112"><circle cx="56" cy="56" r="47" fill="none" stroke="var(--hair)" stroke-width="9"/><circle cx="56" cy="56" r="47" fill="none" stroke="var(--clear)" stroke-width="9" stroke-linecap="round" stroke-dasharray="295" stroke-dashoffset="12"/></svg><div class="num">96%</div></div>
-              <div style="display:flex;gap:7px;justify-content:center;margin-top:13px"><span class="chip ok">Hard hat ✓</span><span class="chip crit">Vest ✕ ×1</span></div>
-              <p class="note" style="text-align:center">14 of 15 workers compliant</p></div></div>
+          <div class="panel"><div class="panel-head"><h3>PPE compliance <span class="fr">FR-P1</span></h3><span class="sub" id="ppe-gauge-sub">upload footage below</span></div>
+            <div class="panel-body" style="text-align:center"><div class="gauge"><svg width="112" height="112" viewBox="0 0 112 112"><circle cx="56" cy="56" r="47" fill="none" stroke="var(--hair)" stroke-width="9"/><circle id="ppe-gauge-circle" cx="56" cy="56" r="47" fill="none" stroke="var(--clear)" stroke-width="9" stroke-linecap="round" stroke-dasharray="295" stroke-dashoffset="295" style="transition:stroke-dashoffset .6s ease,stroke .4s"/></svg><div class="num" id="ppe-gauge-pct">—%</div></div>
+              <div id="ppe-gauge-chips" style="display:flex;gap:7px;justify-content:center;margin-top:13px"><span class="chip" style="color:var(--muted-2)">Run detection to update</span></div>
+              <p class="note" id="ppe-gauge-detail" style="text-align:center">Upload footage to see compliance</p></div></div>
           <div class="panel span-2"><div class="panel-head"><h3>Restricted zones <span class="fr">FR-P2</span></h3><span class="sub">CAM-08</span></div>
             <div class="panel-body"><div class="zone-map"><div class="zone restricted" style="left:8%;top:16%;width:30%;height:46%">Restricted<br>Zone A</div><div class="zone safe" style="right:8%;bottom:14%;width:34%;height:42%">Walkway</div><div class="person" style="right:24%;bottom:24%"></div><div class="person intruder" style="left:18%;top:30%"></div></div>
               <div style="display:flex;gap:7px;margin-top:11px;align-items:center"><span class="chip crit">● Unauthorized entry — Zone A</span><span class="chip">Tracked 8s</span><button class="btn pri sm" style="margin-left:auto">Review clip</button></div></div></div>
@@ -861,6 +861,52 @@
             <div class="cam" style="border:0;width:212px;flex:0 0 auto"><div class="scene" style="height:120px;background:linear-gradient(180deg,#120b0f,#0d141e)"><div class="bb crit" style="left:20%;top:54%;width:116px;height:32px"><span class="tag">PERSON DOWN</span></div></div></div>
             <div style="flex:1;min-width:210px"><span class="chip crit">● Person motionless</span><div style="font-family:var(--mono);font-size:28px;margin:7px 0 2px;color:var(--alert)">00:01:14</div><div class="note" style="margin-top:0">Stationary since 09:39:53 · alarm at 60s</div>
               <div style="display:flex;gap:7px;margin-top:13px"><button class="btn pri sm">Trigger response</button><button class="btn sm">Call medic</button><button class="btn ghost sm">False alarm</button></div></div></div></div>
+
+        <!-- People Detection Camera Panel -->
+        <div class="panel" style="margin-top:15px">
+          <div class="panel-head">
+            <h3>People Detection Camera <span class="fr">FR-P4</span></h3>
+            <span class="sub" id="pd-status">No footage — upload to begin</span>
+            <button class="btn sm ghost" style="margin-left:auto" onclick="document.getElementById('pd-file-in').click()">&#8593; Upload</button>
+          </div>
+
+          <!-- Camera scene -->
+          <div style="aspect-ratio:16/9;position:relative;overflow:hidden;background:#0A0A0C"
+               ondragover="event.preventDefault();this.style.outline='2px solid var(--active)'"
+               ondragleave="this.style.outline=''"
+               ondrop="pdDrop(event);this.style.outline=''">
+            <!-- No-signal state -->
+            <div id="pd-no-signal" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;color:rgba(255,255,255,.28);font-family:var(--mono);font-size:11.5px;letter-spacing:.04em">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <span>No footage · drop a file here or use Upload</span>
+            </div>
+            <!-- Video preview -->
+            <video id="pd-vid-el" style="display:none;width:100%;height:100%;object-fit:cover" autoplay loop muted playsinline></video>
+            <!-- Image preview -->
+            <img id="pd-img-el" style="display:none;width:100%;height:100%;object-fit:cover" alt="">
+            <!-- Annotated result (overlaid after detection) -->
+            <img id="pd-annotated-el" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover" alt="annotated result">
+            <!-- Scan line (during analysis) -->
+            <div class="scanline" id="pd-scanline" style="display:none"></div>
+            <!-- Top-left badge -->
+            <div id="pd-badge" style="display:none;position:absolute;top:8px;left:8px;font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:4px;letter-spacing:.07em;backdrop-filter:blur(4px)"></div>
+          </div>
+
+          <!-- Controls bar -->
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--hair);flex-wrap:wrap">
+            <input type="file" id="pd-file-in" accept="image/*,video/*" style="display:none" onchange="pdFileChosen(this)">
+            <span id="pd-fname" style="font-family:var(--mono);font-size:10.5px;color:var(--muted-2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">No file selected</span>
+            <div class="cam-prog-wrap" style="width:72px"><div class="cam-prog-fill" id="pd-bar"></div></div>
+            <button class="btn sm" onclick="document.getElementById('pd-file-in').click()">&#8593; Upload</button>
+            <button class="btn sm pri" id="pd-btn" onclick="pdStart()" disabled>Detect People</button>
+          </div>
+
+          <!-- Hidden elements kept for JS compatibility -->
+          <div id="pd-results" style="display:none">
+            <span id="pd-count"></span><span id="pd-count-label"></span>
+            <div id="pd-chips"></div><div id="pd-table"></div>
+          </div>
+        </div>
       </section>
 
       <!-- VEHICLE -->
@@ -1303,7 +1349,7 @@
   // ANPR MODULE
   // =====================================================================
   const API = 'http://127.0.0.1:8000';
-  const SAFETY_API = 'http://127.0.0.1:8001';
+  const SAFETY_API = 'http://127.0.0.1:8000';
 
   /**
    * Try to play a video file in a <video> element.
@@ -3237,12 +3283,13 @@
       _ov.style.display = 'block';
     }
 
-    // CAM-08: PPE / safety detection via the sentinel backend
-    if (id === 'cam08') {
+    // Safety cameras: people + PPE detection via the sentinel backend
+    const _SAFETY_CAM_IDS = { cam05: 'CAM-05', cam08: 'CAM-08', cam12: 'CAM-12' };
+    if (id in _SAFETY_CAM_IDS) {
       const isImage = st._isImage;
       const endpoint = isImage ? '/api/safety/analyze-image' : '/api/safety/analyze-video';
       const fd = new FormData();
-      fd.append('camera_id', 'CAM-08');
+      fd.append('camera_id', _SAFETY_CAM_IDS[id]);
       fd.append('file', st.file);
       try {
         btn.textContent = 'Analysing…';
@@ -3287,16 +3334,40 @@
     const fallCount = nd.fall_events     || 0;
     const totalViolations = ppeCount + zoneCount + fallCount;
 
+    const persons = result.persons || [];
+    const personCount = persons.length;
+
     const chips = [];
+    chips.push(`<span class="chip" style="background:rgba(37,99,235,.09);color:#1d4ed8;border-color:rgba(37,99,235,.22)">&#128100; ${personCount} person${personCount !== 1 ? 's' : ''} detected</span>`);
     if (ppeCount  > 0) chips.push(`<span class="chip crit">● PPE violations: ${ppeCount}</span>`);
     if (zoneCount > 0) chips.push(`<span class="chip crit">● Zone intrusions: ${zoneCount}</span>`);
     if (fallCount > 0) chips.push(`<span class="chip crit">● Fall events: ${fallCount}</span>`);
-    if (!chips.length)  chips.push(`<span class="chip ok">✓ No violations detected</span>`);
+    if (!ppeCount && !zoneCount && !fallCount) chips.push(`<span class="chip ok">✓ No violations detected</span>`);
 
-    document.getElementById(`cam-counts-${id}`).innerHTML = chips.join('');
-    document.getElementById(`cam-stats-${id}`).textContent =
-      `${result.frames_analyzed || 0} frames · ${result.duration_seconds || 0}s`;
-    document.getElementById(`cam-results-${id}`).style.display = '';
+    // Person-level location table
+    let personHtml = '';
+    if (persons.length) {
+      personHtml = `<table style="width:100%;border-collapse:collapse;margin-top:7px;font-size:10.5px">
+        <thead><tr style="color:var(--muted);border-bottom:1px solid var(--hair)">
+          <th style="text-align:left;padding:3px 6px">#</th>
+          <th style="text-align:left;padding:3px 6px">Location</th>
+          <th style="text-align:left;padding:3px 6px">PPE Status</th>
+          <th style="text-align:right;padding:3px 6px">Confidence</th>
+        </tr></thead><tbody>` +
+        persons.map((p, i) => {
+          const ok = p.status === 'compliant';
+          const col = ok ? 'var(--clear)' : 'var(--alert)';
+          return `<tr style="border-bottom:1px solid var(--hair)">
+            <td style="padding:3px 6px;color:var(--muted)">${i + 1}</td>
+            <td style="padding:3px 6px">${_alertEsc(p.location)}</td>
+            <td style="padding:3px 6px;color:${col};font-weight:600">${ok ? '✓ Compliant' : '✕ Violation'}</td>
+            <td style="padding:3px 6px;text-align:right;color:var(--muted)">${Math.round(p.conf * 100)}%</td>
+          </tr>`;
+        }).join('') +
+        `</tbody></table>`;
+    }
+
+    document.getElementById(`cam-counts-${id}`).innerHTML = chips.join('') + personHtml;
     _camS(id)._detectionDone = true;
 
     // Show annotated frame (red/green person boxes) in the camera tile overlay
@@ -3314,28 +3385,219 @@
       ? `⚠ ${ppeCount} PPE · ${zoneCount} zone · ${fallCount} fall`
       : '✓ No violations detected';
 
-    // Push to Live event feed (Operations) and Alerts feed
-    if (ppeCount > 0) {
-      pushFeedEvent('crit', `PPE Violation — CAM-08`,
-        `${ppeCount} worker(s) missing hard hat · uploaded footage`);
-      pushAlert('crit', `PPE Violation — CAM-08`,
-        `${ppeCount} worker(s) missing hard hat detected in uploaded footage`);
+    // Per-person PPE alerts
+    const camLabel = id.toUpperCase().replace('cam', 'CAM-');
+    persons.forEach((p, i) => {
+      if (p.status !== 'compliant')
+        pushAlert('crit', `No Hardhat — Person ${i + 1} · ${camLabel}`,
+          `Person detected at ${p.location} without a hardhat`);
+    });
+    if (personCount === 0)
+      pushFeedEvent('watch', `No people detected — ${camLabel}`, 'No persons found in uploaded footage');
+
+    // Activity notifications
+    const activityEvents = result.activity_events || [];
+    activityEvents.forEach(ev => {
+      if (ev.type === 'working') {
+        pushFeedEvent('clear',
+          `Person ${ev.person} is working — ${ev.location}`,
+          `${camLabel} · Worker is active at their station`);
+      } else if (ev.type === 'resting') {
+        pushFeedEvent('watch',
+          `Person ${ev.person} is resting — ${ev.location}`,
+          `${camLabel} · Worker appears to be at rest`);
+      } else if (ev.type === 'chatting') {
+        pushFeedEvent('watch',
+          `Person ${ev.person_a} and Person ${ev.person_b} are chatting — ${ev.location}`,
+          `${camLabel} · Two workers in close proximity`);
+      }
+    });
+  }
+
+  // =====================================================================
+  // PEOPLE DETECTION (People & Safety view)
+  // =====================================================================
+  let _pdFile = null;
+  let _pdIsImage = false;
+  let _pdObjUrl = null;
+
+  function pdDrop(e) {
+    e.preventDefault();
+    const f = e.dataTransfer.files[0];
+    if (f) { _pdFile = f; _pdIsImage = f.type.startsWith('image/'); _pdSetFile(f); }
+  }
+  function pdFileChosen(inp) {
+    const f = inp.files[0];
+    if (f) { _pdFile = f; _pdIsImage = f.type.startsWith('image/'); _pdSetFile(f); }
+  }
+  function _pdSetFile(f) {
+    document.getElementById('pd-fname').textContent = f.name;
+    document.getElementById('pd-btn').disabled = false;
+    document.getElementById('pd-status').textContent = 'Ready — click Detect People';
+
+    // Show the uploaded file in the camera scene
+    if (_pdObjUrl) URL.revokeObjectURL(_pdObjUrl);
+    _pdObjUrl = URL.createObjectURL(f);
+    const vid = document.getElementById('pd-vid-el');
+    const img = document.getElementById('pd-img-el');
+    const ann = document.getElementById('pd-annotated-el');
+    const ns  = document.getElementById('pd-no-signal');
+    ann.style.display = 'none';
+    document.getElementById('pd-badge').style.display = 'none';
+    // Reset display state before showing new preview
+    vid.style.display = 'none'; vid.style.opacity = '1';
+    img.style.display = 'none'; img.style.opacity = '1';
+    if (_pdIsImage) {
+      vid.pause(); vid.src = '';
+      img.src = _pdObjUrl; img.style.display = 'block';
+    } else {
+      vid.src = _pdObjUrl; vid.style.display = 'block'; vid.play().catch(() => {});
     }
-    if (zoneCount > 0) {
-      pushFeedEvent('crit', `Zone Intrusion — CAM-08`,
-        `${zoneCount} unauthorized zone entry · uploaded footage`);
-      pushAlert('crit', `Zone Intrusion — CAM-08`,
-        `${zoneCount} unauthorized zone entry detected in uploaded footage`);
+    ns.style.display = 'none';
+    document.getElementById('pd-results').style.display = 'none';
+    document.getElementById('pd-bar').style.width = '0';
+  }
+
+  async function pdStart() {
+    if (!_pdFile) return;
+    const btn = document.getElementById('pd-btn');
+    btn.disabled = true; btn.textContent = 'Detecting…';
+    document.getElementById('pd-status').textContent = 'Analysing…';
+    document.getElementById('pd-bar').style.width = '30%';
+    document.getElementById('pd-scanline').style.display = '';
+
+    const badge = document.getElementById('pd-badge');
+    badge.textContent = '⬛ SCANNING…';
+    badge.style.cssText = 'display:block;position:absolute;top:8px;left:8px;background:rgba(0,0,0,.72);color:var(--watch);font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:4px;letter-spacing:.07em';
+
+    const endpoint = _pdIsImage ? '/api/safety/analyze-image' : '/api/safety/analyze-video';
+    const fd = new FormData();
+    fd.append('camera_id', 'CAM-PD');
+    fd.append('file', _pdFile);
+
+    try {
+      const res = await fetch(`${SAFETY_API}${endpoint}`, { method: 'POST', body: fd });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      document.getElementById('pd-bar').style.width = '100%';
+      document.getElementById('pd-status').textContent = 'Done ✓';
+      document.getElementById('pd-scanline').style.display = 'none';
+      btn.textContent = 'Detect Again'; btn.disabled = false;
+      _pdRenderResults(data);
+    } catch (e) {
+      btn.disabled = false; btn.textContent = 'Detect People';
+      document.getElementById('pd-status').textContent = 'Error: ' + e.message;
+      document.getElementById('pd-scanline').style.display = 'none';
+      badge.style.display = 'none';
+      _toast('Detection failed: ' + e.message, 'err');
     }
-    if (fallCount > 0) {
-      pushFeedEvent('crit', `Fall / Motionless — CAM-08`,
-        `${fallCount} fall or motionless event · uploaded footage`);
-      pushAlert('crit', `Fall / Motionless — CAM-08`,
-        `${fallCount} fall or motionless event detected in uploaded footage`);
+  }
+
+  function _pdRenderResults(data) {
+    const persons = data.persons || [];
+    const nd = data.new_detections || {};
+    const n = persons.length;
+
+    // Show annotated image in the camera scene — hide raw preview so boxes are crisp
+    if (data.annotated_image) {
+      const ann = document.getElementById('pd-annotated-el');
+      ann.src = data.annotated_image;
+      ann.style.display = 'block';
+      const v = document.getElementById('pd-vid-el');
+      if (v) { v.pause(); v.style.display = 'none'; }
+      document.getElementById('pd-img-el').style.display = 'none';
     }
-    if (totalViolations === 0) {
-      pushFeedEvent('clear', `PPE Compliant — CAM-08`, `No violations found in uploaded footage`);
-    }
+
+    // Update result badge on the scene
+    const badge = document.getElementById('pd-badge');
+    const compliantCount = persons.filter(p => p.status === 'compliant').length;
+    const violCount = n - compliantCount;
+    badge.textContent = n === 0 ? '— No people detected'
+      : violCount > 0 ? `⚠ ${n} person(s) · ${violCount} violation(s)`
+      : `✓ ${n} person(s) · all compliant`;
+    badge.style.cssText = `display:block;position:absolute;top:8px;left:8px;background:rgba(0,0,0,.72);color:${violCount > 0 ? 'var(--alert)' : 'var(--clear)'};font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:4px;letter-spacing:.07em`;
+
+    // Big count
+    document.getElementById('pd-count').textContent = n;
+    document.getElementById('pd-count-label').textContent = n === 1 ? 'person detected' : 'persons detected';
+
+    // Chips
+    const chips = [];
+    if (nd.ppe_violations  > 0) chips.push(`<span class="chip crit">● ${nd.ppe_violations} PPE violation(s)</span>`);
+    if (nd.zone_intrusions > 0) chips.push(`<span class="chip crit">● ${nd.zone_intrusions} zone intrusion(s)</span>`);
+    if (nd.fall_events     > 0) chips.push(`<span class="chip crit">● ${nd.fall_events} fall event(s)</span>`);
+    if (!chips.length) chips.push(n > 0 ? `<span class="chip ok">✓ All persons compliant</span>` : `<span class="chip">No people detected</span>`);
+    document.getElementById('pd-chips').innerHTML = chips.join('');
+
+    // Person table
+    document.getElementById('pd-table').innerHTML = persons.length
+      ? `<table style="width:100%;border-collapse:collapse;font-size:10.5px">
+          <thead><tr style="color:var(--muted);border-bottom:1px solid var(--hair)">
+            <th style="text-align:left;padding:3px 6px">#</th>
+            <th style="text-align:left;padding:3px 6px">Zone</th>
+            <th style="text-align:left;padding:3px 6px">Status</th>
+            <th style="text-align:right;padding:3px 6px">Conf</th>
+          </tr></thead><tbody>` +
+        persons.map((p, i) => {
+          const ok = p.status === 'compliant';
+          return `<tr style="border-bottom:1px solid var(--hair)">
+            <td style="padding:3px 6px;color:var(--muted)">${i + 1}</td>
+            <td style="padding:3px 6px">${_alertEsc(p.location)}</td>
+            <td style="padding:3px 6px;color:${ok ? 'var(--clear)' : 'var(--alert)'};font-weight:600">${ok ? '✓ Compliant' : '✕ No Hardhat'}</td>
+            <td style="padding:3px 6px;text-align:right;color:var(--muted)">${Math.round(p.conf * 100)}%</td>
+          </tr>`;
+        }).join('') + `</tbody></table>`
+      : `<p style="color:var(--muted-2);font-size:12px;margin:6px 0">No people detected in this footage.</p>`;
+
+    // Update PPE compliance gauge
+    const total = n;
+    const pct = total > 0 ? Math.round(compliantCount / total * 100) : 0;
+    const circumference = 295;
+    const offset = total > 0 ? Math.round(circumference * (1 - pct / 100)) : circumference;
+    const gaugeColor = pct >= 80 ? 'var(--clear)' : pct >= 50 ? 'var(--watch)' : 'var(--alert)';
+    const gc = document.getElementById('ppe-gauge-circle');
+    if (gc) { gc.setAttribute('stroke-dashoffset', offset); gc.setAttribute('stroke', gaugeColor); }
+    const gp = document.getElementById('ppe-gauge-pct');
+    if (gp) gp.textContent = total > 0 ? pct + '%' : '—%';
+    const gd = document.getElementById('ppe-gauge-detail');
+    if (gd) gd.textContent = total > 0
+      ? `${compliantCount} of ${total} worker${total !== 1 ? 's' : ''} compliant`
+      : 'No people detected';
+    const gch = document.getElementById('ppe-gauge-chips');
+    if (gch) gch.innerHTML = total > 0
+      ? (violCount > 0
+          ? `<span class="chip ok">Compliant ✓ ×${compliantCount}</span><span class="chip crit">No Hardhat ✕ ×${violCount}</span>`
+          : `<span class="chip ok">All compliant ✓</span>`)
+      : `<span class="chip" style="color:var(--muted-2)">No data</span>`;
+    const gs = document.getElementById('ppe-gauge-sub');
+    if (gs) gs.textContent = `from uploaded footage · ${data.frames_analyzed || 1} frame(s)`;
+
+    // Per-person PPE notifications
+    persons.forEach((p, i) => {
+      const ok = p.status === 'compliant';
+      if (!ok) pushAlert('crit', `No Hardhat — Person ${i + 1} · Safety Camera`,
+        `Person detected at ${p.location} without a hardhat`);
+    });
+    if (n === 0) pushFeedEvent('watch', 'No people detected — Safety Camera',
+      'No persons found in the uploaded footage');
+
+    // Activity notifications — one entry per detected activity event
+    const activityEvents = data.activity_events || [];
+    activityEvents.forEach(ev => {
+      if (ev.type === 'working') {
+        pushFeedEvent('clear',
+          `Person ${ev.person} is working — ${ev.location}`,
+          'People Detection Camera · Worker is active at their station');
+      } else if (ev.type === 'resting') {
+        pushFeedEvent('watch',
+          `Person ${ev.person} is resting — ${ev.location}`,
+          'People Detection Camera · Worker appears to be at rest');
+      } else if (ev.type === 'chatting') {
+        pushFeedEvent('watch',
+          `Person ${ev.person_a} and Person ${ev.person_b} are chatting — ${ev.location}`,
+          'People Detection Camera · Two workers in close proximity');
+      }
+    });
   }
 
   function _camPoll(id) {
@@ -3423,7 +3685,6 @@
       const lbl = document.getElementById(`cam-ov-label-${id}`);
       if (lbl) lbl.textContent = 'Video (no annotated frame — YOLO unavailable)';
     }
-    document.getElementById(`cam-results-${id}`).style.display = '';
     _camS(id)._detectionDone = true;
   }
 

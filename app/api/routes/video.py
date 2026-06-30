@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.models.events import Camera, FallEvent, PPEViolation, ZoneIntrusion
+from app.services.activity_detector import ActivityDetector
 from app.services.fall_detector import FallDetector
 from app.services.ppe_detector import PPEDetector
 from app.services.zone_monitor import ZoneMonitor
@@ -19,18 +20,20 @@ router = APIRouter(prefix="/api/safety", tags=["video-analysis"])
 _executor = ThreadPoolExecutor(max_workers=2)
 
 # Detector singletons — created once on first use
-_ppe: PPEDetector | None = None
-_zone: ZoneMonitor | None = None
-_fall: FallDetector | None = None
+_ppe:      PPEDetector      | None = None
+_zone:     ZoneMonitor      | None = None
+_fall:     FallDetector     | None = None
+_activity: ActivityDetector | None = None
 
 
 def _get_detectors():
-    global _ppe, _zone, _fall
+    global _ppe, _zone, _fall, _activity
     if _ppe is None:
-        _ppe = PPEDetector()
-        _zone = ZoneMonitor()
-        _fall = FallDetector()
-    return _ppe, _zone, _fall
+        _ppe      = PPEDetector()
+        _zone     = ZoneMonitor()
+        _fall     = FallDetector()
+        _activity = ActivityDetector()
+    return _ppe, _zone, _fall, _activity
 
 
 def _ppe_process_from_analysis(ppe_det: PPEDetector, analysis: dict, frame, camera_id: str, db: Session) -> None:
@@ -64,7 +67,7 @@ def _run_video(content: bytes, suffix: str, camera_id: str, db: Session) -> dict
     except ImportError:
         raise RuntimeError("OpenCV not available")
 
-    ppe_det, zone_det, fall_det = _get_detectors()
+    ppe_det, zone_det, fall_det, activity_det = _get_detectors()
 
     # Count existing events before analysis so we can report net-new
     before_ppe  = db.query(PPEViolation).filter(PPEViolation.camera_id == camera_id).count()
@@ -130,6 +133,15 @@ def _run_video(content: bytes, suffix: str, camera_id: str, db: Session) -> dict
             },
         }
 
+        # Activity classification on the best (most populated) frame
+        activity_events = []
+        if best_frame is not None and best_analysis is not None:
+            persons_xyxy = [b["xyxy"] for b in best_analysis["boxes"]]
+            locations    = [b["location"] for b in best_analysis["boxes"]]
+            activity_events = activity_det.classify(best_frame, persons_xyxy, locations)
+
+        result["activity_events"] = activity_events
+
         # Attach annotated sample frame so the frontend can show person boxes
         if best_frame is not None and best_analysis is not None:
             import base64 as _b64
@@ -137,6 +149,7 @@ def _run_video(content: bytes, suffix: str, camera_id: str, db: Session) -> dict
             _, buf = cv2.imencode(".jpg", annotated, [cv2.IMWRITE_JPEG_QUALITY, 88])
             result["annotated_image"] = "data:image/jpeg;base64," + _b64.b64encode(buf.tobytes()).decode()
             result["has_violation"] = best_analysis["has_violation"]
+            result["persons"]       = best_analysis.get("persons", [])
 
         return result
     finally:
@@ -167,7 +180,8 @@ def _draw_boxes(frame, boxes: list[dict]):
         color = (40, 40, 220) if box["violation"] else (40, 200, 80)
         cv2.rectangle(out, (x1, y1), (x2, y2), color, 3)
 
-        label = f"{box['label']}  {box['conf']:.0%}"
+        location = box.get("location", "")
+        label = f"{box['label']}  {box['conf']:.0%}  [{location}]" if location else f"{box['label']}  {box['conf']:.0%}"
         (tw, th), baseline = cv2.getTextSize(label, font, font_scale, thickness)
         tag_y = max(y1, th + baseline + 8)
         cv2.rectangle(out, (x1, tag_y - th - baseline - 6), (x1 + tw + 8, tag_y), color, -1)
@@ -187,7 +201,7 @@ def _run_image(content: bytes, camera_id: str, db: Session) -> dict:
     from datetime import datetime
     import json as _json
 
-    ppe_det, zone_det, fall_det = _get_detectors()
+    ppe_det, zone_det, fall_det, activity_det = _get_detectors()
 
     before_ppe  = db.query(PPEViolation).filter(PPEViolation.camera_id == camera_id).count()
     before_zone = db.query(ZoneIntrusion).filter(ZoneIntrusion.camera_id == camera_id).count()
@@ -200,6 +214,11 @@ def _run_image(content: bytes, camera_id: str, db: Session) -> dict:
 
     # Single model pass — used for both drawing and DB save
     analysis = ppe_det.analyze_frame(frame)
+
+    # Activity classification (working / chatting / resting)
+    persons_xyxy = [b["xyxy"] for b in analysis["boxes"]]
+    locations    = [b["location"] for b in analysis["boxes"]]
+    activity_events = activity_det.classify(frame, persons_xyxy, locations)
 
     # Draw red/green bounding boxes
     annotated = _draw_boxes(frame, analysis["boxes"])
@@ -241,6 +260,8 @@ def _run_image(content: bytes, camera_id: str, db: Session) -> dict:
         "annotated_image": img_b64,
         "has_violation": analysis["has_violation"],
         "violations": analysis["violations"],
+        "persons": analysis.get("persons", []),
+        "activity_events": activity_events,
         "new_detections": {
             "ppe_violations":  after_ppe  - before_ppe,
             "zone_intrusions": after_zone - before_zone,

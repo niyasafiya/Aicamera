@@ -60,6 +60,17 @@ def _download_ppe_model() -> str:
         return settings.PPE_MODEL_PATH
 
 
+def _frame_zone(xyxy, frame_shape) -> str:
+    """Return a human-readable zone label based on the box centre position."""
+    h, w = frame_shape[:2]
+    x1, y1, x2, y2 = xyxy
+    cx = (x1 + x2) / 2
+    cy = (y1 + y2) / 2
+    col = "Left" if cx < w / 3 else ("Right" if cx > 2 * w / 3 else "Centre")
+    row = "Top"   if cy < h / 3 else ("Bottom" if cy > 2 * h / 3 else "")
+    return f"{row} {col}".strip() if row else col
+
+
 def _box_overlap(a, b) -> float:
     """Intersection area / area of box a (how much of a is covered by b)."""
     ax1, ay1, ax2, ay2 = a
@@ -106,24 +117,56 @@ class PPEDetector:
         logger.info(f"Detection: {len(boxes)} person(s), violations={list(violations)}")
 
         max_conf = max((b["conf"] for b in boxes), default=0.0)
+        persons = [
+            {
+                "location":  b["location"],
+                "status":    "violation" if b["violation"] else "compliant",
+                "conf":      round(b["conf"], 2),
+            }
+            for b in boxes
+        ]
         return {
             "boxes":         boxes,
             "violations":    list(violations),
             "has_violation": bool(violations),
             "max_conf":      max_conf,
+            "persons":       persons,
         }
 
     def _person_crosscheck(self, frame) -> tuple[list, set]:
         """
-        Detect people with yolov8n, then use the PPE model's explicit
-        'no-hat' and 'hat' classes to decide per-person compliance.
-        Only flags a violation when the model positively detects NO hat —
-        avoids false positives from hat-detection misses.
+        Detect people with yolov8n (class 0 only), then use the PPE model's
+        explicit 'no-hat' / 'hat' classes to decide per-person compliance.
+        Only flags a violation when the model positively detects NO hat.
         """
-        # Find people (class 0 in COCO)
-        pr = self._person_model(frame, conf=0.3, classes=[0], verbose=False)[0]
-        persons = [b.xyxy[0].tolist() for b in pr.boxes]
-        person_confs = [float(b.conf) for b in pr.boxes]
+        h_frame, w_frame = frame.shape[:2]
+        min_box_h = h_frame * 0.08  # ignore detections shorter than 8% of frame height
+
+        # class=0 is COCO "person" — no other class is ever returned
+        pr = self._person_model(frame, conf=0.6, classes=[0], verbose=False)[0]
+
+        # Filter by minimum height and collect
+        raw: list[tuple[list, float]] = []
+        for b in pr.boxes:
+            x1, y1, x2, y2 = b.xyxy[0].tolist()
+            box_h = y2 - y1
+            box_w = x2 - x1
+            if box_h < min_box_h:
+                continue
+            # A person box should be taller than it is wide (or close to square for seated people)
+            if box_w > 0 and (box_h / box_w) < 0.5:
+                continue
+            raw.append(([x1, y1, x2, y2], float(b.conf)))
+
+        # NMS: merge boxes that share more than 35% overlap — catches same person detected twice
+        raw.sort(key=lambda t: t[1], reverse=True)
+        kept: list[tuple[list, float]] = []
+        for box, conf in raw:
+            if not any(_box_overlap(box, k[0]) > 0.35 for k in kept):
+                kept.append((box, conf))
+
+        persons      = [k[0] for k in kept]
+        person_confs = [k[1] for k in kept]
 
         logger.info(f"Person detector found {len(persons)} person(s)")
 
@@ -156,14 +199,13 @@ class PPEDetector:
 
             has_hat    = any(_box_overlap(head, h) > 0.03 for h in hat_boxes)
             has_no_hat = any(_box_overlap(head, h) > 0.03 for h in no_hat_boxes)
+            location   = _frame_zone(xyxy, frame.shape)
 
             if has_no_hat and not has_hat:
-                # Model explicitly sees NO hat and no hat found → violation
-                boxes.append({"xyxy": xyxy, "label": "NO Hardhat", "conf": conf, "violation": True})
+                boxes.append({"xyxy": xyxy, "label": "NO Hardhat", "conf": conf, "violation": True,  "location": location})
                 violations.add("hard hat")
             else:
-                # Hat detected, or model is uncertain → treat as compliant
-                boxes.append({"xyxy": xyxy, "label": "Hardhat OK", "conf": conf, "violation": False})
+                boxes.append({"xyxy": xyxy, "label": "Hardhat OK", "conf": conf, "violation": False, "location": location})
 
         return boxes, violations
 
