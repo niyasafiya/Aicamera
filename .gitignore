@@ -15,6 +15,12 @@ uploads/
 *.db-shm
 *.db-wal
 
+# Runtime data (face encodings, captured faces, local DB)
+data/
+
+# Model weights (auto-downloaded on first run)
+*.pt
+
 # Logs
 server.log
 server.err

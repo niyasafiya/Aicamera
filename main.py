@@ -13,9 +13,10 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 import db
-from routers import anpr, biometric, vehicles, streams
+from routers import anpr, biometric, safety, vehicles, streams
 
 app = FastAPI(
     title="Sentinel AI Backend",
@@ -55,9 +56,17 @@ def health_check():
     return {"status": "ok", "version": "2.4.1", "service": "Sentinel AI"}
 
 
+@app.get("/console", include_in_schema=False)
+def console():
+    """Serve the operator console over http://localhost so browser features that
+    require a secure context (e.g. webcam / getUserMedia) work reliably."""
+    return FileResponse("technomak-video-analytics-console.html")
+
+
 app.include_router(streams.router,   tags=["Streams"])
 app.include_router(anpr.router,      prefix="/api/v1/anpr",      tags=["ANPR"])
 app.include_router(biometric.router, prefix="/api/v1/biometric", tags=["Biometric"])
+app.include_router(safety.router,    prefix="/api/v1/safety",    tags=["Safety"])
 app.include_router(vehicles.router,  prefix="/api/v1/vehicles",  tags=["Vehicles"])
 
 

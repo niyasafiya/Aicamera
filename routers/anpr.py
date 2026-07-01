@@ -5,6 +5,7 @@ Video upload → background OCR job → annotated output video + access log.
 from __future__ import annotations
 
 import asyncio
+import base64
 import difflib
 import json
 import tempfile
@@ -518,6 +519,11 @@ def _process_video(job_id: str, video_path: str):
 
                 no_new_streak = 0 if improved else no_new_streak + 1
 
+                # Instant stop: one very confident read (already char-corrected) is
+                # enough — avoids scanning further frames when the plate is clear.
+                if any(plates_best[n]["confidence"] >= 0.82 for n in plates_best):
+                    break
+
                 # Stop once a plate is confirmed in 2+ frames with decent confidence.
                 # Cross-frame voting still corrects characters with 2 samples, and
                 # stopping sooner keeps scanning fast.
@@ -695,6 +701,81 @@ def get_job(job_id: str):
 
     has_video = (UPLOADS / f"anpr_{job_id}_annotated.mp4").exists()
     return {**job, "plates": plates, "has_video": has_video}
+
+
+@router.post("/scan-image")
+async def scan_image(image: UploadFile = File(...)):
+    """Fast single-image ANPR: decode a photo / screenshot, read any plate,
+    cross-check the whitelist and return the decision immediately (no job/poll)."""
+    content = await image.read()
+
+    def _work():
+        arr   = np.frombuffer(content, np.uint8)
+        frame = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+        if frame is None:
+            raise ValueError("Could not decode image — unsupported format?")
+
+        fh, fw = frame.shape[:2]
+        if fw > _MAX_SCAN_W:
+            sf   = _MAX_SCAN_W / fw
+            scan = cv2.resize(frame, (_MAX_SCAN_W, int(fh * sf)))
+        else:
+            sf, scan = 1.0, frame
+
+        dets = extract_plates_from_frame(scan)
+        if dets:
+            _attach_vehicle_boxes(scan, dets)
+            if sf != 1.0:
+                inv = 1.0 / sf
+                for d in dets:
+                    if d.get("bbox"):
+                        d["bbox"] = _scale_box(d["bbox"], inv)
+                    if d.get("vehicle_bbox"):
+                        d["vehicle_bbox"] = _scale_box(d["vehicle_bbox"], inv)
+
+        # Keep the strongest read per normalised plate
+        best: dict = {}
+        for d in dets:
+            n = _norm(d["plate"])
+            if not n:
+                continue
+            if n not in best or d["confidence"] > best[n]["confidence"]:
+                best[n] = d
+
+        conn = db.get_conn()
+        auth_rows = conn.execute(
+            "SELECT plate, owner, vehicle_type FROM authorized_vehicles"
+        ).fetchall()
+        auth_map = {_norm(r["plate"]): dict(r) for r in auth_rows}
+
+        plates = []
+        for n, d in best.items():
+            auth     = auth_map.get(n)
+            decision = "GRANTED" if auth else "DENIED"
+            conn.execute(
+                "INSERT INTO anpr_log (plate, confidence, authorized, decision) VALUES (?,?,?,?)",
+                (d["plate"], round(float(d["confidence"]), 4), 1 if auth else 0, decision),
+            )
+            plates.append({
+                "plate":        d["plate"],
+                "confidence":   round(float(d["confidence"]), 3),
+                "authorized":   bool(auth),
+                "owner":        auth["owner"]        if auth else "Unknown",
+                "vehicle_type": auth["vehicle_type"] if auth else "Unknown",
+            })
+        conn.commit()
+        conn.close()
+
+        annotated = _annotate_frame(frame, list(best.values()), auth_map) if best else frame
+        ok, buf = cv2.imencode(".jpg", annotated, [cv2.IMWRITE_JPEG_QUALITY, 85])
+        img_b64 = ("data:image/jpeg;base64," + base64.b64encode(buf.tobytes()).decode()
+                   if ok else None)
+        return {"plates": plates, "annotated_image": img_b64}
+
+    try:
+        return await asyncio.to_thread(_work)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
 
 
 @router.get("/authorized")

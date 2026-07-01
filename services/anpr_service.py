@@ -55,11 +55,19 @@ def _get_paddle():
     if _paddle is not None:
         return _paddle
     try:
+        import os
         from paddleocr import PaddleOCR
+        # Speed: MKL-DNN gives a 2-3x CPU inference speedup with the *same* model
+        # and identical accuracy. Cap cpu_threads to leave one core free so the
+        # asyncio event loop (health check, job polling, MJPEG streams) stays
+        # responsive during a scan — this is what previously made the backend
+        # appear to go "offline" mid-scan when OCR saturated every core.
+        cpu_threads = max(2, (os.cpu_count() or 4) - 1)
         _paddle = PaddleOCR(use_angle_cls=False, lang="en",
-                            use_gpu=False, show_log=False)
+                            use_gpu=False, show_log=False,
+                            enable_mkldnn=True, cpu_threads=cpu_threads)
         _ocr_backend = "paddle"
-        log.info("[ANPR] PaddleOCR ready")
+        log.info("[ANPR] PaddleOCR ready (mkldnn, %d threads)", cpu_threads)
         return _paddle
     except Exception as exc:
         log.warning("[ANPR] PaddleOCR unavailable (%s) — using EasyOCR fallback", exc)
@@ -269,8 +277,11 @@ def _ocr_with_paddle(crop: np.ndarray) -> Optional[Tuple[str, float]]:
     # Pass 1: base image, recognition only
     p1 = _paddle_ocr_once(paddle, base, det=False)
     candidates.extend(p1)
-    # High-confidence early exit — no need for pass 2 correction
-    if p1 and max(c for _, c in p1) >= 0.70:
+    # Early exit — skip the (expensive) pass-2 variant when pass 1 is already
+    # decent. During a video scan, cross-frame majority voting (_cluster_and_vote)
+    # corrects residual character confusions across frames, so per-crop pass-2
+    # correction is largely redundant. 0.60 (was 0.70) skips pass 2 on more reads.
+    if p1 and max(c for _, c in p1) >= 0.60:
         result = _majority_vote(candidates)
         if result:
             plate = _postfix(result[0])
@@ -372,8 +383,12 @@ def read_plate_crop(crop: np.ndarray) -> Optional[Dict]:
 # Contour-based plate region finder  (from YardMonitor's _find_plate_contour)
 # ---------------------------------------------------------------------------
 
-def _find_plate_regions(frame: np.ndarray) -> List[tuple]:
-    """Return (x1,y1,x2,y2) boxes of candidate plate regions via contours."""
+def _find_plate_regions(frame: np.ndarray, max_regions: int = 3) -> List[tuple]:
+    """Return (x1,y1,x2,y2) boxes of candidate plate regions via contours,
+    ranked by plate-likeness and capped to the best `max_regions`. Capping is the
+    main speed lever: OCR runs only on a few strong candidates per frame instead
+    of on every blob (cluttered scenes can otherwise produce 10+ false regions,
+    each costing a full multi-pass OCR)."""
     h, w = frame.shape[:2]
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) if frame.ndim == 3 else frame
 
@@ -390,22 +405,26 @@ def _find_plate_regions(frame: np.ndarray) -> List[tuple]:
 
     contours, _ = cv2.findContours(closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    regions = []
+    scored = []
     min_area = w * h * 0.004
     for cnt in contours:
         x, y, cw, ch = cv2.boundingRect(cnt)
-        if cw * ch < min_area:
+        area = cw * ch
+        if area < min_area:
             continue
         aspect = cw / max(ch, 1)
         # 1.2 lower-bound catches Dubai two-row plates; 9.0 upper-bound for wide strips
         if not (1.2 <= aspect <= 9.0):
             continue
+        # Rank: larger blobs whose aspect is near a typical plate (~3.3) score highest.
+        score = area * (1.0 / (1.0 + abs(aspect - 3.3)))
         pad = 5
-        regions.append((
+        scored.append((score, (
             max(0, x - pad), max(0, y - pad),
             min(w, x + cw + pad), min(h, y + ch + pad),
-        ))
-    return regions
+        )))
+    scored.sort(key=lambda s: s[0], reverse=True)
+    return [box for _, box in scored[:max_regions]]
 
 
 # ---------------------------------------------------------------------------
@@ -464,8 +483,14 @@ def extract_plates_from_frame(frame: np.ndarray) -> List[Dict]:
                 if p not in best or c > best[p]["confidence"]:
                     best[p] = {"confidence": c, "bbox": full_bbox}
 
-    if not best:
-        # Fallback: OCR on the entire bottom strip at reduced size
+    if not best and regions:
+        # Fallback: OCR on the entire bottom strip at reduced size.
+        # Only when contour detection DID find plate-like structure but the
+        # per-region OCR came up empty — a whole-strip retry can still recover it.
+        # When no regions were found at all (car not in view) we skip this: a full
+        # multi-pass OCR on a structureless strip almost never reads anything and
+        # is the biggest per-frame waste during a video scan. The router's
+        # end-of-scan fallback still covers clips where contours never fire.
         if rw > 320:
             fscale = 320 / rw
             roi_fb = cv2.resize(roi, (320, int(rh * fscale)))

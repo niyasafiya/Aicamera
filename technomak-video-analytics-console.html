@@ -467,6 +467,7 @@
       <button data-view="cameras" data-label="Cameras"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l4-2 11 5v7l-11 5-4-2z"/><circle cx="9" cy="12" r="2.4"/></svg>Cameras</button>
       <div class="nav-label">AI Detection</div>
       <button data-view="biometric" data-label="Biometric Auth"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-1a6 6 0 0 1 12 0v1"/><path d="M17 12s1 1 1 3-1 3-1 3"/><path d="M7 12s-1 1-1 3 1 3 1 3"/></svg>Biometric Auth</button>
+      <button data-view="activity" data-label="Activity Monitor"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l2 6 4-14 2 8h6"/></svg>Activity Monitor</button>
     </nav>
     <div class="health">
       <div class="row"><small>Pipeline</small><span class="dot live"></span></div>
@@ -514,6 +515,7 @@
           <div class="ops-bar-left"><span class="dot live"></span><span>All systems operational</span></div>
           <div class="ops-bar-right"><span>Warehouse North</span><span class="ops-sep"></span><span id="ops-clock" class="m">--:--:--</span></div>
         </div>
+
         <div class="two-col">
           <div class="grid feeds">
 
@@ -550,8 +552,8 @@
               <div class="cam-meta"><span class="name">Main Gate — In</span><span class="id">CAM-01</span><span class="right"><span class="live"><span class="dot live"></span>LIVE</span><button class="cam-upload-btn" id="cam-upload-toggle-cam01" onclick="camUploadToggle('cam01')" title="Run ANPR scan — detect plates &amp; check authorization">↑ ANPR Scan</button><button class="popout" data-win="Main Gate — In" data-id="CAM-01" title="Pop out">⧉</button></span></div>
               <div class="cam-upload-panel" id="cam-upload-panel-cam01">
                 <div class="cam-dz" id="cam-dz-cam01" onclick="document.getElementById('cam-file-cam01').click()" ondragover="camDragOver(event,'cam01')" ondragleave="camDragLeave(event,'cam01')" ondrop="camDrop(event,'cam01')">
-                  <input type="file" accept="video/*" id="cam-file-cam01" style="display:none" onchange="camFileChosen(this,'cam01')">
-                  <span id="cam-fname-cam01">Drop gate camera video or click to browse</span>
+                  <input type="file" accept="video/*,image/*" id="cam-file-cam01" style="display:none" onchange="camFileChosen(this,'cam01')">
+                  <span id="cam-fname-cam01">Drop gate video / photo / screenshot or click to browse</span>
                 </div>
                 <div id="cam-vid-preview-cam01" style="display:none;position:relative;border-radius:4px;overflow:hidden;background:#000;aspect-ratio:16/9;margin-top:8px">
                   <video id="cam-vid-el-cam01" style="width:100%;height:100%;object-fit:cover" autoplay loop muted playsinline></video>
@@ -572,119 +574,109 @@
               </div>
             </div>
 
-            <!-- CAM-12 · Loading Bay 2 -->
-            <div class="cam" id="cam-card-cam12">
+            <!-- CAM-02 · Face Recognition (grant / deny) -->
+            <div class="cam" id="cam-card-opface">
               <div class="scene">
                 <div class="cctv-wrap">
-                  <img id="feed-cam12" class="cctv-feed"
-                       src="http://127.0.0.1:8000/stream/cam12"
-                       onerror="_camFeedError('cam12')">
-                  <div class="feed-err" id="err-cam12" style="display:none">⚠ No signal<br><span style="font-size:8.5px;color:var(--muted-2)">CAM-12 · LOADING BAY 2</span><br><span style="font-size:8px;color:var(--muted-2);margin-top:4px;display:block">↑ Upload a video to preview here</span></div>
-                  <div class="cam-result-overlay" id="cam-overlay-cam12">
-                    <video id="cam-overlay-vid-cam12" autoplay loop muted playsinline></video>
-                    <img id="cam-overlay-img-cam12" alt="">
-                    <button class="cam-ov-close" onclick="camClearOverlay('cam12')">× LIVE</button>
-                    <span class="cam-ov-label" id="cam-ov-label-cam12">Uploaded video</span>
+                  <img id="feed-opface" class="cctv-feed"
+                       src="http://127.0.0.1:8000/stream/cam02"
+                       onerror="_camFeedError('opface')">
+                  <div class="feed-err" id="err-opface" style="display:none">⚠ No signal<br><span style="font-size:8.5px;color:var(--muted-2)">CAM-02 · FACE RECOGNITION</span><br><span style="font-size:8px;color:var(--muted-2);margin-top:4px;display:block">↑ Upload a video, photo or screenshot</span></div>
+                  <div class="cam-result-overlay" id="cam-overlay-opface">
+                    <video id="cam-overlay-vid-opface" autoplay loop muted playsinline></video>
+                    <img id="cam-overlay-img-opface" alt="">
+                    <button class="cam-ov-close" onclick="camClearOverlay('opface')">× LIVE</button>
+                    <span class="cam-ov-label" id="cam-ov-label-opface">Uploaded media</span>
+                  </div>
+                  <!-- Access decision badge -->
+                  <div id="opface-badge" style="display:none;position:absolute;bottom:6px;left:6px;right:6px;z-index:6;border-radius:5px;padding:6px 10px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.06em;backdrop-filter:blur(5px);align-items:center;gap:8px">
+                    <span id="opface-name" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+                    <span id="opface-label"></span>
                   </div>
                 </div>
               </div>
-              <div class="cam-meta"><span class="name">Loading Bay 2</span><span class="id">CAM-12</span><span class="right"><span class="live"><span class="dot live"></span>LIVE</span><button class="cam-upload-btn" id="cam-upload-toggle-cam12" onclick="camUploadToggle('cam12')" title="Upload demo video">↑ Upload</button><button class="popout" data-win="Loading Bay 2" data-id="CAM-12" title="Pop out">⧉</button></span></div>
-              <div class="cam-upload-panel" id="cam-upload-panel-cam12">
-                <div class="cam-dz" id="cam-dz-cam12" onclick="document.getElementById('cam-file-cam12').click()" ondragover="camDragOver(event,'cam12')" ondragleave="camDragLeave(event,'cam12')" ondrop="camDrop(event,'cam12')">
-                  <input type="file" accept="video/*" id="cam-file-cam12" style="display:none" onchange="camFileChosen(this,'cam12')">
-                  <span id="cam-fname-cam12">Drop video or click to browse</span>
-                </div>
-                <div id="cam-vid-preview-cam12" style="display:none;position:relative;border-radius:4px;overflow:hidden;background:#000;aspect-ratio:16/9;margin-top:8px">
-                  <video id="cam-vid-el-cam12" style="width:100%;height:100%;object-fit:cover" autoplay loop muted playsinline></video>
-                  <span id="cam-vid-lbl-cam12" style="position:absolute;bottom:4px;left:5px;font-size:9px;font-family:var(--mono);background:rgba(0,0,0,.7);color:var(--muted-2);padding:2px 6px;border-radius:3px;letter-spacing:.04em">▶ Preview</span>
+              <div class="cam-meta"><span class="name">Face Recognition</span><span class="id">CAM-02</span><span class="right"><span class="live"><span class="dot live"></span>LIVE</span><button class="cam-upload-btn" id="cam-upload-toggle-opface" onclick="camUploadToggle('opface')" title="Upload a video, photo or screenshot to check access">↑ Scan Face</button><button class="popout" data-win="Face Recognition" data-id="CAM-02" title="Pop out">⧉</button></span></div>
+              <div class="cam-upload-panel" id="cam-upload-panel-opface">
+                <div class="cam-dz" id="cam-dz-opface" onclick="document.getElementById('cam-file-opface').click()" ondragover="camDragOver(event,'opface')" ondragleave="camDragLeave(event,'opface')" ondrop="camDrop(event,'opface')">
+                  <input type="file" accept="video/*,image/*" id="cam-file-opface" style="display:none" onchange="camFileChosen(this,'opface')">
+                  <span id="cam-fname-opface">Drop video / photo / screenshot or click to browse</span>
                 </div>
                 <div class="cam-det-row">
-                  <div class="cam-prog-wrap"><div class="cam-prog-fill" id="cam-bar-cam12"></div></div>
-                  <span class="cam-det-status" id="cam-status-cam12">—</span>
-                  <button class="btn sm pri" id="cam-det-btn-cam12" onclick="camDetectStart('cam12')" disabled>Detect</button>
+                  <div class="cam-prog-wrap"><div class="cam-prog-fill" id="cam-bar-opface"></div></div>
+                  <span class="cam-det-status" id="cam-status-opface">—</span>
+                  <button class="btn sm pri" id="cam-det-btn-opface" onclick="faceStart('opface')" disabled>Check Access</button>
                 </div>
-                <div id="cam-results-cam12" style="display:none">
-                  <div class="cam-det-counts" id="cam-counts-cam12"></div>
-                  <div class="cam-det-stats" id="cam-stats-cam12"></div>
-                  <img id="cam-frame-cam12" class="cam-det-frame" style="display:none">
+                <div id="cam-results-opface" style="display:none;margin-top:6px">
+                  <div class="cam-det-counts" id="cam-counts-opface"></div>
+                  <div class="cam-det-stats" id="cam-stats-opface"></div>
                 </div>
               </div>
             </div>
 
-            <!-- CAM-08 · Warehouse Aisle 4 -->
-            <div class="cam" id="cam-card-cam08">
+            <!-- CAM-08 · PPE — Hat / Vest -->
+            <div class="cam" id="cam-card-opppe">
               <div class="scene">
                 <div class="cctv-wrap">
-                  <img id="feed-cam08" class="cctv-feed"
+                  <img id="feed-opppe" class="cctv-feed"
                        src="http://127.0.0.1:8000/stream/cam08"
-                       onerror="_camFeedError('cam08')">
-                  <div class="feed-err" id="err-cam08" style="display:none">⚠ No signal<br><span style="font-size:8.5px;color:var(--muted-2)">CAM-08 · AISLE 4</span><br><span style="font-size:8px;color:var(--muted-2);margin-top:4px;display:block">↑ Upload a video to preview here</span></div>
-                  <div class="cam-result-overlay" id="cam-overlay-cam08">
-                    <video id="cam-overlay-vid-cam08" autoplay loop muted playsinline></video>
-                    <img id="cam-overlay-img-cam08" alt="">
-                    <button class="cam-ov-close" onclick="camClearOverlay('cam08')">× LIVE</button>
-                    <span class="cam-ov-label" id="cam-ov-label-cam08">Uploaded video</span>
+                       onerror="_camFeedError('opppe')">
+                  <div class="feed-err" id="err-opppe" style="display:none">⚠ No signal<br><span style="font-size:8.5px;color:var(--muted-2)">CAM-08 · PPE · HAT / VEST</span><br><span style="font-size:8px;color:var(--muted-2);margin-top:4px;display:block">↑ Upload a video, photo or screenshot</span></div>
+                  <div class="cam-result-overlay" id="cam-overlay-opppe">
+                    <video id="cam-overlay-vid-opppe" autoplay loop muted playsinline></video>
+                    <img id="cam-overlay-img-opppe" alt="">
+                    <button class="cam-ov-close" onclick="camClearOverlay('opppe')">× LIVE</button>
+                    <span class="cam-ov-label" id="cam-ov-label-opppe">Uploaded media</span>
                   </div>
                 </div>
               </div>
-              <div class="cam-meta"><span class="name">Warehouse Aisle 4</span><span class="id">CAM-08</span><span class="right"><span class="live"><span class="dot live"></span>LIVE</span><button class="cam-upload-btn" id="cam-upload-toggle-cam08" onclick="camUploadToggle('cam08')" title="Upload demo video">↑ Upload</button><button class="popout" data-win="Warehouse Aisle 4" data-id="CAM-08" title="Pop out">⧉</button></span></div>
-              <div class="cam-upload-panel" id="cam-upload-panel-cam08">
-                <div class="cam-dz" id="cam-dz-cam08" onclick="document.getElementById('cam-file-cam08').click()" ondragover="camDragOver(event,'cam08')" ondragleave="camDragLeave(event,'cam08')" ondrop="camDrop(event,'cam08')">
-                  <input type="file" accept="video/*" id="cam-file-cam08" style="display:none" onchange="camFileChosen(this,'cam08')">
-                  <span id="cam-fname-cam08">Drop video or click to browse</span>
-                </div>
-                <div id="cam-vid-preview-cam08" style="display:none;position:relative;border-radius:4px;overflow:hidden;background:#000;aspect-ratio:16/9;margin-top:8px">
-                  <video id="cam-vid-el-cam08" style="width:100%;height:100%;object-fit:cover" autoplay loop muted playsinline></video>
-                  <span id="cam-vid-lbl-cam08" style="position:absolute;bottom:4px;left:5px;font-size:9px;font-family:var(--mono);background:rgba(0,0,0,.7);color:var(--muted-2);padding:2px 6px;border-radius:3px;letter-spacing:.04em">▶ Preview</span>
+              <div class="cam-meta"><span class="name">PPE — Hat / Vest</span><span class="id">CAM-08</span><span class="right"><span class="live"><span class="dot live"></span>LIVE</span><button class="cam-upload-btn" id="cam-upload-toggle-opppe" onclick="camUploadToggle('opppe')" title="Upload a video, photo or screenshot to check PPE">↑ Check PPE</button><button class="popout" data-win="PPE — Hat / Vest" data-id="CAM-08" title="Pop out">⧉</button></span></div>
+              <div class="cam-upload-panel" id="cam-upload-panel-opppe">
+                <div class="cam-dz" id="cam-dz-opppe" onclick="document.getElementById('cam-file-opppe').click()" ondragover="camDragOver(event,'opppe')" ondragleave="camDragLeave(event,'opppe')" ondrop="camDrop(event,'opppe')">
+                  <input type="file" accept="video/*,image/*" id="cam-file-opppe" style="display:none" onchange="camFileChosen(this,'opppe')">
+                  <span id="cam-fname-opppe">Drop video / photo / screenshot or click to browse</span>
                 </div>
                 <div class="cam-det-row">
-                  <div class="cam-prog-wrap"><div class="cam-prog-fill" id="cam-bar-cam08"></div></div>
-                  <span class="cam-det-status" id="cam-status-cam08">—</span>
-                  <button class="btn sm pri" id="cam-det-btn-cam08" onclick="camDetectStart('cam08')" disabled>Detect</button>
+                  <div class="cam-prog-wrap"><div class="cam-prog-fill" id="cam-bar-opppe"></div></div>
+                  <span class="cam-det-status" id="cam-status-opppe">—</span>
+                  <button class="btn sm pri" id="cam-det-btn-opppe" onclick="safetyCamRun('opppe','ppe')" disabled>Detect PPE</button>
                 </div>
-                <div id="cam-results-cam08" style="display:none">
-                  <div class="cam-det-counts" id="cam-counts-cam08"></div>
-                  <div class="cam-det-stats" id="cam-stats-cam08"></div>
-                  <img id="cam-frame-cam08" class="cam-det-frame" style="display:none">
+                <div id="cam-results-opppe" style="display:none;margin-top:6px">
+                  <div class="cam-det-counts" id="cam-counts-opppe"></div>
+                  <div class="cam-det-stats" id="cam-stats-opppe"></div>
                 </div>
               </div>
             </div>
 
-            <!-- CAM-05 · Turnstile B -->
-            <div class="cam" id="cam-card-cam05">
+            <!-- CAM-05 · Worker Activity -->
+            <div class="cam" id="cam-card-opact">
               <div class="scene">
                 <div class="cctv-wrap">
-                  <img id="feed-cam05" class="cctv-feed"
+                  <img id="feed-opact" class="cctv-feed"
                        src="http://127.0.0.1:8000/stream/cam05"
-                       onerror="_camFeedError('cam05')">
-                  <div class="feed-err" id="err-cam05" style="display:none">⚠ No signal<br><span style="font-size:8.5px;color:var(--muted-2)">CAM-05 · TURNSTILE B</span><br><span style="font-size:8px;color:var(--muted-2);margin-top:4px;display:block">↑ Upload a video to preview here</span></div>
-                  <div class="cam-result-overlay" id="cam-overlay-cam05">
-                    <video id="cam-overlay-vid-cam05" autoplay loop muted playsinline></video>
-                    <img id="cam-overlay-img-cam05" alt="">
-                    <button class="cam-ov-close" onclick="camClearOverlay('cam05')">× LIVE</button>
-                    <span class="cam-ov-label" id="cam-ov-label-cam05">Uploaded video</span>
+                       onerror="_camFeedError('opact')">
+                  <div class="feed-err" id="err-opact" style="display:none">⚠ No signal<br><span style="font-size:8.5px;color:var(--muted-2)">CAM-05 · WORKER ACTIVITY</span><br><span style="font-size:8px;color:var(--muted-2);margin-top:4px;display:block">↑ Upload a video, photo or screenshot</span></div>
+                  <div class="cam-result-overlay" id="cam-overlay-opact">
+                    <video id="cam-overlay-vid-opact" autoplay loop muted playsinline></video>
+                    <img id="cam-overlay-img-opact" alt="">
+                    <button class="cam-ov-close" onclick="camClearOverlay('opact')">× LIVE</button>
+                    <span class="cam-ov-label" id="cam-ov-label-opact">Uploaded media</span>
                   </div>
                 </div>
               </div>
-              <div class="cam-meta"><span class="name">Turnstile B</span><span class="id">CAM-05</span><span class="right"><span class="live"><span class="dot live"></span>LIVE</span><button class="cam-upload-btn" id="cam-upload-toggle-cam05" onclick="camUploadToggle('cam05')" title="Upload demo video">↑ Upload</button><button class="popout" data-win="Turnstile B" data-id="CAM-05" title="Pop out">⧉</button></span></div>
-              <div class="cam-upload-panel" id="cam-upload-panel-cam05">
-                <div class="cam-dz" id="cam-dz-cam05" onclick="document.getElementById('cam-file-cam05').click()" ondragover="camDragOver(event,'cam05')" ondragleave="camDragLeave(event,'cam05')" ondrop="camDrop(event,'cam05')">
-                  <input type="file" accept="video/*" id="cam-file-cam05" style="display:none" onchange="camFileChosen(this,'cam05')">
-                  <span id="cam-fname-cam05">Drop video or click to browse</span>
-                </div>
-                <div id="cam-vid-preview-cam05" style="display:none;position:relative;border-radius:4px;overflow:hidden;background:#000;aspect-ratio:16/9;margin-top:8px">
-                  <video id="cam-vid-el-cam05" style="width:100%;height:100%;object-fit:cover" autoplay loop muted playsinline></video>
-                  <span id="cam-vid-lbl-cam05" style="position:absolute;bottom:4px;left:5px;font-size:9px;font-family:var(--mono);background:rgba(0,0,0,.7);color:var(--muted-2);padding:2px 6px;border-radius:3px;letter-spacing:.04em">▶ Preview</span>
+              <div class="cam-meta"><span class="name">Worker Activity</span><span class="id">CAM-05</span><span class="right"><span class="live"><span class="dot live"></span>LIVE</span><button class="cam-upload-btn" id="cam-upload-toggle-opact" onclick="camUploadToggle('opact')" title="Upload a video, photo or screenshot to classify activity">↑ Check Activity</button><button class="popout" data-win="Worker Activity" data-id="CAM-05" title="Pop out">⧉</button></span></div>
+              <div class="cam-upload-panel" id="cam-upload-panel-opact">
+                <div class="cam-dz" id="cam-dz-opact" onclick="document.getElementById('cam-file-opact').click()" ondragover="camDragOver(event,'opact')" ondragleave="camDragLeave(event,'opact')" ondrop="camDrop(event,'opact')">
+                  <input type="file" accept="video/*,image/*" id="cam-file-opact" style="display:none" onchange="camFileChosen(this,'opact')">
+                  <span id="cam-fname-opact">Drop video / photo / screenshot or click to browse</span>
                 </div>
                 <div class="cam-det-row">
-                  <div class="cam-prog-wrap"><div class="cam-prog-fill" id="cam-bar-cam05"></div></div>
-                  <span class="cam-det-status" id="cam-status-cam05">—</span>
-                  <button class="btn sm pri" id="cam-det-btn-cam05" onclick="camDetectStart('cam05')" disabled>Detect</button>
+                  <div class="cam-prog-wrap"><div class="cam-prog-fill" id="cam-bar-opact"></div></div>
+                  <span class="cam-det-status" id="cam-status-opact">—</span>
+                  <button class="btn sm pri" id="cam-det-btn-opact" onclick="safetyCamRun('opact','activity')" disabled>Detect Activity</button>
                 </div>
-                <div id="cam-results-cam05" style="display:none">
-                  <div class="cam-det-counts" id="cam-counts-cam05"></div>
-                  <div class="cam-det-stats" id="cam-stats-cam05"></div>
-                  <img id="cam-frame-cam05" class="cam-det-frame" style="display:none">
+                <div id="cam-results-opact" style="display:none;margin-top:6px">
+                  <div class="cam-det-counts" id="cam-counts-opact"></div>
+                  <div class="cam-det-stats" id="cam-stats-opact"></div>
                 </div>
               </div>
             </div>
@@ -713,6 +705,15 @@
 
       <!-- GATE -->
       <section class="view" id="view-gate">
+        <style>
+          /* Gate & Access — compact, tidy camera tiles for both ANPR and face */
+          #view-gate #cam-card-gate,
+          #view-gate #cam-card-gface{max-width:420px}
+          #view-gate .cam-dz{padding:7px 10px;font-size:10.5px}
+          #view-gate .cam-upload-panel{padding:9px 10px}
+          #view-gate .gate-anpr-grid{grid-template-columns:420px 1fr}
+          @media (max-width:900px){#view-gate .gate-anpr-grid{grid-template-columns:1fr}}
+        </style>
         <div class="crumb">Warehouse North <b>/ Gate &amp; Access</b></div>
         <div class="view-head">
           <div><div class="eyebrow">Module</div><h1>Gate &amp; Access</h1>
@@ -720,28 +721,49 @@
           <button class="btn ghost" onclick="loadGateLog()">Refresh log</button>
         </div>
 
-        <!-- ANPR Scanner panel -->
+        <!-- ANPR Scanner panel — CAM-01 style tile with upload underneath -->
         <div class="panel" style="margin-bottom:15px">
           <div class="panel-head">
             <h3>License Plate Detection <span class="fr">FR-G1</span></h3>
             <span class="sub" id="gate-anpr-status">Idle — upload a gate video to scan</span>
           </div>
           <div class="panel-body">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
-              <div>
-                <div class="upload-zone" id="gate-anpr-zone"
-                     ondragover="event.preventDefault();this.classList.add('drag-over')"
-                     ondragleave="this.classList.remove('drag-over')"
-                     ondrop="gateAnprDrop(event)"
-                     onclick="document.getElementById('gate-anpr-file').click()">
-                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                  <div class="uz-title">Drop gate camera video or click to browse</div>
-                  <div class="uz-sub">MP4 · AVI · MOV · MKV · WebM</div>
+            <div style="display:grid;grid-template-columns:1fr 320px;gap:18px;align-items:start" class="gate-anpr-grid">
+              <!-- CAM-01 tile (same look as Operations) -->
+              <div class="cam" id="cam-card-gate">
+                <div class="scene"><div class="cctv-wrap">
+                  <img id="feed-gate" class="cctv-feed" src="http://127.0.0.1:8000/stream/cam01"
+                       onerror="this.style.display='none';var e=document.getElementById('err-gate');if(e)e.style.display=''">
+                  <div class="feed-err" id="err-gate" style="display:none">⚠ No signal<br><span style="font-size:8.5px;color:var(--muted-2)">CAM-01 · MAIN GATE IN</span><br><span style="font-size:8px;color:var(--muted-2);margin-top:4px;display:block">↑ Upload a video to scan for plates</span></div>
+                  <!-- Uploaded clip plays here (overlays the live feed while scanning) -->
+                  <div id="gate-anpr-preview" style="display:none;position:absolute;inset:0;z-index:6;background:#000">
+                    <video id="gate-anpr-vid" class="cctv-feed" style="filter:none" autoplay loop muted playsinline></video>
+                    <button class="cam-ov-close" onclick="gateClearVideo()" style="position:absolute;top:6px;right:6px;z-index:9">× LIVE</button>
+                  </div>
+                  <!-- Detection box: white while scanning, green if authorised, red if denied -->
+                  <div class="scan-box" id="gate-scan-box">
+                    <span class="sb-l sb-tl"></span><span class="sb-l sb-tr"></span>
+                    <span class="sb-l sb-bl"></span><span class="sb-l sb-br"></span>
+                    <span class="sb-line"></span>
+                    <span class="sb-tag" id="gate-scan-tag">SCANNING…</span>
+                  </div>
+                </div></div>
+                <div class="cam-meta"><span class="name">Main Gate — In</span><span class="id">CAM-01</span><span class="right"><span class="live"><span class="dot live"></span>LIVE</span><button class="cam-upload-btn active" id="cam-upload-toggle-gate" onclick="camUploadToggle('gate')" title="Upload a gate video &amp; scan for plates">↑ ANPR Scan</button><button class="popout" data-win="Main Gate — In" data-id="CAM-01" title="Pop out">⧉</button></span></div>
+                <!-- Upload option under the camera (open by default on this tab) -->
+                <div class="cam-upload-panel open" id="cam-upload-panel-gate">
+                  <div class="cam-dz" id="gate-anpr-zone"
+                       ondragover="event.preventDefault();this.classList.add('drag-over')"
+                       ondragleave="this.classList.remove('drag-over')"
+                       ondrop="gateAnprDrop(event)"
+                       onclick="document.getElementById('gate-anpr-file').click()">
+                    <span id="gate-anpr-dz-label">Drop gate camera video or click to browse · MP4 · AVI · MOV · MKV · WebM</span>
+                  </div>
+                  <input type="file" id="gate-anpr-file" accept="video/*" style="display:none" onchange="gateAnprFileChosen(this)">
+                  <div id="gate-anpr-fname" style="margin-top:6px;font-family:var(--mono);font-size:10px;color:var(--muted-2)"></div>
+                  <button class="btn sm pri" id="gate-anpr-btn" style="width:100%;margin-top:8px" onclick="gateAnprStart()" disabled>Scan for Plates</button>
                 </div>
-                <input type="file" id="gate-anpr-file" accept="video/*" style="display:none" onchange="gateAnprFileChosen(this)">
-                <div id="gate-anpr-fname" style="margin-top:8px;font-family:var(--mono);font-size:10.5px;color:var(--muted-2)"></div>
-                <button class="btn pri" id="gate-anpr-btn" style="width:100%;margin-top:11px" onclick="gateAnprStart()" disabled>Scan for Plates</button>
               </div>
+              <!-- Progress + KPIs -->
               <div>
                 <div style="margin-bottom:14px">
                   <div style="display:flex;justify-content:space-between;margin-bottom:5px">
@@ -760,23 +782,6 @@
           </div>
         </div>
 
-        <!-- Gate camera video with moving detection box (like CAM-01) -->
-        <div class="panel" id="gate-vid-panel" style="display:none;margin-bottom:15px">
-          <div class="panel-head"><h3>Gate Camera</h3><span class="sub" id="gate-vid-sub">Preview</span>
-            <button class="btn sm ghost" style="margin-left:auto;font-size:10px" onclick="gateClearVideo()">Clear</button></div>
-          <div style="position:relative;background:#0A0A0C;aspect-ratio:16/9;overflow:hidden;border-radius:0 0 var(--radius) var(--radius)">
-            <div class="cctv-wrap" id="gate-cctv">
-              <video id="gate-anpr-vid" class="cctv-feed" style="filter:none" autoplay loop muted playsinline></video>
-              <div class="scan-box" id="gate-scan-box">
-                <span class="sb-l sb-tl"></span><span class="sb-l sb-tr"></span>
-                <span class="sb-l sb-bl"></span><span class="sb-l sb-br"></span>
-                <span class="sb-line"></span>
-                <span class="sb-tag" id="gate-scan-tag">SCANNING…</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- Annotated detection frame (fallback if no detector / track) -->
         <div id="gate-anpr-frame-wrap" style="display:none;margin-bottom:15px">
           <div class="panel">
@@ -790,20 +795,62 @@
         <!-- Gate decision cards (shown after detection) -->
         <div id="gate-anpr-decisions" style="display:none;margin-bottom:15px"></div>
 
-        <!-- Facial recognition + Tailgating (live demo) -->
+        <!-- Facial recognition (real) + Authorised people -->
         <div class="grid col-2" style="margin-bottom:15px">
+          <!-- CAM-02 style face tile: upload a clip → recognise face → grant / deny -->
           <div class="panel">
-            <div class="panel-head"><h3>Facial recognition <span class="fr">FR-G2</span></h3><span class="sub">CAM-03</span></div>
-            <div class="cam" style="border:0;border-radius:0"><div class="scene" style="height:146px;background:linear-gradient(180deg,#0a0f17,#0d131c)"><div class="scanline" style="animation-delay:1s"></div><div class="bb" style="left:38%;top:22%;width:62px;height:76px"><span class="tag">MATCH 0.94</span></div></div></div>
-            <div class="panel-body"><div style="font-weight:600">Arun Menon</div><div class="m" style="color:var(--muted)">ID 2041 · Logistics · L2</div>
-              <div style="display:flex;gap:7px;margin-top:9px"><span class="chip ok">● Authorized</span></div>
-              <div style="display:flex;gap:7px;margin-top:11px"><button class="btn pri sm">Grant entry</button><button class="btn danger sm">Deny</button></div></div>
+            <div class="panel-head"><h3>Facial Recognition <span class="fr">FR-G2</span></h3><span class="sub" id="gface-status">Upload a clip to check access</span></div>
+            <div class="panel-body">
+              <div class="cam" id="cam-card-gface">
+                <div class="scene"><div class="cctv-wrap">
+                  <img id="feed-gface" class="cctv-feed" src="http://127.0.0.1:8000/stream/cam02"
+                       onerror="this.style.display='none';var e=document.getElementById('err-gface');if(e)e.style.display=''">
+                  <div class="feed-err" id="err-gface" style="display:none">⚠ No signal<br><span style="font-size:8.5px;color:var(--muted-2)">CAM-02 · FACIAL RECOGNITION</span><br><span style="font-size:8px;color:var(--muted-2);margin-top:4px;display:block">↑ Upload a clip to check access</span></div>
+                  <div class="cam-result-overlay" id="cam-overlay-gface">
+                    <video id="cam-overlay-vid-gface" autoplay loop muted playsinline></video>
+                    <img id="cam-overlay-img-gface" alt="">
+                    <button class="cam-ov-close" onclick="camClearOverlay('gface')">× LIVE</button>
+                    <span class="cam-ov-label" id="cam-ov-label-gface">Uploaded video</span>
+                  </div>
+                  <!-- Access decision badge -->
+                  <div id="gface-badge" style="display:none;position:absolute;bottom:6px;left:6px;right:6px;z-index:6;border-radius:5px;padding:6px 10px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.06em;backdrop-filter:blur(5px);align-items:center;gap:8px">
+                    <span id="gface-name" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+                    <span id="gface-label"></span>
+                  </div>
+                </div></div>
+                <div class="cam-meta"><span class="name">Facial Recognition — Gate</span><span class="id">CAM-02</span><span class="right"><span class="live"><span class="dot live"></span>LIVE</span><button class="cam-upload-btn active" id="cam-upload-toggle-gface" onclick="camUploadToggle('gface')" title="Upload a clip to check face access">↑ Upload</button><button class="popout" data-win="Facial Recognition — Gate" data-id="CAM-02" title="Pop out">⧉</button></span></div>
+                <div class="cam-upload-panel open" id="cam-upload-panel-gface">
+                  <div class="cam-dz" id="cam-dz-gface" onclick="document.getElementById('cam-file-gface').click()" ondragover="camDragOver(event,'gface')" ondragleave="camDragLeave(event,'gface')" ondrop="camDrop(event,'gface')">
+                    <input type="file" accept="video/*,image/*" id="cam-file-gface" style="display:none" onchange="camFileChosen(this,'gface')">
+                    <span id="cam-fname-gface">Drop a face clip / photo / screenshot or click to browse</span>
+                  </div>
+                  <div class="cam-det-row" style="margin-top:8px">
+                    <div class="cam-prog-wrap"><div class="cam-prog-fill" id="cam-bar-gface"></div></div>
+                    <span class="cam-det-status" id="cam-status-gface">—</span>
+                    <button class="btn sm pri" id="cam-det-btn-gface" onclick="gateFaceStart()" disabled>Check Access</button>
+                  </div>
+                  <div id="cam-results-gface" style="display:none;margin-top:6px">
+                    <div class="cam-det-counts" id="cam-counts-gface"></div>
+                    <div class="cam-det-stats" id="cam-stats-gface"></div>
+                  </div>
+                </div>
+              </div>
+              <p class="note" style="margin-top:10px">Recognises the face against the authorised people below. Register / edit people in the Biometric Auth tab or the list beside this.</p>
+            </div>
           </div>
-          <div class="panel" style="border-color:rgba(242,86,110,.4)">
-            <div class="panel-head"><h3>Tailgating <span class="fr">FR-G3</span></h3><span class="sub">CAM-05</span></div>
-            <div class="cam" style="border:0;border-radius:0"><div class="scene" style="height:146px;background:linear-gradient(180deg,#120b0f,#0d141e)"><div class="scanline" style="animation-delay:2s;background:linear-gradient(90deg,transparent,var(--alert),transparent)"></div><div class="bb" style="left:24%;top:30%;width:38px;height:92px"><span class="tag">BADGE ✓</span></div><div class="bb crit" style="left:48%;top:34%;width:38px;height:88px"><span class="tag">NO SCAN ✕</span></div></div></div>
-            <div class="panel-body"><span class="chip crit">● Tailgating event</span><p style="color:var(--muted);font-size:12px;margin:9px 0 11px">2 people passed on a single authorized scan.</p>
-              <div style="display:flex;gap:7px"><button class="btn pri sm">Review clip</button><button class="btn sm" onclick="pushAlert('crit','Tailgating event — guard dispatched','CAM-05 · Turnstile B · 2 people passed on a single authorized scan')">Dispatch guard</button></div></div>
+
+          <!-- Editable authorised-people list -->
+          <div class="panel">
+            <div class="panel-head"><h3>Authorised People</h3><span class="sub" id="gate-persons-count"></span><button class="btn sm ghost" style="margin-left:auto" onclick="loadGatePersons()">Refresh</button></div>
+            <div style="max-height:300px;overflow-y:auto">
+              <table><thead><tr><th>Name</th><th>ID</th><th>Dept</th><th>Level</th><th>Access</th><th style="min-width:104px">Actions</th></tr></thead>
+              <tbody id="gate-persons-tbody">
+                <tr><td colspan="6" style="text-align:center;color:var(--muted-2);padding:14px;font-family:var(--mono);font-size:11px">Loading…</td></tr>
+              </tbody></table>
+            </div>
+            <div class="panel-body" style="border-top:1px solid var(--hair)">
+              <p class="note" style="margin-top:0">Everyone listed here is granted access on a face match. Unknown faces are denied automatically. Add new people from the <b>Biometric Auth</b> tab.</p>
+            </div>
           </div>
         </div>
 
@@ -846,11 +893,64 @@
       <section class="view" id="view-safety">
         <div class="crumb">Warehouse North <b>/ People &amp; Safety</b></div>
         <div class="view-head"><div><div class="eyebrow">Module</div><h1>People &amp; Safety</h1><p>PPE compliance, restricted-zone intrusion, and person-down detection.</p></div></div>
+
+        <style>
+          /* PPE / Activity analyzer — professional uploader + live media stage */
+          .an-uploader{border:2px dashed var(--hair);border-radius:12px;background:var(--bg-elevated);
+            padding:26px 20px;text-align:center;cursor:pointer;transition:.15s}
+          .an-uploader:hover,.an-uploader.drag-over{border-color:var(--active);background:var(--active-dim)}
+          .an-uploader svg{opacity:.5;margin-bottom:8px}
+          .an-uz-title{font-weight:600;font-size:13.5px}
+          .an-uz-sub{color:var(--muted);font-size:11.5px;margin-top:4px;max-width:520px;margin-left:auto;margin-right:auto}
+          .an-uz-formats{font-family:var(--mono);font-size:10px;color:var(--muted-2);letter-spacing:.08em;margin-top:8px}
+          .an-media{position:relative;flex:0 0 auto;width:540px;max-width:100%;aspect-ratio:16/9;
+            background:#08080a;border-radius:10px;overflow:hidden;border:1px solid var(--hair)}
+          .an-media video,.an-media img{width:100%;height:100%;object-fit:contain;display:none;background:#000}
+          .an-media-lbl{position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,.7);color:#e8eef6;
+            font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:4px;letter-spacing:.04em}
+        </style>
+
+        <!-- Real PPE + activity detection (hard-hat / vest / phone) -->
+        <div class="panel" style="margin-bottom:15px">
+          <div class="panel-head"><h3>PPE &amp; Activity Analyzer <span class="fr">LIVE AI</span></h3><span class="sub" id="sf-status">checking model…</span></div>
+          <div class="panel-body">
+            <div class="an-uploader" id="sf-uploader"
+                 ondragover="event.preventDefault();this.classList.add('drag-over')"
+                 ondragleave="this.classList.remove('drag-over')"
+                 ondrop="sfDrop(event,'sf')"
+                 onclick="document.getElementById('sf-file').click()">
+              <input type="file" id="sf-file" accept="image/*,video/*" hidden>
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <div class="an-uz-title">Drop a video, photo or screenshot — or click to browse</div>
+              <div class="an-uz-sub">Detects each worker, hard-hat / vest compliance, and activity (working · on-phone · chatting · resting).</div>
+              <div class="an-uz-formats">MP4 · MOV · AVI · WEBM · JPG · PNG</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
+              <span id="sf-fname" class="note" style="margin:0;flex:1">No file selected yet.</span>
+              <button class="btn sm pri" id="sf-detect" onclick="sfDetect('sf')" disabled>Detect</button>
+            </div>
+            <div id="sf-loading" class="note" style="display:none">Analyzing… first run downloads the PPE model (~30 MB), please wait.</div>
+            <div id="sf-result" style="display:none;margin-top:13px">
+              <div style="display:flex;gap:16px;flex-wrap:wrap">
+                <div class="an-media">
+                  <video id="sf-video" autoplay loop muted playsinline></video>
+                  <img id="sf-img" alt="annotated result">
+                  <span class="an-media-lbl" id="sf-media-lbl"></span>
+                </div>
+                <div style="flex:1;min-width:240px"><div id="sf-summary"></div><div id="sf-persons" style="margin-top:12px"></div></div>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:12px">
+                <button class="btn sm ghost" onclick="sfClear('sf')">✕ Clear</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="grid col-3" style="margin-bottom:15px">
-          <div class="panel"><div class="panel-head"><h3>PPE compliance <span class="fr">FR-P1</span></h3><span class="sub">live</span></div>
-            <div class="panel-body" style="text-align:center"><div class="gauge"><svg width="112" height="112" viewBox="0 0 112 112"><circle cx="56" cy="56" r="47" fill="none" stroke="var(--hair)" stroke-width="9"/><circle cx="56" cy="56" r="47" fill="none" stroke="var(--clear)" stroke-width="9" stroke-linecap="round" stroke-dasharray="295" stroke-dashoffset="12"/></svg><div class="num">96%</div></div>
-              <div style="display:flex;gap:7px;justify-content:center;margin-top:13px"><span class="chip ok">Hard hat ✓</span><span class="chip crit">Vest ✕ ×1</span></div>
-              <p class="note" style="text-align:center">14 of 15 workers compliant</p></div></div>
+          <div class="panel"><div class="panel-head"><h3>PPE compliance <span class="fr">FR-P1</span></h3><span class="sub" id="sf-gauge-sub">upload to measure</span></div>
+            <div class="panel-body" style="text-align:center"><div class="gauge"><svg width="112" height="112" viewBox="0 0 112 112"><circle cx="56" cy="56" r="47" fill="none" stroke="var(--hair)" stroke-width="9"/><circle id="sf-gauge-arc" cx="56" cy="56" r="47" fill="none" stroke="var(--clear)" stroke-width="9" stroke-linecap="round" stroke-dasharray="295" stroke-dashoffset="295" transform="rotate(-90 56 56)"/></svg><div class="num" id="sf-gauge-num">—</div></div>
+              <div id="sf-gauge-chips" style="display:flex;gap:7px;justify-content:center;margin-top:13px;flex-wrap:wrap"><span class="chip">No scan yet</span></div>
+              <p class="note" id="sf-gauge-note" style="text-align:center">Upload a photo or clip in the analyzer above to measure PPE compliance.</p></div></div>
           <div class="panel span-2"><div class="panel-head"><h3>Restricted zones <span class="fr">FR-P2</span></h3><span class="sub">CAM-08</span></div>
             <div class="panel-body"><div class="zone-map"><div class="zone restricted" style="left:8%;top:16%;width:30%;height:46%">Restricted<br>Zone A</div><div class="zone safe" style="right:8%;bottom:14%;width:34%;height:42%">Walkway</div><div class="person" style="right:24%;bottom:24%"></div><div class="person intruder" style="left:18%;top:30%"></div></div>
               <div style="display:flex;gap:7px;margin-top:11px;align-items:center"><span class="chip crit">● Unauthorized entry — Zone A</span><span class="chip">Tracked 8s</span><button class="btn pri sm" style="margin-left:auto">Review clip</button></div></div></div>
@@ -860,6 +960,207 @@
             <div class="cam" style="border:0;width:212px;flex:0 0 auto"><div class="scene" style="height:120px;background:linear-gradient(180deg,#120b0f,#0d141e)"><div class="bb crit" style="left:20%;top:54%;width:116px;height:32px"><span class="tag">PERSON DOWN</span></div></div></div>
             <div style="flex:1;min-width:210px"><span class="chip crit">● Person motionless</span><div style="font-family:var(--mono);font-size:28px;margin:7px 0 2px;color:var(--alert)">00:01:14</div><div class="note" style="margin-top:0">Stationary since 09:39:53 · alarm at 60s</div>
               <div style="display:flex;gap:7px;margin-top:13px"><button class="btn pri sm">Trigger response</button><button class="btn sm">Call medic</button><button class="btn ghost sm">False alarm</button></div></div></div></div>
+
+        <!-- Warehouse safety cameras — upload a clip on any tile to run detection (same as Operations) -->
+        <div class="panel" style="margin-top:15px">
+          <div class="panel-head"><h3>Warehouse Safety Cameras</h3><span class="sub">upload a clip on any tile to run detection</span></div>
+          <div class="panel-body">
+            <div class="grid" style="grid-template-columns:repeat(4,1fr)">
+
+              <!-- CAM-21 · Warehouse Floor 1 -->
+              <div class="cam" id="cam-card-scam1">
+                <div class="scene"><div class="cctv-wrap">
+                  <img id="feed-scam1" class="cctv-feed" src="http://127.0.0.1:8000/stream/cam08" onerror="_camFeedError('scam1')">
+                  <div class="feed-err" id="err-scam1" style="display:none">⚠ No signal<br><span style="font-size:8.5px;color:var(--muted-2)">CAM-21 · WAREHOUSE FLOOR 1</span><br><span style="font-size:8px;color:var(--muted-2);margin-top:4px;display:block">↑ Upload a video to preview here</span></div>
+                  <div class="cam-result-overlay" id="cam-overlay-scam1">
+                    <video id="cam-overlay-vid-scam1" autoplay loop muted playsinline></video>
+                    <img id="cam-overlay-img-scam1" alt="">
+                    <button class="cam-ov-close" onclick="camClearOverlay('scam1')">× LIVE</button>
+                    <span class="cam-ov-label" id="cam-ov-label-scam1">Uploaded video</span>
+                  </div>
+                </div></div>
+                <div class="cam-meta"><span class="name">Warehouse Floor 1</span><span class="id">CAM-21</span><span class="right"><span class="live"><span class="dot live"></span>LIVE</span><button class="cam-upload-btn" id="cam-upload-toggle-scam1" onclick="camUploadToggle('scam1')" title="Upload a clip to run detection">↑ Upload</button><button class="popout" data-win="Warehouse Floor 1" data-id="CAM-21" title="Pop out">⧉</button></span></div>
+                <div class="cam-upload-panel" id="cam-upload-panel-scam1">
+                  <div class="cam-dz" id="cam-dz-scam1" onclick="document.getElementById('cam-file-scam1').click()" ondragover="camDragOver(event,'scam1')" ondragleave="camDragLeave(event,'scam1')" ondrop="camDrop(event,'scam1')">
+                    <input type="file" accept="video/*" id="cam-file-scam1" style="display:none" onchange="camFileChosen(this,'scam1')">
+                    <span id="cam-fname-scam1">Drop video or click to browse</span>
+                  </div>
+                  <div id="cam-vid-preview-scam1" style="display:none;position:relative;border-radius:4px;overflow:hidden;background:#000;aspect-ratio:16/9;margin-top:8px">
+                    <video id="cam-vid-el-scam1" style="width:100%;height:100%;object-fit:cover" autoplay loop muted playsinline></video>
+                    <span id="cam-vid-lbl-scam1" style="position:absolute;bottom:4px;left:5px;font-size:9px;font-family:var(--mono);background:rgba(0,0,0,.7);color:var(--muted-2);padding:2px 6px;border-radius:3px;letter-spacing:.04em">▶ Preview</span>
+                  </div>
+                  <div class="cam-det-row">
+                    <div class="cam-prog-wrap"><div class="cam-prog-fill" id="cam-bar-scam1"></div></div>
+                    <span class="cam-det-status" id="cam-status-scam1">—</span>
+                    <button class="btn sm pri" id="cam-det-btn-scam1" onclick="camDetectStart('scam1')" disabled>Detect</button>
+                  </div>
+                  <div id="cam-results-scam1" style="display:none">
+                    <div class="cam-det-counts" id="cam-counts-scam1"></div>
+                    <div class="cam-det-stats" id="cam-stats-scam1"></div>
+                    <img id="cam-frame-scam1" class="cam-det-frame" style="display:none">
+                  </div>
+                </div>
+              </div>
+
+              <!-- CAM-22 · Warehouse Floor 2 -->
+              <div class="cam" id="cam-card-scam2">
+                <div class="scene"><div class="cctv-wrap">
+                  <img id="feed-scam2" class="cctv-feed" src="http://127.0.0.1:8000/stream/cam05" onerror="_camFeedError('scam2')">
+                  <div class="feed-err" id="err-scam2" style="display:none">⚠ No signal<br><span style="font-size:8.5px;color:var(--muted-2)">CAM-22 · WAREHOUSE FLOOR 2</span><br><span style="font-size:8px;color:var(--muted-2);margin-top:4px;display:block">↑ Upload a video to preview here</span></div>
+                  <div class="cam-result-overlay" id="cam-overlay-scam2">
+                    <video id="cam-overlay-vid-scam2" autoplay loop muted playsinline></video>
+                    <img id="cam-overlay-img-scam2" alt="">
+                    <button class="cam-ov-close" onclick="camClearOverlay('scam2')">× LIVE</button>
+                    <span class="cam-ov-label" id="cam-ov-label-scam2">Uploaded video</span>
+                  </div>
+                </div></div>
+                <div class="cam-meta"><span class="name">Warehouse Floor 2</span><span class="id">CAM-22</span><span class="right"><span class="live"><span class="dot live"></span>LIVE</span><button class="cam-upload-btn" id="cam-upload-toggle-scam2" onclick="camUploadToggle('scam2')" title="Upload a clip to run detection">↑ Upload</button><button class="popout" data-win="Warehouse Floor 2" data-id="CAM-22" title="Pop out">⧉</button></span></div>
+                <div class="cam-upload-panel" id="cam-upload-panel-scam2">
+                  <div class="cam-dz" id="cam-dz-scam2" onclick="document.getElementById('cam-file-scam2').click()" ondragover="camDragOver(event,'scam2')" ondragleave="camDragLeave(event,'scam2')" ondrop="camDrop(event,'scam2')">
+                    <input type="file" accept="video/*" id="cam-file-scam2" style="display:none" onchange="camFileChosen(this,'scam2')">
+                    <span id="cam-fname-scam2">Drop video or click to browse</span>
+                  </div>
+                  <div id="cam-vid-preview-scam2" style="display:none;position:relative;border-radius:4px;overflow:hidden;background:#000;aspect-ratio:16/9;margin-top:8px">
+                    <video id="cam-vid-el-scam2" style="width:100%;height:100%;object-fit:cover" autoplay loop muted playsinline></video>
+                    <span id="cam-vid-lbl-scam2" style="position:absolute;bottom:4px;left:5px;font-size:9px;font-family:var(--mono);background:rgba(0,0,0,.7);color:var(--muted-2);padding:2px 6px;border-radius:3px;letter-spacing:.04em">▶ Preview</span>
+                  </div>
+                  <div class="cam-det-row">
+                    <div class="cam-prog-wrap"><div class="cam-prog-fill" id="cam-bar-scam2"></div></div>
+                    <span class="cam-det-status" id="cam-status-scam2">—</span>
+                    <button class="btn sm pri" id="cam-det-btn-scam2" onclick="camDetectStart('scam2')" disabled>Detect</button>
+                  </div>
+                  <div id="cam-results-scam2" style="display:none">
+                    <div class="cam-det-counts" id="cam-counts-scam2"></div>
+                    <div class="cam-det-stats" id="cam-stats-scam2"></div>
+                    <img id="cam-frame-scam2" class="cam-det-frame" style="display:none">
+                  </div>
+                </div>
+              </div>
+
+              <!-- CAM-23 · Loading Dock -->
+              <div class="cam" id="cam-card-scam3">
+                <div class="scene"><div class="cctv-wrap">
+                  <img id="feed-scam3" class="cctv-feed" src="http://127.0.0.1:8000/stream/cam12" onerror="_camFeedError('scam3')">
+                  <div class="feed-err" id="err-scam3" style="display:none">⚠ No signal<br><span style="font-size:8.5px;color:var(--muted-2)">CAM-23 · LOADING DOCK</span><br><span style="font-size:8px;color:var(--muted-2);margin-top:4px;display:block">↑ Upload a video to preview here</span></div>
+                  <div class="cam-result-overlay" id="cam-overlay-scam3">
+                    <video id="cam-overlay-vid-scam3" autoplay loop muted playsinline></video>
+                    <img id="cam-overlay-img-scam3" alt="">
+                    <button class="cam-ov-close" onclick="camClearOverlay('scam3')">× LIVE</button>
+                    <span class="cam-ov-label" id="cam-ov-label-scam3">Uploaded video</span>
+                  </div>
+                </div></div>
+                <div class="cam-meta"><span class="name">Loading Dock</span><span class="id">CAM-23</span><span class="right"><span class="live"><span class="dot live"></span>LIVE</span><button class="cam-upload-btn" id="cam-upload-toggle-scam3" onclick="camUploadToggle('scam3')" title="Upload a clip to run detection">↑ Upload</button><button class="popout" data-win="Loading Dock" data-id="CAM-23" title="Pop out">⧉</button></span></div>
+                <div class="cam-upload-panel" id="cam-upload-panel-scam3">
+                  <div class="cam-dz" id="cam-dz-scam3" onclick="document.getElementById('cam-file-scam3').click()" ondragover="camDragOver(event,'scam3')" ondragleave="camDragLeave(event,'scam3')" ondrop="camDrop(event,'scam3')">
+                    <input type="file" accept="video/*" id="cam-file-scam3" style="display:none" onchange="camFileChosen(this,'scam3')">
+                    <span id="cam-fname-scam3">Drop video or click to browse</span>
+                  </div>
+                  <div id="cam-vid-preview-scam3" style="display:none;position:relative;border-radius:4px;overflow:hidden;background:#000;aspect-ratio:16/9;margin-top:8px">
+                    <video id="cam-vid-el-scam3" style="width:100%;height:100%;object-fit:cover" autoplay loop muted playsinline></video>
+                    <span id="cam-vid-lbl-scam3" style="position:absolute;bottom:4px;left:5px;font-size:9px;font-family:var(--mono);background:rgba(0,0,0,.7);color:var(--muted-2);padding:2px 6px;border-radius:3px;letter-spacing:.04em">▶ Preview</span>
+                  </div>
+                  <div class="cam-det-row">
+                    <div class="cam-prog-wrap"><div class="cam-prog-fill" id="cam-bar-scam3"></div></div>
+                    <span class="cam-det-status" id="cam-status-scam3">—</span>
+                    <button class="btn sm pri" id="cam-det-btn-scam3" onclick="camDetectStart('scam3')" disabled>Detect</button>
+                  </div>
+                  <div id="cam-results-scam3" style="display:none">
+                    <div class="cam-det-counts" id="cam-counts-scam3"></div>
+                    <div class="cam-det-stats" id="cam-stats-scam3"></div>
+                    <img id="cam-frame-scam3" class="cam-det-frame" style="display:none">
+                  </div>
+                </div>
+              </div>
+
+              <!-- CAM-24 · Assembly Area -->
+              <div class="cam" id="cam-card-scam4">
+                <div class="scene"><div class="cctv-wrap">
+                  <img id="feed-scam4" class="cctv-feed" src="http://127.0.0.1:8000/stream/cam08" onerror="_camFeedError('scam4')">
+                  <div class="feed-err" id="err-scam4" style="display:none">⚠ No signal<br><span style="font-size:8.5px;color:var(--muted-2)">CAM-24 · ASSEMBLY AREA</span><br><span style="font-size:8px;color:var(--muted-2);margin-top:4px;display:block">↑ Upload a video to preview here</span></div>
+                  <div class="cam-result-overlay" id="cam-overlay-scam4">
+                    <video id="cam-overlay-vid-scam4" autoplay loop muted playsinline></video>
+                    <img id="cam-overlay-img-scam4" alt="">
+                    <button class="cam-ov-close" onclick="camClearOverlay('scam4')">× LIVE</button>
+                    <span class="cam-ov-label" id="cam-ov-label-scam4">Uploaded video</span>
+                  </div>
+                </div></div>
+                <div class="cam-meta"><span class="name">Assembly Area</span><span class="id">CAM-24</span><span class="right"><span class="live"><span class="dot live"></span>LIVE</span><button class="cam-upload-btn" id="cam-upload-toggle-scam4" onclick="camUploadToggle('scam4')" title="Upload a clip to run detection">↑ Upload</button><button class="popout" data-win="Assembly Area" data-id="CAM-24" title="Pop out">⧉</button></span></div>
+                <div class="cam-upload-panel" id="cam-upload-panel-scam4">
+                  <div class="cam-dz" id="cam-dz-scam4" onclick="document.getElementById('cam-file-scam4').click()" ondragover="camDragOver(event,'scam4')" ondragleave="camDragLeave(event,'scam4')" ondrop="camDrop(event,'scam4')">
+                    <input type="file" accept="video/*" id="cam-file-scam4" style="display:none" onchange="camFileChosen(this,'scam4')">
+                    <span id="cam-fname-scam4">Drop video or click to browse</span>
+                  </div>
+                  <div id="cam-vid-preview-scam4" style="display:none;position:relative;border-radius:4px;overflow:hidden;background:#000;aspect-ratio:16/9;margin-top:8px">
+                    <video id="cam-vid-el-scam4" style="width:100%;height:100%;object-fit:cover" autoplay loop muted playsinline></video>
+                    <span id="cam-vid-lbl-scam4" style="position:absolute;bottom:4px;left:5px;font-size:9px;font-family:var(--mono);background:rgba(0,0,0,.7);color:var(--muted-2);padding:2px 6px;border-radius:3px;letter-spacing:.04em">▶ Preview</span>
+                  </div>
+                  <div class="cam-det-row">
+                    <div class="cam-prog-wrap"><div class="cam-prog-fill" id="cam-bar-scam4"></div></div>
+                    <span class="cam-det-status" id="cam-status-scam4">—</span>
+                    <button class="btn sm pri" id="cam-det-btn-scam4" onclick="camDetectStart('scam4')" disabled>Detect</button>
+                  </div>
+                  <div id="cam-results-scam4" style="display:none">
+                    <div class="cam-det-counts" id="cam-counts-scam4"></div>
+                    <div class="cam-det-stats" id="cam-stats-scam4"></div>
+                    <img id="cam-frame-scam4" class="cam-det-frame" style="display:none">
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ACTIVITY MONITOR -->
+      <section class="view" id="view-activity">
+        <div class="crumb">Warehouse North <b>/ Activity Monitor</b></div>
+        <div class="view-head"><div><div class="eyebrow">AI Module</div><h1>Worker Activity Monitor</h1><p>Detect whether warehouse workers are working, on the phone, chatting, or resting.</p></div></div>
+        <div class="panel" style="margin-bottom:15px">
+          <div class="panel-head"><h3>Activity Analyzer <span class="fr">LIVE AI</span></h3><span class="sub" id="ac-status">checking model…</span></div>
+          <div class="panel-body">
+            <div class="an-uploader" id="ac-uploader"
+                 ondragover="event.preventDefault();this.classList.add('drag-over')"
+                 ondragleave="this.classList.remove('drag-over')"
+                 ondrop="sfDrop(event,'ac')"
+                 onclick="document.getElementById('ac-file').click()">
+              <input type="file" id="ac-file" accept="image/*,video/*" hidden>
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <div class="an-uz-title">Drop a video, photo or screenshot — or click to browse</div>
+              <div class="an-uz-sub">Pose + cell-phone detection classifies each person's activity (working · on-phone · chatting · resting).</div>
+              <div class="an-uz-formats">MP4 · MOV · AVI · WEBM · JPG · PNG</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
+              <span id="ac-fname" class="note" style="margin:0;flex:1">No file selected yet.</span>
+              <button class="btn sm pri" id="ac-detect" onclick="sfDetect('ac')" disabled>Detect</button>
+            </div>
+            <div id="ac-loading" class="note" style="display:none">Analyzing… first run downloads the pose model (~6 MB), please wait.</div>
+            <div id="ac-result" style="display:none;margin-top:13px">
+              <div style="display:flex;gap:16px;flex-wrap:wrap">
+                <div class="an-media">
+                  <video id="ac-video" autoplay loop muted playsinline></video>
+                  <img id="ac-img" alt="annotated result">
+                  <span class="an-media-lbl" id="ac-media-lbl"></span>
+                </div>
+                <div style="flex:1;min-width:240px"><div id="ac-summary"></div><div id="ac-persons" style="margin-top:12px"></div></div>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:12px">
+                <button class="btn sm ghost" onclick="sfClear('ac')">✕ Clear</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>Recent PPE &amp; Activity Events</h3>
+            <span class="right" style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
+              <button class="btn sm ghost" id="sf-log-refresh">Refresh</button>
+              <button class="btn sm ghost" onclick="clearSafetyLog('ppe')" title="Remove all PPE events">Clear PPE</button>
+              <button class="btn sm ghost" onclick="clearSafetyLog('activity')" title="Remove all activity events">Clear Activity</button>
+              <button class="btn sm danger" onclick="clearSafetyLog()" title="Remove every event">Clear all</button>
+            </span>
+          </div>
+          <div class="panel-body"><div id="sf-log">Loading…</div></div>
+        </div>
       </section>
 
       <!-- VEHICLE -->
@@ -937,55 +1238,43 @@
             </div>
           </div>
         </div>
-        <!-- ── Demo Vehicle Detection ── -->
+        <!-- ── Vehicle Detection camera (like Operations) ── -->
         <div class="panel" style="margin-top:15px" id="vehicle-demo-panel">
           <div class="panel-head">
-            <h3>Demo Vehicle Detection <span class="fr">FR-V3</span></h3>
-            <span class="sub">Upload a test video · YOLO vehicle detector</span>
+            <h3>Vehicle Detection <span class="fr">FR-V3</span></h3>
+            <span class="sub" id="cam-status-vcam-sub">Upload a clip · YOLO vehicle detector</span>
           </div>
           <div class="panel-body">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
-
-              <!-- Left: upload + progress -->
-              <div>
-                <div class="upload-zone" id="vdemo-zone"
-                  ondragover="event.preventDefault();this.classList.add('drag-over')"
-                  ondragleave="this.classList.remove('drag-over')"
-                  ondrop="vdemoDrop(event)"
-                  onclick="document.getElementById('vdemo-file-in').click()">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="m10 8 5 3-5 3V8z"/><path d="M8 21h8M12 17v4"/></svg>
-                  <div class="uz-title" style="margin-top:8px">Drop demo video here or click to browse</div>
-                  <div class="uz-sub">MP4 · AVI · MOV · MKV — detects cars, trucks, buses, motorcycles</div>
-                </div>
-                <input type="file" id="vdemo-file-in" accept="video/*" style="display:none" onchange="vdemoFileChosen(this)">
-                <div id="vdemo-fname" style="margin-top:9px;font-family:var(--mono);font-size:10.5px;color:var(--muted-2)"></div>
-                <div style="margin-top:10px">
-                  <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:11px;color:var(--muted)">
-                    <span id="vdemo-status">Idle — select a video to begin</span>
-                    <span id="vdemo-pct" style="font-family:var(--mono)">—</span>
+            <div style="max-width:560px">
+              <div class="cam" id="cam-card-vcam">
+                <div class="scene"><div class="cctv-wrap">
+                  <img id="feed-vcam" class="cctv-feed" src="http://127.0.0.1:8000/stream/cam12" onerror="_camFeedError('vcam')">
+                  <div class="feed-err" id="err-vcam" style="display:none">⚠ No signal<br><span style="font-size:8.5px;color:var(--muted-2)">CAM-12 · LOADING BAY 2</span><br><span style="font-size:8px;color:var(--muted-2);margin-top:4px;display:block">↑ Upload a video to detect vehicles</span></div>
+                  <div class="cam-result-overlay" id="cam-overlay-vcam">
+                    <video id="cam-overlay-vid-vcam" autoplay loop muted playsinline></video>
+                    <img id="cam-overlay-img-vcam" alt="">
+                    <button class="cam-ov-close" onclick="camClearOverlay('vcam')">× LIVE</button>
+                    <span class="cam-ov-label" id="cam-ov-label-vcam">Uploaded video</span>
                   </div>
-                  <div class="progress-track"><div class="progress-fill" id="vdemo-bar"></div></div>
+                </div></div>
+                <div class="cam-meta"><span class="name">Loading Bay 2</span><span class="id">CAM-12</span><span class="right"><span class="live"><span class="dot live"></span>LIVE</span><button class="cam-upload-btn active" id="cam-upload-toggle-vcam" onclick="camUploadToggle('vcam')" title="Upload a clip to detect vehicles">↑ Upload</button><button class="popout" data-win="Loading Bay 2" data-id="CAM-12" title="Pop out">⧉</button></span></div>
+                <div class="cam-upload-panel open" id="cam-upload-panel-vcam">
+                  <div class="cam-dz" id="cam-dz-vcam" onclick="document.getElementById('cam-file-vcam').click()" ondragover="camDragOver(event,'vcam')" ondragleave="camDragLeave(event,'vcam')" ondrop="camDrop(event,'vcam')">
+                    <input type="file" accept="video/*" id="cam-file-vcam" style="display:none" onchange="camFileChosen(this,'vcam')">
+                    <span id="cam-fname-vcam">Drop a video or click to browse — cars, trucks, buses, motorcycles</span>
+                  </div>
+                  <div class="cam-det-row">
+                    <div class="cam-prog-wrap"><div class="cam-prog-fill" id="cam-bar-vcam"></div></div>
+                    <span class="cam-det-status" id="cam-status-vcam">—</span>
+                    <button class="btn sm pri" id="cam-det-btn-vcam" onclick="camDetectStart('vcam')" disabled>Detect Vehicles</button>
+                  </div>
+                  <div id="cam-results-vcam" style="display:none;margin-top:6px">
+                    <div class="cam-det-counts" id="cam-counts-vcam"></div>
+                    <div class="cam-det-stats" id="cam-stats-vcam"></div>
+                    <img id="cam-frame-vcam" class="cam-det-frame" style="display:none">
+                  </div>
                 </div>
-                <button class="btn pri" id="vdemo-btn" style="width:100%;margin-top:13px" onclick="vdemoStart()" disabled>Detect Vehicles</button>
               </div>
-
-              <!-- Right: results -->
-              <div id="vdemo-results" style="display:none">
-                <div style="font-size:10px;color:var(--muted-2);font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">Detection Results</div>
-                <div id="vdemo-counts" style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px"></div>
-                <div id="vdemo-stats" style="font-size:11.5px;color:var(--muted);margin-bottom:11px;font-family:var(--mono)"></div>
-                <div id="vdemo-frame-wrap" style="display:none;border-radius:8px;overflow:hidden;border:1px solid var(--hair)">
-                  <img id="vdemo-frame" style="width:100%;display:block">
-                  <div style="padding:7px 10px;background:var(--bg-tile);font-family:var(--mono);font-size:9.5px;color:var(--muted-2)">Best detection frame — bounding boxes drawn by YOLOv4-tiny</div>
-                </div>
-                <div id="vdemo-no-yolo" style="display:none;margin-top:8px">
-                  <span class="chip warn">⚠ YOLO model not found — place yolov4-tiny.cfg + .weights in models/</span>
-                </div>
-              </div>
-              <div id="vdemo-placeholder" style="display:flex;align-items:center;justify-content:center;height:160px;border:1px dashed var(--hair);border-radius:8px;color:var(--muted-2);font-family:var(--mono);font-size:11px;text-align:center">
-                Results appear here<br>after processing
-              </div>
-
             </div>
           </div>
         </div>
@@ -1044,6 +1333,18 @@
           <div class="kpi"><span class="accent" style="background:var(--alert)"></span><div class="lab">Denied</div><div class="val" id="bio-kpi-denied" style="color:var(--alert)">—</div></div>
         </div>
 
+        <style>
+          /* Biometric capture / upload controls — clean, professional toolbar */
+          .bio-capture{border:1px solid var(--hair);border-radius:10px;background:var(--bg-elevated);
+            padding:11px 12px;margin-bottom:12px}
+          .bio-capture-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:9px}
+          .bio-capture-head .eyebrow{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;
+            text-transform:uppercase;color:var(--muted-2)}
+          .bio-capture-hint{font-size:10.5px;color:var(--muted-2);font-family:var(--mono)}
+          .bio-capture-btns{display:flex;gap:7px;flex-wrap:wrap}
+          .bio-capture-btns .btn{flex:1 1 auto;justify-content:center}
+        </style>
+
         <div class="grid col-2" style="margin-bottom:15px">
           <!-- Verify panel -->
           <div class="panel">
@@ -1060,11 +1361,17 @@
                   </div>
                 </div>
               </div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-                <button class="btn" id="bio-cam-btn" onclick="toggleBioCam()">Start Webcam</button>
-                <button class="btn" id="bio-cap-btn" onclick="captureBio()" disabled>Capture</button>
-                <button class="btn ghost" onclick="document.getElementById('bio-upl-in').click()">Upload Photo</button>
-                <input type="file" id="bio-upl-in" accept="image/*" style="display:none" onchange="bioUploadChosen(this)">
+              <div class="bio-capture">
+                <div class="bio-capture-head">
+                  <span class="eyebrow">Capture source</span>
+                  <span class="bio-capture-hint">Webcam · or upload a photo / short clip</span>
+                </div>
+                <div class="bio-capture-btns">
+                  <button class="btn" id="bio-cam-btn" onclick="toggleBioCam()">◉ Start Webcam</button>
+                  <button class="btn" id="bio-cap-btn" onclick="captureBio()" disabled>⎙ Capture</button>
+                  <button class="btn ghost" onclick="document.getElementById('bio-upl-in').click()">↑ Upload photo / video</button>
+                  <input type="file" id="bio-upl-in" accept="image/*,video/*" style="display:none" onchange="bioUploadChosen(this)">
+                </div>
               </div>
               <button class="btn pri" id="bio-verify-btn" style="width:100%" onclick="verifyFace()" disabled>Verify Identity</button>
               <div class="bio-result-card" id="bio-result-card">
@@ -1084,11 +1391,17 @@
                   <div>Face photo required — webcam or upload</div>
                 </div>
               </div>
-              <div style="display:flex;gap:8px;margin-bottom:12px">
-                <button class="btn sm" id="reg-cam-btn" onclick="toggleRegCam()">Webcam</button>
-                <button class="btn sm" id="reg-cap-btn" onclick="captureReg()" disabled>Capture</button>
-                <button class="btn sm ghost" onclick="document.getElementById('reg-upl-in').click()">Upload</button>
-                <input type="file" id="reg-upl-in" accept="image/*" style="display:none" onchange="regUploadChosen(this)">
+              <div class="bio-capture">
+                <div class="bio-capture-head">
+                  <span class="eyebrow">Face photo</span>
+                  <span class="bio-capture-hint">Capture from webcam or upload a clear photo / clip</span>
+                </div>
+                <div class="bio-capture-btns">
+                  <button class="btn sm" id="reg-cam-btn" onclick="toggleRegCam()">◉ Webcam</button>
+                  <button class="btn sm" id="reg-cap-btn" onclick="captureReg()" disabled>⎙ Capture</button>
+                  <button class="btn sm ghost" onclick="document.getElementById('reg-upl-in').click()">↑ Upload</button>
+                  <input type="file" id="reg-upl-in" accept="image/*,video/*" style="display:none" onchange="regUploadChosen(this)">
+                </div>
               </div>
               <div style="display:grid;gap:10px">
                 <div class="field"><label>Full Name *</label><input id="reg-name" placeholder="John Doe"></div>
@@ -1637,6 +1950,7 @@
     if (b && b.dataset.view === 'gate') {
       loadGateLog();
       loadGateWhitelist();
+      loadGatePersons();
     }
     if (b && b.dataset.view === 'vehicle') {
       loadVehicleData();
@@ -1648,6 +1962,8 @@
   // =====================================================================
   let bioCamStream = null, regCamStream = null;
   let bioImageBlob = null, regImageBlob = null;
+  let bioIsVideo = false;   // true when the verify input is a video clip (vs a photo)
+  let regIsVideo = false;   // true when the register input is a video clip (vs a photo)
 
   // --- Verify webcam ---
   async function toggleBioCam() {
@@ -1661,9 +1977,14 @@
       return;
     }
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Webcam needs a secure page. Open the console at http://127.0.0.1:8000/console (not the file:// path).');
+      }
       bioCamStream = await navigator.mediaDevices.getUserMedia({video:{width:640,height:480}});
+      bioIsVideo = false;
       const vid = document.getElementById('bio-vid');
-      vid.srcObject = bioCamStream;
+      vid.pause(); vid.removeAttribute('src'); vid.srcObject = bioCamStream;
+      vid.muted = true; vid.play().catch(() => {});
       vid.style.display = 'block';
       document.getElementById('bio-placeholder').style.display = 'none';
       document.getElementById('bio-prev').style.display = 'none';
@@ -1680,6 +2001,7 @@
     canvas.getContext('2d').drawImage(vid, 0, 0);
     canvas.toBlob(blob => {
       bioImageBlob = blob;
+      bioIsVideo = false;   // a webcam capture is a still photo
       // Show captured frame
       const img = document.getElementById('bio-prev');
       img.src = URL.createObjectURL(blob);
@@ -1697,11 +2019,29 @@
 
   function bioUploadChosen(inp) {
     if (!inp.files[0]) return;
-    bioImageBlob = inp.files[0];
+    const f = inp.files[0];
+    bioImageBlob = f;
+    bioIsVideo = (f.type || '').startsWith('video/') || /\.(mp4|avi|mov|mkv|webm)$/i.test(f.name);
+
+    // Stop any running webcam so the preview is free
+    if (bioCamStream) {
+      bioCamStream.getTracks().forEach(t => t.stop()); bioCamStream = null;
+      document.getElementById('bio-cam-btn').textContent = 'Start Webcam';
+      document.getElementById('bio-cap-btn').disabled = true;
+    }
+
     const img = document.getElementById('bio-prev');
-    img.src = URL.createObjectURL(bioImageBlob);
-    img.style.display = 'block';
-    document.getElementById('bio-vid').style.display = 'none';
+    const vid = document.getElementById('bio-vid');
+    const url = URL.createObjectURL(f);
+    if (bioIsVideo) {
+      // Preview the uploaded video right in the box
+      img.style.display = 'none';
+      vid.srcObject = null; vid.src = url; vid.loop = true; vid.muted = true;
+      vid.style.display = 'block'; vid.play().catch(() => {});
+    } else {
+      vid.style.display = 'none';
+      img.src = url; img.style.display = 'block';
+    }
     document.getElementById('bio-placeholder').style.display = 'none';
     document.getElementById('bio-verify-btn').disabled = false;
   }
@@ -1709,13 +2049,20 @@
   async function verifyFace() {
     if (!bioImageBlob) return;
     const btn = document.getElementById('bio-verify-btn');
-    btn.disabled = true; btn.textContent = 'Verifying…';
+    btn.disabled = true; btn.textContent = bioIsVideo ? 'Scanning video…' : 'Verifying…';
 
     const fd = new FormData();
-    fd.append('photo', bioImageBlob, 'face.jpg');
+    let url;
+    if (bioIsVideo) {
+      url = `${API}/api/v1/biometric/verify-video`;
+      fd.append('video', bioImageBlob, 'clip.mp4');
+    } else {
+      url = `${API}/api/v1/biometric/verify`;
+      fd.append('photo', bioImageBlob, 'face.jpg');
+    }
 
     try {
-      const res = await fetch(`${API}/api/v1/biometric/verify`, {method:'POST', body:fd});
+      const res = await fetch(url, {method:'POST', body:fd});
       const data = await res.json();
       _renderBioResult(data);
       loadBioLog();
@@ -1771,6 +2118,7 @@
           <button class="btn danger sm" onclick="_bioAlertSecurity()">Alert Security</button>
           <button class="btn sm ghost" onclick="document.getElementById('bio-result-card').style.display='none'">Dismiss</button>
         </div>`;
+      _denyAlert('Biometric access denied', 'Face scan — no match in personnel database');
     }
   }
 
@@ -1786,9 +2134,14 @@
       return;
     }
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Webcam needs a secure page. Open the console at http://127.0.0.1:8000/console (not the file:// path).');
+      }
       regCamStream = await navigator.mediaDevices.getUserMedia({video:{width:640,height:480}});
+      regIsVideo = false;
       const vid = document.getElementById('reg-vid');
-      vid.srcObject = regCamStream;
+      vid.pause(); vid.removeAttribute('src'); vid.srcObject = regCamStream;
+      vid.muted = true; vid.play().catch(() => {});
       vid.style.display = 'block';
       document.getElementById('reg-placeholder').style.display = 'none';
       document.getElementById('reg-prev').style.display = 'none';
@@ -1805,6 +2158,7 @@
     canvas.getContext('2d').drawImage(vid, 0, 0);
     canvas.toBlob(blob => {
       regImageBlob = blob;
+      regIsVideo = false;   // a webcam capture is a still photo
       const img = document.getElementById('reg-prev');
       img.src = URL.createObjectURL(blob);
       img.style.display = 'block';
@@ -1818,11 +2172,27 @@
 
   function regUploadChosen(inp) {
     if (!inp.files[0]) return;
-    regImageBlob = inp.files[0];
+    const f = inp.files[0];
+    regImageBlob = f;
+    regIsVideo = (f.type || '').startsWith('video/') || /\.(mp4|avi|mov|mkv|webm)$/i.test(f.name);
+
+    if (regCamStream) {
+      regCamStream.getTracks().forEach(t => t.stop()); regCamStream = null;
+      document.getElementById('reg-cam-btn').textContent = 'Webcam';
+      document.getElementById('reg-cap-btn').disabled = true;
+    }
+
     const img = document.getElementById('reg-prev');
-    img.src = URL.createObjectURL(regImageBlob);
-    img.style.display = 'block';
-    document.getElementById('reg-vid').style.display = 'none';
+    const vid = document.getElementById('reg-vid');
+    const url = URL.createObjectURL(f);
+    if (regIsVideo) {
+      img.style.display = 'none';
+      vid.srcObject = null; vid.src = url; vid.loop = true; vid.muted = true;
+      vid.style.display = 'block'; vid.play().catch(() => {});
+    } else {
+      vid.style.display = 'none';
+      img.src = url; img.style.display = 'block';
+    }
     document.getElementById('reg-placeholder').style.display = 'none';
   }
 
@@ -1834,19 +2204,26 @@
     const msg = document.getElementById('reg-msg');
 
     if (!name || !empid) { msg.style.color='var(--alert)'; msg.textContent='Name and Employee ID are required.'; return; }
-    if (!regImageBlob) { msg.style.color='var(--alert)'; msg.textContent='Please provide a face photo.'; return; }
+    if (!regImageBlob) { msg.style.color='var(--alert)'; msg.textContent='Please provide a face photo or video.'; return; }
 
-    msg.style.color='var(--muted)'; msg.textContent='Registering…';
+    msg.style.color='var(--muted)'; msg.textContent = regIsVideo ? 'Scanning video for a face…' : 'Registering…';
 
     const fd = new FormData();
-    fd.append('photo', regImageBlob, 'face.jpg');
+    let url;
+    if (regIsVideo) {
+      url = `${API}/api/v1/biometric/register-video`;
+      fd.append('video', regImageBlob, 'clip.mp4');
+    } else {
+      url = `${API}/api/v1/biometric/register`;
+      fd.append('photo', regImageBlob, 'face.jpg');
+    }
     fd.append('name', name);
     fd.append('employee_id', empid);
     fd.append('department', dept || 'General');
     fd.append('clearance_level', cl);
 
     try {
-      const res = await fetch(`${API}/api/v1/biometric/register`, {method:'POST', body:fd});
+      const res = await fetch(url, {method:'POST', body:fd});
       if (!res.ok) throw new Error((await res.json()).detail || 'Error');
       const data = await res.json();
       msg.style.color = 'var(--clear)';
@@ -1858,8 +2235,9 @@
       document.getElementById('reg-empid').value='';
       document.getElementById('reg-dept').value='';
       document.getElementById('reg-prev').style.display='none';
+      const _rv = document.getElementById('reg-vid'); if(_rv){ _rv.pause(); _rv.removeAttribute('src'); _rv.style.display='none'; }
       document.getElementById('reg-placeholder').style.display='';
-      regImageBlob = null;
+      regImageBlob = null; regIsVideo = false;
       loadPersons();
     } catch(e) {
       msg.style.color='var(--alert)'; msg.textContent='Error: '+e.message;
@@ -1891,6 +2269,7 @@
           </td>
         </tr>`;
       }).join('');
+      if (typeof loadGatePersons === 'function') loadGatePersons();
     } catch(e) {}
   }
 
@@ -1900,6 +2279,20 @@
       await fetch(`${API}/api/v1/biometric/persons/${encodeURIComponent(empid)}`, {method:'DELETE'});
       loadPersons();
     } catch(e) {}
+  }
+
+  // Backend stores timestamps as UTC via SQLite datetime('now') ("YYYY-MM-DD HH:MM:SS",
+  // no timezone marker). Parse as UTC and render in the operator's local time.
+  function _fmtLocalTs(raw) {
+    if (!raw) return '—';
+    let s = String(raw).trim().replace(' ', 'T');
+    // Mark as UTC so the browser converts to local; tolerate values already carrying a tz.
+    if (!/[zZ]|[+-]\d\d:?\d\d$/.test(s)) s += 'Z';
+    const d = new Date(s);
+    if (isNaN(d)) return String(raw).replace('T', ' ').substring(0, 19);
+    const p = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} `
+         + `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
   }
 
   async function loadBioLog() {
@@ -1919,7 +2312,7 @@
         const dec = l.decision==='GRANTED'
           ? '<span class="chip ok">GRANTED</span>'
           : '<span class="chip crit">DENIED</span>';
-        const ts = l.timestamp ? l.timestamp.replace('T',' ').substring(0,19) : '—';
+        const ts = _fmtLocalTs(l.timestamp);
         const conf = ((l.confidence||0)*100).toFixed(1) + '%';
         return `<tr><td class="mono">${ts}</td><td>${l.person_name||'Unknown'}</td><td class="mono">${conf}</td><td>${dec}</td></tr>`;
       }).join('');
@@ -2191,7 +2584,7 @@
       }
 
       tbody.innerHTML = rows.map(e => {
-        const timeStr = e.ts ? e.ts.replace('T',' ').substring(11,19) : '—';
+        const timeStr = e.ts ? _fmtLocalTs(e.ts).substring(11) : '—';
         const matchChip = e.authorized
           ? `<span class="chip ok">${(e.confidence*100).toFixed(1)}%</span>`
           : `<span class="chip warn">${(e.confidence*100).toFixed(1)}%</span>`;
@@ -2292,6 +2685,18 @@
     _toast('Security alerted — ' + _fmtPlate(plate), 'warn');
     if (typeof open === 'function') { /* keep current view */ }
   };
+  // Central "access denied / violation" notifier: bottom-right pop-up + Alerts tab entry.
+  // De-duplicates identical alerts fired within a few seconds so one scan = one pop-up.
+  const _denyRecent = {};
+  window._denyAlert = function(title, detail, severity){
+    const sev = severity || 'crit';
+    const key = title + '|' + (detail || '');
+    const now = Date.now();
+    if (_denyRecent[key] && now - _denyRecent[key] < 4000) return;
+    _denyRecent[key] = now;
+    pushAlert(sev, title, detail || '');
+    _toast('⚠ ' + title + (detail ? ' — ' + detail : ''), sev === 'watch' ? 'warn' : 'err');
+  };
   // Reset the seeded "3" badges to a real count on load
   _refreshAlertBadges();
 
@@ -2343,18 +2748,26 @@
   // =====================================================================
   // BACKEND HEALTH CHECK
   // =====================================================================
+  let _healthFails = 0;
   async function checkApiHealth() {
     const dot    = document.getElementById('api-dot');
     const label  = document.getElementById('api-status');
     try {
-      const res = await fetch(`${API}/`, { signal: AbortSignal.timeout(3000) });
+      // 8s timeout: during a heavy scan the event loop can be briefly busy, so a
+      // slow reply does not mean the backend is down.
+      const res = await fetch(`${API}/`, { signal: AbortSignal.timeout(8000) });
       if (res.ok) {
+        _healthFails = 0;
         dot.style.background   = 'var(--clear)';
         dot.style.boxShadow    = '0 0 0 3px var(--clear-dim)';
         label.textContent      = 'Connected';
         label.style.color      = '';
       } else throw new Error();
     } catch(e) {
+      // Only declare "offline" after 2 consecutive failures — a single timeout
+      // caused by transient CPU load during a scan is not a real outage.
+      _healthFails++;
+      if (_healthFails < 2) return;
       dot.style.background     = 'var(--alert)';
       dot.style.boxShadow      = '0 0 0 3px var(--alert-dim)';
       dot.style.animation      = 'none';
@@ -2514,6 +2927,7 @@
   async function cam01AnprStart() {
     const st = _camS('cam01');
     if (!st.file) return;
+    if (st._isImage) return _cam01ScanImage();
     const btn = document.getElementById('cam-det-btn-cam01');
     btn.disabled = true; btn.textContent = 'Uploading…';
     document.getElementById('cam-status-cam01').textContent = 'Uploading…';
@@ -2548,6 +2962,56 @@
       btn.disabled = false; btn.textContent = 'Scan Plates';
       document.getElementById('cam-status-cam01').textContent = 'Error: ' + e.message;
       _toast('ANPR upload failed: ' + e.message, 'err');
+    }
+  }
+
+  // Single image / screenshot ANPR — instant, no background job.
+  async function _cam01ScanImage() {
+    const st  = _camS('cam01');
+    const btn = document.getElementById('cam-det-btn-cam01');
+    btn.disabled = true; btn.textContent = 'Scanning…';
+    document.getElementById('cam-status-cam01').textContent = 'Scanning image…';
+    document.getElementById('cam-results-cam01').style.display = 'none';
+    _cam01ClearBadge(); _cam01StopTracking();
+    _cam01SetScanBox('scanning', 'SCANNING…');
+
+    const fd = new FormData();
+    fd.append('image', st.file);
+    try {
+      const res = await fetch(`${API}/api/v1/anpr/scan-image`, { method: 'POST', body: fd });
+      if (!res.ok) throw new Error(await res.text());
+      const data   = await res.json();
+      const plates = data.plates || [];
+      _cam01RenderResults(plates);
+      if (plates.length) {
+        const top = [...plates].sort((a, b) =>
+          a.authorized !== b.authorized ? (a.authorized ? -1 : 1) : b.confidence - a.confidence)[0];
+        _cam01SetScanBox(top.authorized ? 'granted' : 'denied',
+          (top.authorized ? 'AUTHORIZED · ' : 'DENIED · ') + _fmtPlate(top.plate));
+      } else {
+        _cam01SetScanBox('denied', 'NO PLATE');
+      }
+      // Swap the overlay to the annotated detection image
+      if (data.annotated_image) {
+        const ov  = document.getElementById('cam-overlay-cam01');
+        const img = document.getElementById('cam-overlay-img-cam01');
+        const vid = document.getElementById('cam-overlay-vid-cam01');
+        const lbl = document.getElementById('cam-ov-label-cam01');
+        if (ov) {
+          ov.style.display = 'block';
+          if (vid) { vid.pause(); vid.style.display = 'none'; }
+          if (img) { img.src = data.annotated_image; img.style.display = 'block'; }
+          if (lbl) lbl.textContent = 'Detection result';
+        }
+      }
+      document.getElementById('cam-status-cam01').textContent = 'Done ✓';
+      if (document.getElementById('view-gate').classList.contains('on')) loadGateLog();
+    } catch (e) {
+      document.getElementById('cam-status-cam01').textContent = 'Error: ' + e.message;
+      _cam01SetScanBox('denied', 'ERROR');
+      _toast('Image scan failed: ' + e.message, 'err');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Scan Again';
     }
   }
 
@@ -2663,6 +3127,13 @@
           </div>
         </div>`;
     }).join('');
+
+    // Pop-up + Alerts-tab entry for any denied vehicle
+    const _denied01 = sorted.filter(p => !p.authorized);
+    if (_denied01.length) {
+      _denyAlert('Vehicle entry denied',
+                 _denied01.map(p => _fmtPlate(p.plate)).join(', ') + ' — not on whitelist · CAM-01 Main Gate');
+    }
 
     wrap.style.display = '';
   }
@@ -2882,7 +3353,14 @@
   window.gateClearVideo = function(){
     _gateStopTracking(); _gateSetScanBox('hide');
     const vid = document.getElementById('gate-anpr-vid'); if(vid){ vid.pause(); vid.src = ''; }
-    const panel = document.getElementById('gate-vid-panel'); if(panel) panel.style.display = 'none';
+    // Return the box to its drop-prompt state so a new video can be chosen
+    const preview = document.getElementById('gate-anpr-preview'); if(preview) preview.style.display = 'none';
+    const zone = document.getElementById('gate-anpr-zone'); if(zone){ zone.style.display = ''; zone.style.borderColor = ''; }
+    const fnameEl = document.getElementById('gate-anpr-fname'); if(fnameEl) fnameEl.textContent = '';
+    const btn = document.getElementById('gate-anpr-btn'); if(btn) btn.disabled = true;
+    const statusEl = document.getElementById('gate-anpr-status'); if(statusEl) statusEl.textContent = 'Idle — upload a gate video to scan';
+    const fileIn = document.getElementById('gate-anpr-file'); if(fileIn) fileIn.value = '';
+    gateAnprFile = null;
     if(gateObjUrl){ URL.revokeObjectURL(gateObjUrl); gateObjUrl = null; }
   };
 
@@ -2902,12 +3380,14 @@
     document.getElementById('gate-anpr-zone').style.borderColor = 'var(--active)';
     document.getElementById('gate-anpr-status').textContent = 'Ready — click Scan for Plates';
 
-    // Show the dropped video in the gate scene with the detection box (like CAM-01)
+    // Show the dropped video INSIDE the drop box (replaces the drop prompt)
     if (gateObjUrl) URL.revokeObjectURL(gateObjUrl);
     gateObjUrl = URL.createObjectURL(f);
-    const panel = document.getElementById('gate-vid-panel');
-    const vid   = document.getElementById('gate-anpr-vid');
-    if (panel) panel.style.display = '';
+    const zone    = document.getElementById('gate-anpr-zone');
+    const preview = document.getElementById('gate-anpr-preview');
+    const vid     = document.getElementById('gate-anpr-vid');
+    if (zone)    zone.style.display = 'none';
+    if (preview) preview.style.display = '';
     if (vid) { vid.src = gateObjUrl; vid.play().catch(() => {}); }
     _gateStopTracking();
     _gateSetScanBox('ready', 'VEHICLE');
@@ -3054,6 +3534,14 @@
 
     html += `</div></div>`;
     container.innerHTML = html;
+
+    // Pop-up + Alerts-tab entry for any denied vehicle
+    const _deniedG = sorted.filter(p => !p.authorized);
+    if (_deniedG.length) {
+      _denyAlert('Vehicle entry denied',
+                 _deniedG.map(p => _fmtPlate(p.plate)).join(', ') + ' — not authorized · Gate & Access');
+    }
+
     container.style.display = '';
   }
 
@@ -3114,6 +3602,334 @@
     return _camState[id];
   }
 
+  // ─── CAM-02 · Facial Recognition - Gate ──────────────────────────────────────
+  // Upload a video → recognise the face → grant access if the person is registered
+  // in the Biometric tab. Uses the same generic upload UI as the other cameras.
+  async function cam02FaceStart() {
+    const st = _camS('cam02');
+    if (!st.file) { _toast('Upload a video first', 'warn'); return; }
+    const btn = document.getElementById('cam-det-btn-cam02');
+    btn.disabled = true; btn.textContent = 'Recognising…';
+    document.getElementById('cam-status-cam02').textContent = 'Checking face access…';
+    _cam02ShowBadge(null);
+
+    // keep the uploaded video playing in the tile while we scan
+    const ov  = document.getElementById('cam-overlay-cam02');
+    const vid = document.getElementById('cam-overlay-vid-cam02');
+    const lbl = document.getElementById('cam-ov-label-cam02');
+    if (ov && st._objUrl) {
+      if (vid) { if (!vid.src) vid.src = st._objUrl; vid.style.display = 'block'; vid.play().catch(() => {}); }
+      if (lbl) lbl.textContent = '▶ Scanning face…';
+      ov.style.display = 'block';
+    }
+
+    const fd = new FormData();
+    fd.append('video', st.file);
+    try {
+      const res = await fetch(`${API}/api/v1/biometric/verify-video`, { method: 'POST', body: fd });
+      if (!res.ok) throw new Error(await res.text());
+      _cam02RenderFace(await res.json());
+    } catch (e) {
+      document.getElementById('cam-status-cam02').textContent = 'Error: ' + e.message;
+      _toast('Face check failed: ' + e.message, 'err');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Check Access';
+    }
+  }
+
+  function _cam02RenderFace(data) {
+    const matched = !!(data.matched && data.person);
+    const name = matched ? data.person.name : 'Unknown person';
+    _cam02ShowBadge({ matched, name });
+    document.getElementById('cam-status-cam02').textContent =
+      matched ? `Access granted — ${name}` : 'Access denied — not recognised';
+    const lbl = document.getElementById('cam-ov-label-cam02');
+    if (lbl) lbl.textContent = matched ? `✓ ${name}` : '✕ Not recognised';
+
+    const wrap   = document.getElementById('cam-results-cam02');
+    const counts = document.getElementById('cam-counts-cam02');
+    const stats  = document.getElementById('cam-stats-cam02');
+    if (wrap)   wrap.style.display = 'block';
+    if (counts) counts.innerHTML = matched
+      ? '<span class="chip ok">✓ ACCESS GRANTED</span>'
+      : '<span class="chip crit">✕ ACCESS DENIED</span>';
+    if (stats)  stats.textContent = matched
+      ? `${name} · ${data.person.employee_id} · ${data.person.department} · ${data.person.clearance_level} · ${(data.confidence*100).toFixed(0)}% match`
+      : `No registered match · best ${(data.confidence*100).toFixed(0)}%`;
+    if (typeof loadBioLog === 'function') loadBioLog();
+  }
+
+  function _cam02ShowBadge(info) {
+    const badge = document.getElementById('cam02-face-badge');
+    if (!badge) return;
+    if (!info) { badge.style.display = 'none'; return; }
+    const ok = info.matched;
+    badge.style.display    = 'flex';
+    badge.style.background  = ok ? 'rgba(40,201,168,.25)' : 'rgba(242,86,110,.25)';
+    badge.style.border      = ok ? '1px solid rgba(40,201,168,.7)' : '1px solid rgba(242,86,110,.7)';
+    badge.style.color       = ok ? 'var(--clear)' : 'var(--alert)';
+    document.getElementById('cam02-face-name').textContent  = info.name || '';
+    document.getElementById('cam02-face-label').textContent = ok ? '✓ ACCESS GRANTED' : '✕ ACCESS DENIED';
+  }
+
+  // ─── Face recognition tile (generic, prefix-based) ───────────────────────────
+  // Upload a video / photo / screenshot → recognise the face against registered
+  // people → grant if matched, else deny. Images use /verify, clips /verify-video.
+  // Used by the Operations "Face Recognition" tile (opface) and the Gate tile (gface).
+  async function faceStart(prefix) {
+    const st = _camS(prefix);
+    if (!st.file) { _toast('Upload a video, photo or screenshot first', 'warn'); return; }
+    const btn = document.getElementById(`cam-det-btn-${prefix}`);
+    if (btn) { btn.disabled = true; btn.textContent = 'Recognising…'; }
+    const statusEl = document.getElementById(`cam-status-${prefix}`);
+    if (statusEl) statusEl.textContent = 'Checking face access…';
+    const sub = document.getElementById(`${prefix}-status`);
+    if (sub) sub.textContent = 'Recognising face…';
+    _faceBadge(prefix, null);
+
+    // keep the uploaded media visible in the tile throughout scanning
+    const ov  = document.getElementById(`cam-overlay-${prefix}`);
+    const vid = document.getElementById(`cam-overlay-vid-${prefix}`);
+    const img = document.getElementById(`cam-overlay-img-${prefix}`);
+    const lbl = document.getElementById(`cam-ov-label-${prefix}`);
+    if (ov && st._objUrl) {
+      ov.style.display = 'block';
+      if (st._isImage) {
+        if (img) { img.src = st._objUrl; img.style.display = 'block'; }
+        if (vid) vid.style.display = 'none';
+      } else if (vid) {
+        if (!vid.src) vid.src = st._objUrl;
+        vid.style.display = 'block'; vid.play().catch(() => {});
+      }
+      if (lbl) lbl.textContent = '▶ Scanning face…';
+    }
+
+    const isImg = !!st._isImage;
+    const fd = new FormData();
+    fd.append(isImg ? 'photo' : 'video', st.file);
+    try {
+      const res = await fetch(`${API}/api/v1/biometric/` + (isImg ? 'verify' : 'verify-video'),
+                              { method: 'POST', body: fd });
+      if (!res.ok) throw new Error(await res.text());
+      _faceRender(prefix, await res.json());
+    } catch (e) {
+      if (statusEl) statusEl.textContent = 'Error: ' + e.message;
+      if (sub) sub.textContent = 'Error — ' + e.message;
+      _toast('Face check failed: ' + e.message, 'err');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Check Access'; }
+    }
+  }
+
+  function _faceRender(prefix, data) {
+    const matched = !!(data.matched && data.person);
+    const name = matched ? data.person.name : 'Unknown person';
+    _faceBadge(prefix, { matched, name });
+
+    const statusEl = document.getElementById(`cam-status-${prefix}`);
+    if (statusEl) statusEl.textContent = matched ? `Access granted — ${name}` : 'Access denied — not recognised';
+    const sub = document.getElementById(`${prefix}-status`);
+    if (sub) sub.textContent = matched ? `Access granted — ${name}` : 'Access denied — face not recognised';
+    const lbl = document.getElementById(`cam-ov-label-${prefix}`);
+    if (lbl) lbl.textContent = matched ? `✓ ${name}` : '✕ Not recognised';
+
+    const wrap   = document.getElementById(`cam-results-${prefix}`);
+    const counts = document.getElementById(`cam-counts-${prefix}`);
+    const stats  = document.getElementById(`cam-stats-${prefix}`);
+    if (wrap)   wrap.style.display = 'block';
+    if (counts) counts.innerHTML = matched
+      ? '<span class="chip ok">✓ ACCESS GRANTED</span>'
+      : '<span class="chip crit">✕ ACCESS DENIED</span>';
+    if (stats)  stats.textContent = matched
+      ? `${name} · ${data.person.employee_id} · ${data.person.department} · ${data.person.clearance_level} · ${(data.confidence*100).toFixed(0)}% match`
+      : `No registered match · best ${(data.confidence*100).toFixed(0)}%`;
+
+    if (!matched) {
+      _denyAlert('Biometric access denied',
+                 (prefix === 'gface' ? 'Gate face scan' : 'Face scan') + ' — person not recognised');
+    }
+
+    if (typeof loadBioLog === 'function') loadBioLog();
+    if (document.getElementById('view-gate').classList.contains('on')) loadGateLog();
+  }
+
+  function _faceBadge(prefix, info) {
+    const badge = document.getElementById(`${prefix}-badge`);
+    if (!badge) return;
+    if (!info) { badge.style.display = 'none'; return; }
+    const ok = info.matched;
+    badge.style.display    = 'flex';
+    badge.style.background = ok ? 'rgba(40,201,168,.25)' : 'rgba(242,86,110,.25)';
+    badge.style.border     = ok ? '1px solid rgba(40,201,168,.7)' : '1px solid rgba(242,86,110,.7)';
+    badge.style.color      = ok ? 'var(--clear)' : 'var(--alert)';
+    const n = document.getElementById(`${prefix}-name`);  if (n) n.textContent = info.name || '';
+    const l = document.getElementById(`${prefix}-label`); if (l) l.textContent = ok ? '✓ ACCESS GRANTED' : '✕ ACCESS DENIED';
+  }
+
+  // Gate tile keeps its onclick name; delegates to the generic face runner.
+  function gateFaceStart() { return faceStart('gface'); }
+
+  // ─── PPE / Activity camera tiles (Operations) ────────────────────────────────
+  // Upload a video / photo / screenshot → /safety analyze → show annotated result.
+  // mode 'ppe'  → hat / vest compliance;   mode 'activity' → working / phone / etc.
+  async function safetyCamRun(prefix, mode) {
+    const st = _camS(prefix);
+    if (!st.file) { _toast('Upload a video, photo or screenshot first', 'warn'); return; }
+    const btn = document.getElementById(`cam-det-btn-${prefix}`);
+    const label = mode === 'ppe' ? 'Detect PPE' : 'Detect Activity';
+    if (btn) { btn.disabled = true; btn.textContent = 'Analyzing…'; }
+    const statusEl = document.getElementById(`cam-status-${prefix}`);
+    if (statusEl) statusEl.textContent = 'Analyzing…';
+
+    // keep the uploaded media visible while analyzing
+    const ov  = document.getElementById(`cam-overlay-${prefix}`);
+    const vid = document.getElementById(`cam-overlay-vid-${prefix}`);
+    const img = document.getElementById(`cam-overlay-img-${prefix}`);
+    const lbl = document.getElementById(`cam-ov-label-${prefix}`);
+    if (ov && st._objUrl) {
+      ov.style.display = 'block';
+      if (st._isImage) { if (img) { img.src = st._objUrl; img.style.display = 'block'; } if (vid) vid.style.display = 'none'; }
+      else if (vid) { if (!vid.src) vid.src = st._objUrl; vid.style.display = 'block'; vid.play().catch(() => {}); }
+      if (lbl) lbl.textContent = '▶ Analyzing…';
+    }
+
+    const isVid = !st._isImage;
+    const fd = new FormData();
+    fd.append('file', st.file);
+    try {
+      const res = await fetch(`${API}/api/v1/safety/` + (isVid ? 'analyze-video' : 'analyze-image'),
+                              { method: 'POST', body: fd });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.detail || 'analysis failed');
+
+      // Swap the tile overlay to the annotated result frame
+      if (d.annotated_image && ov) {
+        if (vid) { vid.pause(); vid.style.display = 'none'; }
+        if (img) { img.src = d.annotated_image; img.style.display = 'block'; }
+        if (lbl) lbl.textContent = 'Detection result';
+      }
+
+      // Operations tiles show ONLY aggregates (no per-person / location) —
+      // detailed breakdowns live in the People & Safety and Activity tabs.
+      const wrap   = document.getElementById(`cam-results-${prefix}`);
+      const counts = document.getElementById(`cam-counts-${prefix}`);
+      const stats  = document.getElementById(`cam-stats-${prefix}`);
+      const people = d.people || 0;
+      const ppl = `${people} ${people === 1 ? 'person' : 'people'}`;
+      if (wrap) wrap.style.display = 'block';
+
+      if (mode === 'ppe') {
+        const viol = d.violations || [];
+        const compliant = (d.persons || []).filter(p => p.status !== 'violation').length;
+        if (counts) counts.innerHTML =
+          `<span class="chip">${ppl}</span>` +
+          (viol.length ? `<span class="chip crit">PPE not followed — missing ${viol.join(', ')}</span>`
+                       : (people ? '<span class="chip ok">PPE followed ✓</span>' : ''));
+        if (stats) stats.textContent = people ? `${compliant} of ${people} compliant` : 'No people detected';
+        if (statusEl) statusEl.textContent = viol.length ? `Missing ${viol.join(', ')}` : (people ? 'PPE followed' : 'No people');
+        // Pop-up alert ONLY when PPE is not followed
+        if (viol.length) _denyAlert('PPE violation — missing ' + viol.join(', '), 'CAM-08 · PPE · ' + ppl);
+      } else {
+        const c = _actCounts(d);
+        if (counts) counts.innerHTML = `<span class="chip">${ppl}</span>` + _actCountChips(c);
+        if (stats)  stats.textContent = people ? _actCountLine(c) : 'No people detected';
+        if (statusEl) statusEl.textContent = people ? _actCountLine(c) : 'No people';
+        // Pop-up alert ONLY for not-working activity (on phone / chatting / resting)
+        const parts = [];
+        if (c['on phone']) parts.push(`${c['on phone']} on phone`);
+        if (c['chatting'])  parts.push(`${c['chatting']} chatting`);
+        if (c['resting'])   parts.push(`${c['resting']} resting`);
+        if (parts.length) _denyAlert('Workers not working — ' + parts.join(', '), 'CAM-05 · Activity · ' + ppl, 'watch');
+      }
+      if (typeof _sfUpdateGauge === 'function') _sfUpdateGauge(d);
+      if (typeof loadSafetyLog === 'function') loadSafetyLog();
+    } catch (e) {
+      if (statusEl) statusEl.textContent = 'Error: ' + e.message;
+      _toast('Analysis failed: ' + e.message, 'err');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = label; }
+    }
+  }
+
+  // Per-person primary activity, resolved from the raw events (chatting is a pair event).
+  function _actByPerson(d) {
+    const ev = d.activity_events || [];
+    const byPerson = {};
+    ev.forEach(e => {
+      if (e.type === 'chatting') {
+        if (e.person_a) byPerson[e.person_a] = { type: 'chatting', location: e.location };
+        if (e.person_b) byPerson[e.person_b] = { type: 'chatting', location: e.location };
+      } else if (e.person) {
+        byPerson[e.person] = { type: e.type, location: e.location };
+      }
+    });
+    return byPerson;
+  }
+  function _actCounts(d) {
+    const c = {};
+    Object.values(_actByPerson(d)).forEach(v => { c[v.type] = (c[v.type] || 0) + 1; });
+    return c;
+  }
+  const _ACT_ORDER = [['working', 'ok'], ['resting', ''], ['chatting', 'warn'], ['on phone', 'crit']];
+  function _actCountChips(c) {
+    return _ACT_ORDER.filter(([k]) => c[k]).map(([k, cls]) =>
+      `<span class="chip ${cls}">${c[k]} ${k}</span>`).join('');
+  }
+  function _actCountLine(c) {
+    const parts = _ACT_ORDER.map(([k]) => k).filter(k => c[k]).map(k => `${c[k]} ${k}`);
+    return parts.join(' · ') || '—';
+  }
+
+  // Activity summary chips + per-person activity table (used in the Activity tab)
+  function _acSummary(d) {
+    const total = d.people || 0;
+    const chips = [`<span class="chip">${total} ${total === 1 ? 'person' : 'people'}</span>`];
+    return `<div style="display:flex;gap:7px;flex-wrap:wrap">${chips.join('') + _actCountChips(_actCounts(d))}</div>`;
+  }
+  function _acPersons(d) {
+    const bp = _actByPerson(d);
+    const ids = Object.keys(bp).map(Number).sort((a, b) => a - b);
+    if (!ids.length) return '<p class="note">No workers detected.</p>';
+    const flag = t => (t === 'working') ? 'var(--clear)' : (t === 'resting' ? 'var(--watch)' : 'var(--alert)');
+    const rows = ids.map(id => {
+      const v = bp[id];
+      return `<tr><td class="m">${id}</td><td>${v.location || '—'}</td>` +
+             `<td style="color:${flag(v.type)}">${v.type}</td></tr>`;
+    }).join('');
+    return `<table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="text-align:left;color:var(--muted)"><th>#</th><th>Location</th><th>Activity</th></tr></thead>
+      <tbody>${rows}</tbody></table>`;
+  }
+
+  // Editable authorised-people list on the Gate & Access tab (registered persons)
+  async function loadGatePersons() {
+    const tbody = document.getElementById('gate-persons-tbody');
+    if (!tbody) return;
+    try {
+      const res  = await fetch(`${API}/api/v1/biometric/persons`);
+      const list = await res.json();
+      const cntEl = document.getElementById('gate-persons-count');
+      if (cntEl) cntEl.textContent = list.length + ' authorised';
+      tbody.innerHTML = list.length ? list.map(p => {
+        const eid  = p.employee_id.replace(/'/g, "\\'");
+        const name = (p.name || '').replace(/'/g, "\\'");
+        const dept = (p.department || '').replace(/'/g, "\\'");
+        const cl   = p.clearance_level || 'L1';
+        return `<tr>
+          <td style="font-weight:600">${p.name}</td>
+          <td class="mono">${p.employee_id}</td>
+          <td>${p.department}</td>
+          <td><span class="chip">${p.clearance_level}</span></td>
+          <td><span class="chip ok">● Authorised</span></td>
+          <td style="display:flex;gap:5px;flex-wrap:wrap">
+            <button class="btn sm ghost" onclick="openPersonEdit('${eid}','${name}','${dept}','${cl}')">Edit</button>
+            <button class="btn sm danger" onclick="deletePerson('${eid}','${name}')">Remove</button>
+          </td>
+        </tr>`;
+      }).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--muted-2);padding:14px;font-family:var(--mono);font-size:11px">No people registered — add one in the Biometric Auth tab</td></tr>';
+    } catch(e) {}
+  }
+
   function camUploadToggle(id) {
     const panel = document.getElementById(`cam-upload-panel-${id}`);
     const btn   = document.getElementById(`cam-upload-toggle-${id}`);
@@ -3132,8 +3948,8 @@
     e.preventDefault();
     document.getElementById(`cam-dz-${id}`).classList.remove('drag-over');
     const f = e.dataTransfer.files[0];
-    if (f && f.type.startsWith('video/')) _camSetFile(id, f);
-    else _toast('Please drop a video file (MP4, AVI, MOV…)', 'warn');
+    if (f && (f.type.startsWith('video/') || f.type.startsWith('image/'))) _camSetFile(id, f);
+    else _toast('Please drop a video, photo or screenshot', 'warn');
   }
   function camFileChosen(inp, id) {
     if (inp.files[0]) _camSetFile(id, inp.files[0]);
@@ -3141,26 +3957,33 @@
   function _camSetFile(id, f) {
     const st = _camS(id);
     if (st._objUrl) URL.revokeObjectURL(st._objUrl);
-    st.file    = f;
-    st._objUrl = URL.createObjectURL(f);
+    st.file     = f;
+    st._objUrl  = URL.createObjectURL(f);
+    st._isImage = (f.type || '').startsWith('image/');
 
     document.getElementById(`cam-fname-${id}`).textContent =
-      `▶  ${f.name}  (${(f.size / 1048576).toFixed(1)} MB)`;
+      `${st._isImage ? '🖼' : '▶'}  ${f.name}  (${(f.size / 1048576).toFixed(1)} MB)`;
     document.getElementById(`cam-det-btn-${id}`).disabled = false;
-    document.getElementById(`cam-status-${id}`).textContent = 'Ready — click Detect/Scan';
+    document.getElementById(`cam-status-${id}`).textContent = 'Ready — click Detect / Scan';
 
-    // Show video in the camera tile overlay (with format compatibility check)
+    // Show the uploaded media in the camera tile overlay and keep it visible
     const vid = document.getElementById(`cam-overlay-vid-${id}`);
     const img = document.getElementById(`cam-overlay-img-${id}`);
     const ov  = document.getElementById(`cam-overlay-${id}`);
     const lbl = document.getElementById(`cam-ov-label-${id}`);
-    if (vid && ov) {
-      if (img) img.style.display = 'none';
+    if (ov) {
       ov.style.display = 'block';
-      _playVideoOrFallback(vid, st._objUrl, f, lbl, null);
+      if (st._isImage && img) {
+        if (vid) { vid.pause(); vid.style.display = 'none'; }
+        img.src = st._objUrl; img.style.display = 'block';
+        if (lbl) { lbl.textContent = `🖼 ${f.name}`; lbl.style.color = ''; }
+      } else if (vid) {
+        if (img) img.style.display = 'none';
+        _playVideoOrFallback(vid, st._objUrl, f, lbl, null);
+      }
     }
 
-    // Show the vehicle detection box as soon as a gate video is uploaded
+    // Show the vehicle detection box as soon as a gate video/photo is uploaded
     if (id === 'cam01') _cam01SetScanBox('ready', 'VEHICLE');
   }
 
@@ -3611,4 +4434,266 @@
   document.getElementById('anpr-edit-modal').addEventListener('click', e => {
     if (e.target === e.currentTarget) closeAnprEdit();
   });
+
+  // =====================================================================
+  // PEOPLE & SAFETY — PPE (hat/vest) + Activity (working/phone/chatting)
+  // =====================================================================
+
+  // Operations 4-tab strip → jump to the matching module view.
+  window.opMod = function (btn, view) {
+    document.querySelectorAll('#opmod-strip .opmod')
+            .forEach(b => b.classList.toggle('active', b === btn));
+    const nb = document.querySelector('.nav button[data-view="' + view + '"]');
+    if (nb) nb.click();
+  };
+
+  function _sfSummary(d) {
+    const chips = [`<span class="chip">${d.people} ${d.people === 1 ? 'person' : 'people'}</span>`];
+    if (d.violations && d.violations.length)
+      chips.push(`<span class="chip crit">Missing: ${d.violations.join(', ')}</span>`);
+    else if (d.people)
+      chips.push(`<span class="chip ok">PPE compliant</span>`);
+    if (d.activity_summary && d.activity_summary !== 'no people detected')
+      chips.push(`<span class="chip">${d.activity_summary}</span>`);
+    return `<div style="display:flex;gap:7px;flex-wrap:wrap">${chips.join('')}</div>`;
+  }
+
+  function _sfPersons(d) {
+    if (!d.persons || !d.persons.length) return '<p class="note">No workers detected.</p>';
+    const rows = d.persons.map((p, i) =>
+      `<tr><td class="m">${i + 1}</td><td>${p.location || '—'}</td><td>${
+        p.status === 'violation'
+          ? '<span style="color:var(--alert)">✕ ' + ((p.missing || []).join(', ') || 'violation') + '</span>'
+          : '<span style="color:var(--clear)">✓ OK</span>'
+      }</td></tr>`).join('');
+    return `<table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="text-align:left;color:var(--muted)"><th>#</th><th>Location</th><th>PPE</th></tr></thead>
+      <tbody>${rows}</tbody></table>`;
+  }
+
+  // Show the uploaded media in the analyzer stage immediately (kept visible while scanning)
+  function _sfShowMedia(prefix, f) {
+    const res = document.getElementById(prefix + '-result');
+    const vid = document.getElementById(prefix + '-video');
+    const img = document.getElementById(prefix + '-img');
+    const lbl = document.getElementById(prefix + '-media-lbl');
+    const isImg = (f.type || '').startsWith('image/');
+    const url = URL.createObjectURL(f);
+    if (res) res.style.display = 'block';
+    if (isImg) {
+      if (vid) { vid.pause(); vid.style.display = 'none'; }
+      if (img) { img.src = url; img.style.display = 'block'; }
+    } else {
+      if (img) img.style.display = 'none';
+      if (vid) { vid.src = url; vid.style.display = 'block'; vid.play().catch(() => {}); }
+    }
+    if (lbl) lbl.textContent = '▶ Analyzing…';
+    // Clear any stale results while the new scan runs
+    const sum = document.getElementById(prefix + '-summary'); if (sum) sum.innerHTML = '';
+    const per = document.getElementById(prefix + '-persons'); if (per) per.innerHTML = '';
+  }
+
+  async function _sfRun(prefix, fileArg) {
+    const input = document.getElementById(prefix + '-file');
+    const f = fileArg || _anFile[prefix] || (input && input.files[0]);
+    if (!f) return;
+    const load = document.getElementById(prefix + '-loading');
+    const res  = document.getElementById(prefix + '-result');
+    const btn  = document.getElementById(prefix + '-detect');
+    const isVid = (f.type || '').startsWith('video');
+    if (btn) { btn.disabled = true; btn.textContent = 'Detecting…'; }
+    // Reveal the uploaded video / photo right away and keep it on screen throughout
+    _sfShowMedia(prefix, f);
+    if (load) load.style.display = 'block';
+    const fd = new FormData();
+    fd.append('file', f);
+    try {
+      const r = await fetch(`${API}/api/v1/safety/` + (isVid ? 'analyze-video' : 'analyze-image'),
+                            { method: 'POST', body: fd });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.detail || 'analysis failed');
+      const img = document.getElementById(prefix + '-img');
+      const vid = document.getElementById(prefix + '-video');
+      const lbl = document.getElementById(prefix + '-media-lbl');
+      if (d.annotated_image && img) {
+        if (vid) { vid.pause(); vid.style.display = 'none'; }
+        img.src = d.annotated_image; img.style.display = 'block';
+        if (lbl) lbl.textContent = 'Detection result';
+      } else if (lbl) {
+        lbl.textContent = isVid ? '▶ Uploaded video' : '🖼 Uploaded image';
+      }
+      // People & Safety tab → detailed PPE per person; Activity tab → detailed activity per person
+      document.getElementById(prefix + '-summary').innerHTML = (prefix === 'ac') ? _acSummary(d) : _sfSummary(d);
+      document.getElementById(prefix + '-persons').innerHTML = (prefix === 'ac') ? _acPersons(d) : _sfPersons(d);
+      if (res) res.style.display = 'block';
+      _sfUpdateGauge(d);
+      // People & Safety tab → pop-up + Alerts entry when PPE isn't followed
+      if (prefix === 'sf' && d.has_violation && (d.violations || []).length) {
+        _denyAlert('PPE violation — missing ' + d.violations.join(', '),
+                   'People & Safety · ' + (d.people || 0) + ' worker' + ((d.people || 0) === 1 ? '' : 's'));
+      }
+      loadSafetyLog();
+    } catch (e) {
+      _toast('Safety analysis failed: ' + e.message, 'err');
+    } finally {
+      if (load) load.style.display = 'none';
+      if (input) input.value = '';
+      if (btn) { btn.disabled = false; btn.textContent = 'Detect'; }
+    }
+  }
+
+  // Selected / dropped file for each analyzer (detection runs on the Detect button)
+  const _anFile = {};
+
+  function sfSelect(prefix) {
+    const inp = document.getElementById(prefix + '-file');
+    const f = inp && inp.files[0];
+    if (f) sfSetFile(prefix, f);
+  }
+  function sfSetFile(prefix, f) {
+    if (!(f.type || '').startsWith('video/') && !(f.type || '').startsWith('image/')) {
+      _toast('Please choose a video, photo or screenshot', 'warn');
+      return;
+    }
+    _anFile[prefix] = f;
+    const isImg = (f.type || '').startsWith('image/');
+    // Hide the big dropzone once a file is chosen; show the media preview instead
+    const up = document.getElementById(prefix + '-uploader');
+    if (up) up.style.display = 'none';
+    _sfShowMedia(prefix, f);
+    const lbl = document.getElementById(prefix + '-media-lbl');
+    if (lbl) lbl.textContent = isImg ? '🖼 Ready — click Detect' : '▶ Ready — click Detect';
+    const fn = document.getElementById(prefix + '-fname');
+    if (fn) fn.textContent = `${isImg ? '🖼' : '▶'} ${f.name}  (${(f.size / 1048576).toFixed(1)} MB) — ready to detect`;
+    const btn = document.getElementById(prefix + '-detect');
+    if (btn) btn.disabled = false;
+  }
+  function sfDetect(prefix) {
+    const f = _anFile[prefix];
+    if (!f) { _toast('Choose a video or photo first', 'warn'); return; }
+    _sfRun(prefix, f);
+  }
+
+  // Drag-and-drop onto the analyzer uploader → load the file (detect on the button)
+  function sfDrop(ev, prefix) {
+    ev.preventDefault();
+    const zone = document.getElementById(prefix + '-uploader');
+    if (zone) zone.classList.remove('drag-over');
+    const f = ev.dataTransfer.files[0];
+    if (!f) return;
+    sfSetFile(prefix, f);
+  }
+
+  async function loadSafetyStatus() {
+    let txt;
+    try {
+      const r = await fetch(`${API}/api/v1/safety/status`);
+      const d = await r.json();
+      txt = d.available
+        ? 'model ready · hat ' + (d.hat_detection ? '✓' : '–') + ' · vest ' + (d.vest_detection ? '✓' : '–')
+        : 'models unavailable';
+    } catch { txt = 'backend offline'; }
+    ['sf-status', 'ac-status'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = txt;
+    });
+  }
+
+  async function loadSafetyLog() {
+    const el = document.getElementById('sf-log');
+    if (!el) return;
+    try {
+      const r = await fetch(`${API}/api/v1/safety/log?limit=30`);
+      const rows = await r.json();
+      if (!rows.length) {
+        el.innerHTML = '<p class="note">No events yet — upload an image or clip above.</p>';
+        return;
+      }
+      el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:12px">' +
+        '<thead><tr style="text-align:left;color:var(--muted)"><th>Time</th><th>Type</th><th>Detail</th><th>People</th><th></th></tr></thead><tbody>' +
+        rows.map(x => `<tr><td class="m">${_fmtLocalTs(x.timestamp)}</td>` +
+          `<td><span class="chip ${x.kind === 'ppe' && x.violations ? 'crit' : ''}">${x.kind}</span></td>` +
+          `<td>${x.detail || ''}</td><td class="m">${x.people}</td>` +
+          `<td style="text-align:right"><button title="Remove this event" onclick="deleteSafetyLog(${x.id})" style="background:none;border:none;color:var(--muted-2);font-size:14px;line-height:1;cursor:pointer;padding:0 2px" onmouseover="this.style.color='var(--alert)'" onmouseout="this.style.color='var(--muted-2)'">✕</button></td></tr>`).join('') +
+        '</tbody></table>';
+    } catch {
+      el.innerHTML = '<p class="note">Could not load events.</p>';
+    }
+  }
+
+  // Remove a single PPE / activity event, or clear a whole kind / everything.
+  async function deleteSafetyLog(id) {
+    try {
+      await fetch(`${API}/api/v1/safety/log/${id}`, { method: 'DELETE' });
+      loadSafetyLog();
+    } catch (e) { _toast('Could not remove event', 'err'); }
+  }
+  async function clearSafetyLog(kind) {
+    const what = kind ? `all ${kind} events` : 'ALL PPE & activity events';
+    if (!confirm(`Remove ${what}?`)) return;
+    try {
+      await fetch(`${API}/api/v1/safety/log` + (kind ? `?kind=${encodeURIComponent(kind)}` : ''),
+                  { method: 'DELETE' });
+      loadSafetyLog();
+    } catch (e) { _toast('Could not clear events', 'err'); }
+  }
+
+  // Reset an analyzer stage (sf / ac) back to the uploader
+  function sfClear(prefix) {
+    const res = document.getElementById(prefix + '-result');
+    const vid = document.getElementById(prefix + '-video');
+    const img = document.getElementById(prefix + '-img');
+    const file = document.getElementById(prefix + '-file');
+    if (vid) { vid.pause(); vid.removeAttribute('src'); vid.style.display = 'none'; }
+    if (img) { img.removeAttribute('src'); img.style.display = 'none'; }
+    if (res) res.style.display = 'none';
+    if (file) file.value = '';
+    _anFile[prefix] = null;
+    const sum = document.getElementById(prefix + '-summary'); if (sum) sum.innerHTML = '';
+    const per = document.getElementById(prefix + '-persons'); if (per) per.innerHTML = '';
+    // Bring back the big uploader and reset the Detect control
+    const up = document.getElementById(prefix + '-uploader'); if (up) up.style.display = '';
+    const fn = document.getElementById(prefix + '-fname'); if (fn) fn.textContent = 'No file selected yet.';
+    const btn = document.getElementById(prefix + '-detect'); if (btn) { btn.disabled = true; btn.textContent = 'Detect'; }
+  }
+
+  // Update the "PPE compliance" gauge + chips from a live detection result.
+  function _sfUpdateGauge(d) {
+    const arc  = document.getElementById('sf-gauge-arc');
+    const num  = document.getElementById('sf-gauge-num');
+    const chips= document.getElementById('sf-gauge-chips');
+    const note = document.getElementById('sf-gauge-note');
+    const sub  = document.getElementById('sf-gauge-sub');
+    if (!arc || !num) return;
+    const persons = d.persons || [];
+    const total   = d.people || persons.length || 0;
+    const compliant = persons.filter(p => p.status !== 'violation').length;
+    const pct = total ? Math.round(compliant / total * 100) : 0;
+    const CIRC = 295;
+    arc.style.strokeDashoffset = String(CIRC * (1 - pct / 100));
+    arc.setAttribute('stroke', pct >= 80 ? 'var(--clear)' : (pct >= 50 ? 'var(--watch)' : 'var(--alert)'));
+    num.textContent = total ? pct + '%' : '—';
+    if (sub) sub.textContent = total ? 'from last scan' : 'upload to measure';
+    if (chips) {
+      chips.innerHTML = !total
+        ? '<span class="chip">No people detected</span>'
+        : (d.violations && d.violations.length
+            ? d.violations.map(v => `<span class="chip crit">${v} ✕</span>`).join('')
+            : '<span class="chip ok">All PPE ✓</span>');
+    }
+    if (note) note.textContent = total
+      ? `${compliant} of ${total} worker${total === 1 ? '' : 's'} compliant · safety score ${pct}%`
+      : 'Upload a photo or clip in the analyzer above to measure PPE compliance.';
+  }
+
+  (function initSafety() {
+    ['sf', 'ac'].forEach(p => {
+      const file = document.getElementById(p + '-file');
+      if (file) file.addEventListener('change', () => sfSelect(p));
+    });
+    const lr = document.getElementById('sf-log-refresh');
+    if (lr) lr.addEventListener('click', loadSafetyLog);
+    loadSafetyStatus();
+    loadSafetyLog();
+  })();
 </script>

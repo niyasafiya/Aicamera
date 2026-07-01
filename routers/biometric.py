@@ -143,7 +143,7 @@ async def register_person(
 
     # Compute & store face embedding
     embedding     = bio_service.compute_embedding(image_bytes)
-    face_detected = embedding is not None
+    face_detected = bool(embedding and embedding.get("face", True))
     if embedding:
         bio_service.save_encoding(employee_id, embedding)
 
@@ -225,6 +225,164 @@ async def face_video(video: UploadFile = File(...)):
         pass
 
     return result
+
+
+def _recognize_face_video(video_path: str, persons: list[dict]) -> dict:
+    """Sample frames from a clip and run face recognition against the registered
+    people. Returns the best match found (so a single good frame is enough)."""
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        raise HTTPException(400, "Cannot open video file")
+
+    fps   = cap.get(cv2.CAP_PROP_FPS) or 25
+    total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 0
+    step  = max(1, int(round(fps * 0.5)))      # ~2 frames/sec
+    limit = min(total or 1500, 1500)           # scan ≤ ~60 s
+    MAX_CHECKS = 20                            # cap face-recognition passes — faster
+
+    best = {"matched": False, "confidence": 0.0, "person": None, "engine": "none"}
+    idx = 0
+    frames_checked = 0
+    while idx < limit and frames_checked < MAX_CHECKS:
+        if not cap.grab():
+            break
+        if idx % step == 0:
+            ok, frame = cap.retrieve()
+            if not ok:
+                break
+            frames_checked += 1
+            fh, fw = frame.shape[:2]
+            if fw > 800:
+                frame = cv2.resize(frame, (800, int(fh * 800 / fw)))
+            ok2, buf = cv2.imencode(".jpg", frame)
+            if ok2:
+                r = bio_service.verify_face(buf.tobytes(), persons)
+                if r["confidence"] > best["confidence"]:
+                    best = r
+                if r["matched"] and r["confidence"] >= 0.88:
+                    break   # confident match — stop early
+        idx += 1
+    cap.release()
+    best["frames_checked"] = frames_checked
+    return best
+
+
+@router.post("/verify-video")
+async def verify_video(video: UploadFile = File(...)):
+    """Face recognition over an uploaded clip. Grants access if a registered
+    person is recognised in any sampled frame."""
+    _UPLOADS.mkdir(parents=True, exist_ok=True)
+    suffix = Path(video.filename or "v.mp4").suffix or ".mp4"
+    tmp    = _UPLOADS / f"facever_{uuid.uuid4().hex}{suffix}"
+    tmp.write_bytes(await video.read())
+
+    persons = _list_persons()
+    try:
+        result = await asyncio.to_thread(_recognize_face_video, str(tmp), persons)
+    finally:
+        tmp.unlink(missing_ok=True)
+
+    decision = "GRANTED" if result["matched"] else "DENIED"
+    person   = result.get("person") or {}
+    try:
+        conn = db.get_conn()
+        conn.execute(
+            "INSERT INTO bio_log (person_name, confidence, decision) VALUES (?,?,?)",
+            (person.get("name", "Unknown"), result["confidence"], decision),
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+    return result
+
+
+def _best_face_frame(video_path: str):
+    """Pick the first frame containing a detectable face. Returns
+    (jpeg_bytes, embedding) — or (first_frame_bytes, None) if no face is found."""
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        raise HTTPException(400, "Cannot open video file")
+
+    fps   = cap.get(cv2.CAP_PROP_FPS) or 25
+    total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 0
+    step  = max(1, int(round(fps * 0.3)))
+    limit = min(total or 3000, 3000)
+
+    fallback = None
+    idx = 0
+    while idx < limit:
+        if not cap.grab():
+            break
+        if idx % step == 0:
+            ok, frame = cap.retrieve()
+            if not ok:
+                break
+            fh, fw = frame.shape[:2]
+            if fw > 960:
+                frame = cv2.resize(frame, (960, int(fh * 960 / fw)))
+            ok2, buf = cv2.imencode(".jpg", frame)
+            if ok2:
+                jpg = buf.tobytes()
+                if fallback is None:
+                    fallback = jpg
+                emb = bio_service.compute_embedding(jpg)
+                if emb and emb.get("face"):
+                    cap.release()
+                    return jpg, emb
+        idx += 1
+    cap.release()
+    return fallback, None
+
+
+@router.post("/register-video", status_code=201)
+async def register_person_video(
+    video:           UploadFile = File(...),
+    name:            str        = Form(...),
+    employee_id:     str        = Form(...),
+    department:      str        = Form("General"),
+    clearance_level: str        = Form("L1"),
+):
+    """Register a person from a video clip: picks the best frame containing a
+    face, stores it as the photo, and saves the face embedding."""
+    _UPLOADS.mkdir(parents=True, exist_ok=True)
+    suffix = Path(video.filename or "v.mp4").suffix or ".mp4"
+    tmp    = _UPLOADS / f"reg_{uuid.uuid4().hex}{suffix}"
+    tmp.write_bytes(await video.read())
+    try:
+        frame_bytes, embedding = await asyncio.to_thread(_best_face_frame, str(tmp))
+    finally:
+        tmp.unlink(missing_ok=True)
+
+    face_detected = embedding is not None
+    photo_path    = bio_service.save_photo(employee_id, frame_bytes) if frame_bytes else None
+    if embedding:
+        bio_service.save_encoding(employee_id, embedding)
+
+    conn = db.get_conn()
+    conn.execute(
+        """
+        INSERT INTO persons (employee_id, name, department, clearance_level, photo_path)
+        VALUES (?,?,?,?,?)
+        ON CONFLICT(employee_id) DO UPDATE SET
+            name=excluded.name, department=excluded.department,
+            clearance_level=excluded.clearance_level, photo_path=excluded.photo_path
+        """,
+        (employee_id, name, department, clearance_level, photo_path),
+    )
+    conn.commit()
+    conn.close()
+
+    return {
+        "success": True,
+        "face_detected": face_detected,
+        "message": (
+            f"{name} registered from video (face captured)."
+            if face_detected
+            else f"{name} registered, but no clear face was found — try a clearer clip."
+        ),
+    }
 
 
 @router.get("/persons")

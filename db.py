@@ -78,6 +78,15 @@ def init_db():
             result_json TEXT,
             created_at  TEXT DEFAULT (datetime('now'))
         );
+        CREATE TABLE IF NOT EXISTS safety_log (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp  TEXT DEFAULT (datetime('now')),
+            kind       TEXT NOT NULL DEFAULT 'ppe',   -- 'ppe' | 'activity'
+            detail     TEXT NOT NULL DEFAULT '',
+            people     INTEGER NOT NULL DEFAULT 0,
+            violations TEXT NOT NULL DEFAULT '',
+            location   TEXT NOT NULL DEFAULT ''
+        );
     """)
 
     existing = conn.execute("SELECT COUNT(*) FROM authorized_vehicles").fetchone()[0]

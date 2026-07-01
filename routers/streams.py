@@ -15,6 +15,7 @@ router = APIRouter()
 
 _CAM_CFG = {
     "cam01": {"name": "Main Gate — In",     "id": "CAM-01", "analytics": "LPR · Face"},
+    "cam02": {"name": "Facial Recog - Gate", "id": "CAM-02", "analytics": "Face ID"},
     "cam12": {"name": "Loading Bay 2",      "id": "CAM-12", "analytics": "DN-OCR · Count"},
     "cam08": {"name": "Warehouse Aisle 4",  "id": "CAM-08", "analytics": "PPE · Zone"},
     "cam05": {"name": "Turnstile B",        "id": "CAM-05", "analytics": "Tailgate"},
